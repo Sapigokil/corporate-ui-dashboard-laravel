@@ -7,6 +7,8 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\PdfController; // Impor Controller
+use App\Http\Controllers\RoleController;
 
 /*
 |--------------------------------------------------------------------------
@@ -84,6 +86,39 @@ Route::get('/reset-password/{token}', [ResetPasswordController::class, 'create']
 Route::post('/reset-password', [ResetPasswordController::class, 'store'])
     ->middleware('guest');
 
-Route::get('/laravel-examples/user-profile', [ProfileController::class, 'index'])->name('users.profile')->middleware('auth');
-Route::put('/laravel-examples/user-profile/update', [ProfileController::class, 'update'])->name('users.update')->middleware('auth');
-Route::get('/laravel-examples/users-management', [UserController::class, 'index'])->name('users-management')->middleware('auth');
+// Route::get('/laravel-examples/user-profile', [ProfileController::class, 'index'])->name('users.profile')->middleware('auth');
+// Route::put('/laravel-examples/user-profile/update', [ProfileController::class, 'update'])->name('users.update')->middleware('auth');
+// Route::get('/laravel-examples/users-management', [UserController::class, 'index'])->name('users-management')->middleware('auth');
+
+// Route::get('/test-pdf-corporate', [PdfController::class, 'generatePdf']);
+
+// =========================================================
+// GRUP ROUTE E-RAPOR: PENGATURAN SISTEM (Membutuhkan Spatie Permission)
+// URL Prefix: /pengaturan
+// =========================================================
+
+// Middleware 'can:pengaturan-manage-users' memastikan hanya yang punya izin Admin/Operator yang bisa akses
+Route::prefix('pengaturan')->middleware(['auth', 'can:pengaturan-manage-users'])->group(function () {
+    
+    // 1. ROLE MANAGEMENT
+    // Route resource untuk Role (users.index, users.edit, users.update, etc.)
+    // Nama Route: roles.index, roles.create, roles.edit, roles.update, roles.destroy
+    Route::resource('roles', RoleController::class)->except(['show']);
+    
+    // 2. USER MANAGEMENT
+    // Route resource untuk User (users.index, users.edit, users.update, etc.)
+    // Nama Route: users.index, users.create, users.edit, users.update, users.destroy
+    // Catatan: Jika Anda ingin menggunakan URL /users untuk list user, Anda harus mengganti nama users-management yang sudah ada
+    Route::resource('users', UserController::class)->except(['show']);
+    
+});
+
+// Catatan: Jika Anda ingin mempertahankan route lama:
+// Route::get('/laravel-examples/users-management', [UserController::class, 'index'])->name('users-management')->middleware('auth');
+// Maka Anda harus MENGHAPUS salah satu dari resource users atau mengganti nama route users.index menjadi users-management.index
+// Untuk kesederhanaan, kita ganti yang lama:
+
+Route::get('/laravel-examples/users-management', [UserController::class, 'index'])->name('users-management.index')->middleware('auth');
+// DAN JANGAN MENGGUNAKAN Route::resource('users', ...) di atas, atau gunakan alias jika nama sudah terpakai.
+
+// Karena kita menggunakan Route::resource('users', ...) di atas, kita ASUMSIKAN kita akan menggunakan users.index
