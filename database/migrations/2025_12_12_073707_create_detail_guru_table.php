@@ -18,8 +18,8 @@ return new class extends Migration
             // Data Pribadi Dasar
             $table->string('tempat_lahir', 100)->nullable();
             $table->date('tanggal_lahir')->nullable();
-            $table->string('nik', 20)->unique()->nullable();
-            $table->string('agama', 20)->nullable();
+            $table->string('nik', 120)->unique()->nullable();
+            $table->string('agama', 120)->nullable();
             
             // Data Alamat Rinci
             $table->string('alamat', 255)->nullable();

@@ -17,9 +17,9 @@ return new class extends Migration
             // --------------------------
 
             $table->string('nipd', 30)->unique();
-            $table->string('nisn', 15)->unique();
+            $table->string('nisn', 30)->unique();
             $table->string('nama_siswa', 150);
-            $table->enum('jenis_kelamin', ['L', 'P']);
+            $table->string('jenis_kelamin', 30)->nullable();
             $table->string('tingkat', 50)->nullable(); 
             
             // Kolom Foreign Key (FK)

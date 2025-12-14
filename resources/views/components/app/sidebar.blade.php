@@ -35,8 +35,21 @@
             
             {{-- Logika untuk menentukan apakah menu Master Data harus aktif/terbuka --}}
             @php 
-                $masterRoutes = ['master.students.index', 'master.teachers.index', 'master.classes.index', 'master.subjects.index'];
-                $isMasterActive = request()->routeIs($masterRoutes) || request()->is('master-data/*'); 
+                $masterRoutes = [
+                    'master.sekolah.index', 
+                    'master.guru.index', 
+                    'master.siswa.index', 
+                    'master.kelas.index', 
+                    'master.mapel.index',
+                    'master.pembelajaran.index',
+                    
+                    // 🛑 Tambahkan Wildcard untuk Ekstrakurikuler List & Siswa
+                    'master.ekskul.list_index.*', 
+                    'master.ekskul.siswa_index.*' 
+                ];
+                // Gunakan array routeIs untuk mencakup semua sub-menu secara rekursif
+                $isMasterActive = request()->routeIs($masterRoutes); 
+                // Hapus || request()->is('master-data/*') jika semua route sudah terdaftar di atas
             @endphp
             
             {{-- 2. MASTER DATA --}}
@@ -54,45 +67,54 @@
                         
                         {{-- SEMUA LINK MASTER DATA DIARAHKAN KE # --}}
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('master.school.index') ? 'active' : 'text-white' }}" href="{{ route('master.sekolah.index') }}">
+                            <a class="nav-link {{ request()->routeIs('master.sekolah.index') ? 'active' : 'text-white' }}" href="{{ route('master.sekolah.index') }}">
                                 <span class="sidenav-mini-icon"> S </span>
                                 <span class="sidenav-normal"> Data Sekolah </span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('master.teachers.index') ? 'active' : 'text-white' }}" href="{{ route('master.guru.index') }}">
+                            <a class="nav-link {{ request()->routeIs('master.guru.index') ? 'active' : 'text-white' }}" href="{{ route('master.guru.index') }}">
                                 <span class="sidenav-mini-icon"> G </span>
                                 <span class="sidenav-normal"> Data Guru </span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('master.students.index') ? 'active' : 'text-white' }}" href="#">
+                            <a class="nav-link {{ request()->routeIs('master.siswa.index') ? 'active' : 'text-white' }}" href="{{ route('master.siswa.index') }}">
                                 <span class="sidenav-mini-icon"> S </span>
                                 <span class="sidenav-normal"> Data Siswa </span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('master.classes.index') ? 'active' : 'text-white' }}" href="#">
+                            <a class="nav-link {{ request()->routeIs('master.kelas.index') ? 'active' : 'text-white' }}" href="{{ route('master.kelas.index') }}">
                                 <span class="sidenav-mini-icon"> K </span>
                                 <span class="sidenav-normal"> Data Kelas </span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('master.subjects.index') ? 'active' : 'text-white' }}" href="#">
+                            <a class="nav-link {{ request()->routeIs('master.mapel.index') ? 'active' : 'text-white' }}" href="{{ route('master.mapel.index') }}">
                                 <span class="sidenav-mini-icon"> M </span>
                                 <span class="sidenav-normal"> Mata Pelajaran </span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('master.learning.index') ? 'active' : 'text-white' }}" href="#">
+                            <a class="nav-link {{ request()->routeIs('master.pembelajaran.index') ? 'active' : 'text-white' }}" href="{{ route('master.pembelajaran.index') }}">
                                 <span class="sidenav-mini-icon"> P </span>
                                 <span class="sidenav-normal"> Data Pembelajaran </span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('master.extracurricular.index') ? 'active' : 'text-white' }}" href="#">
-                                <span class="sidenav-mini-icon"> E </span>
-                                <span class="sidenav-normal"> Ekstrakulikuler </span>
+                            <a class="nav-link {{ request()->routeIs('master.ekskul.list_index.*') ? 'active' : 'text-white' }}" 
+                            href="{{ route('master.ekskul.list.index') }}">
+                                <span class="sidenav-mini-icon"> EL </span>
+                                <span class="sidenav-normal"> List Ekstrakurikuler </span>
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('master.ekskul.siswa_index.*') ? 'active' : 'text-white' }}" 
+                            href="{{ route('master.ekskul.siswa.index') }}">
+                                <span class="sidenav-mini-icon"> EP </span>
+                                <span class="sidenav-normal"> Data Peserta Ekskul </span>
                             </a>
                         </li>
                     </ul>

@@ -18,8 +18,8 @@
                                     <p class="mb-0">Welcome back!</p>
                                     <p class="mb-0">Create a new acount<br></p>
                                     <p class="mb-0">OR Sign in with these credentials:</p>
-                                    <p class="mb-0">Email: <b>admin@corporateui.com</b></p>
-                                    <p class="mb-0">Password: <b>secret</b></p>
+                                    <p class="mb-0">Email: <b>admin@erapor.test</b></p>
+                                    <p class="mb-0">Password: <b>password</b></p>
                                 </div>
                                 <div class="text-center">
                                     @if (session('status'))
@@ -40,13 +40,13 @@
                                         <div class="mb-3">
                                             <input type="email" id="email" name="email" class="form-control"
                                                 placeholder="Enter your email address"
-                                                value="{{ old('email') ? old('email') : 'admin@corporateui.com' }}"
+                                                value="{{ old('email') ? old('email') : 'admin@erapor.test' }}"
                                                 aria-label="Email" aria-describedby="email-addon">
                                         </div>
                                         <label>Password</label>
                                         <div class="mb-3">
                                             <input type="password" id="password" name="password"
-                                                value="{{ old('password') ? old('password') : 'secret' }}"
+                                                value="{{ old('password') ? old('password') : 'password' }}"
                                                 class="form-control" placeholder="Enter password" aria-label="Password"
                                                 aria-describedby="password-addon">
                                         </div>

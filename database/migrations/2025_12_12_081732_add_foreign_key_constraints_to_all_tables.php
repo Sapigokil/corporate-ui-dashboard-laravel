@@ -58,9 +58,9 @@ return new class extends Migration
         // ---------------------------------------------------------------------
         // 5. Relasi Guru Tambahan
         // ---------------------------------------------------------------------
-        Schema::table('ekskul', function (Blueprint $table) {
-            $table->foreign('id_guru')->references('id_guru')->on('guru')->onDelete('set null');
-        });
+        // Schema::table('ekskul', function (Blueprint $table) {
+        //     $table->foreign('id_guru')->references('id_guru')->on('guru')->onDelete('set null');
+        // });
         Schema::table('detail_guru', function (Blueprint $table) {
             $table->foreign('id_guru')->references('id_guru')->on('guru')->onDelete('cascade');
             $table->foreign('id_pembelajaran')->references('id_pembelajaran')->on('pembelajaran')->onDelete('set null');
@@ -130,9 +130,9 @@ return new class extends Migration
             $table->dropForeign(['id_guru']);
             $table->dropForeign(['id_pembelajaran']);
         });
-        Schema::table('ekskul', function (Blueprint $table) {
-            $table->dropForeign(['id_guru']);
-        });
+        // Schema::table('ekskul', function (Blueprint $table) {
+        //     $table->dropForeign(['id_guru']);
+        // });
 
         // ---------------------------------------------------------------------
         // 4. Relasi Pembelajaran & Mata Pelajaran

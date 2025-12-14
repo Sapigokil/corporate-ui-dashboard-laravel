@@ -15,12 +15,12 @@ return new class extends Migration
             $table->unsignedBigInteger('id_user')->unique()->nullable(); 
             // --------------------------
             $table->string('nama_guru', 150);
-            $table->string('nip', 30)->nullable(); 
-            $table->string('nuptk', 30)->nullable(); 
+            $table->string('nip', 150)->nullable(); 
+            $table->string('nuptk', 150)->nullable(); 
             $table->string('jenis_kelamin', 30)->nullable();
-            $table->string('jenis_ptk', 50)->nullable();
-            $table->string('role', 50)->nullable(); 
-            $table->string('status', 50)->nullable();
+            $table->string('jenis_ptk', 150)->nullable();
+            $table->string('role', 150)->nullable(); 
+            $table->string('status', 150)->nullable();
 
             // $timestamps = false
         });

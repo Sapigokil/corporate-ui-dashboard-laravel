@@ -1,23 +1,13 @@
-<!--
-=========================================================
-* Corporate UI - v1.0.0
-=========================================================
-
-* Product Page: https://www.creative-tim.com/product/corporate-ui
-* Copyright 2022 Creative Tim (https://www.creative-tim.com)
-* Licensed under MIT (https://www.creative-tim.com/license)
-* Coded by Creative Tim
-
-=========================================================
-
-* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
--->
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    
+    {{-- BARU: CSRF Token untuk AJAX --}}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    
     @if (config('app.is_demo'))
         <title itemprop="name">
             Corporate UI Dashboard Laravel by Creative Tim & UPDIVISION
@@ -35,7 +25,7 @@
         <meta name="description" content=""Fullstack tool for building Laravel apps with hundreds of UI components
             and ready-made CRUDs">
         <meta name="keywords"
-            content="creative tim, updivision, html dashboard, laravel, api, html css dashboard laravel,  Corporate UI Dashboard Laravel,  Corporate UI Laravel,  Corporate Dashboard Laravel, UI Dashboard Laravel, Laravel admin, laravel dashboard, Laravel dashboard, laravel admin, web dashboard, bootstrap 5 dashboard laravel, bootstrap 5, css3 dashboard, bootstrap 5 admin laravel, frontend, responsive bootstrap 5 dashboard, corporate dashboard laravel,  Corporate UI Dashboard Laravel">
+            content="creative tim, updivision, html dashboard, laravel, api, html css dashboard laravel, Corporate UI Dashboard Laravel, Corporate UI Laravel, Corporate Dashboard Laravel, UI Dashboard Laravel, Laravel admin, laravel dashboard, Laravel dashboard, laravel admin, web dashboard, bootstrap 5 dashboard laravel, bootstrap 5, css3 dashboard, bootstrap 5 admin laravel, frontend, responsive bootstrap 5 dashboard, corporate dashboard laravel, Corporate UI Dashboard Laravel">
         <meta property="og:app_id" content="655968634437471">
         <meta property="og:type" content="product">
         <meta property="og:title" content="Corporate UI Dashboard Laravel by Creative Tim & UPDIVISION">
@@ -49,24 +39,26 @@
         <meta property="product:category" content="Admin &amp; Dashboards">
         <meta name="data-turbolinks-track" content="false">
     @endif
-    <link rel="apple-touch-icon" sizes="76x76" href="../assets/img/apple-icon.png">
-    <link rel="icon" type="image/png" href="../assets/img/favicon.png">
+    
+    {{-- 🛑 KOREKSI JALUR: Ikon di Head --}}
+    <link rel="apple-touch-icon" sizes="76x76" href="{{ asset('assets/img/apple-icon.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('assets/img/favicon.png') }}">
     <title>
-        Corporate UI by Creative Tim & UPDIVISION
+        @yield('title', 'Corporate UI by Creative Tim & UPDIVISION')
     </title>
-    <!--     Fonts and icons     -->
-    <link
+        <link
         href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700|Noto+Sans:300,400,500,600,700,800|PT+Mono:300,400,500,600,700"
         rel="stylesheet" />
-    <!-- Nucleo Icons -->
-    <link href="{{ asset('assets/css/nucleo-icons.css') }}" rel="stylesheet" />
+        <link href="{{ asset('assets/css/nucleo-icons.css') }}" rel="stylesheet" />
     <link href="{{ asset('assets/css/nucleo-svg.css') }}" rel="stylesheet" />
+    
     <script src="https://kit.fontawesome.com/349ee9c857.js" crossorigin="anonymous"></script>
+    
     <link href="{{ asset('assets/css/nucleo-svg.css') }}" rel="stylesheet" />
     <link id="pagestyle" href="{{ asset('assets/css/corporate-ui-dashboard.css?v=1.0.0') }}" rel="stylesheet" />
 </head>
 
-<body class="g-sidenav-show  bg-gray-100">
+<body class="g-sidenav-show  bg-gray-100">
     @php
         $topSidenavArray = ['wallet', 'profile'];
         $topSidenavTransparent = ['signin', 'signup'];
@@ -101,12 +93,10 @@
                         <i class="fa fa-close"></i>
                     </button>
                 </div>
-                <!-- End Toggle Button -->
-            </div>
+                                </div>
             <hr class="horizontal dark my-1">
             <div class="card-body pt-sm-3 pt-0">
-                <!-- Sidebar Backgrounds -->
-                <div>
+                                <div>
                     <h6 class="mb-0">Sidebar Colors</h6>
                 </div>
                 <a href="javascript:void(0)" class="switch-trigger background-color">
@@ -123,8 +113,7 @@
                             onclick="sidebarColor(this)"></span>
                     </div>
                 </a>
-                <!-- Sidenav Type -->
-                <div class="mt-3">
+                                <div class="mt-3">
                     <h6 class="mb-0">Sidenav Type</h6>
                     <p class="text-sm">Choose between 2 different sidenav types.</p>
                 </div>
@@ -135,9 +124,9 @@
                         onclick="sidebarType(this)">White</button>
                 </div>
                 <p class="text-sm d-xl-none d-block mt-2">You can change the sidenav type just on desktop view.</p>
-                <!-- Navbar Fixed -->
-                <div class="mt-3">
+                                <div class="mt-3">
                     <h6 class="mb-0">Navbar Fixed</h6>
+                    <p class="text-sm">Choose between 2 different sidenav types.</p>
                 </div>
                 <div class="form-check form-switch ps-0">
                     <input class="form-check-input mt-1 ms-auto" type="checkbox" id="navbarFixed"
@@ -166,13 +155,18 @@
             </div>
         </div>
     </div>
-    <!--   Core JS Files   -->
-    <script src="../assets/js/core/popper.min.js"></script>
-    <script src="../assets/js/core/bootstrap.min.js"></script>
-    <script src="../assets/js/plugins/perfect-scrollbar.min.js"></script>
-    <script src="../assets/js/plugins/smooth-scrollbar.min.js"></script>
-    <script src="../assets/js/plugins/chartjs.min.js"></script>
-    <script src="../assets/js/plugins/swiper-bundle.min.js" type="text/javascript"></script>
+    
+    {{-- 🛑 KOREKSI JALUR JS: Gunakan {{ asset() }} untuk SEMUA file JS --}}
+    <script src="{{ asset('assets/js/core/popper.min.js') }}"></script>
+    <script src="{{ asset('assets/js/core/bootstrap.min.js') }}"></script>
+    <script src="{{ asset('assets/js/plugins/perfect-scrollbar.min.js') }}"></script>
+    <script src="{{ asset('assets/js/plugins/smooth-scrollbar.min.js') }}"></script>
+    <script src="{{ asset('assets/js/plugins/chartjs.min.js') }}"></script>
+    <script src="{{ asset('assets/js/plugins/swiper-bundle.min.js') }}" type="text/javascript"></script>
+    
+    {{-- BARU: CDN SheetJS untuk import Excel --}}
+    <script src="https://cdn.sheetjs.com/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
     <script>
         if (document.getElementsByClassName('mySwiper')) {
             var swiper = new Swiper(".mySwiper", {
@@ -185,7 +179,6 @@
                 },
             });
         };
-
 
         var ctx = document.getElementById("chart-bars").getContext("2d");
 
@@ -407,8 +400,7 @@
                             drawBorder: false,
                             display: false,
                             drawOnChartArea: false,
-                            drawTicks: false,
-                            borderDash: [4, 4]
+                            drawTicks: false
                         },
                         ticks: {
                             display: true,
@@ -436,10 +428,12 @@
             Scrollbar.init(document.querySelector('#sidenav-scrollbar'), options);
         }
     </script>
-    <!-- Github buttons -->
     <script async defer src="https://buttons.github.io/buttons.js"></script>
-    <!-- Control Center for Corporate UI Dashboard: parallax effects, scripts for the example pages etc -->
-    <script src="../assets/js/corporate-ui-dashboard.min.js?v=1.0.0"></script>
+    
+    <script src="{{ asset('assets/js/corporate-ui-dashboard.min.js?v=1.0.0') }}"></script>
+    
+    {{-- AREA @stack('scripts') --}}
+    @stack('scripts')
 </body>
 
 </html>

@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\AnggotaKelas;
+use App\Models\Siswa;
 
 class Kelas extends Model
 {
@@ -31,6 +32,11 @@ class Kelas extends Model
     public function guru()
     {
         return $this->belongsTo(Guru::class, 'id_guru', 'id_guru');
+    }
+
+    public function siswas()
+    {
+        return $this->hasMany(Siswa::class, 'id_kelas', 'id_kelas');
     }
 
     /**

@@ -107,8 +107,15 @@
                             </div>
                             
                             {{-- Pagination --}}
-                            <div class="p-3">
+                            {{-- <div class="p-3">
                                 {{ $users->links() }}
+                            </div> --}}
+                            <div class="p-3 text-center">
+                                <div class="row">
+                                    <div class="col-md-12 col-sm-12 d-flex justify-content-center">
+                                        {{ $users->links('vendor.pagination.soft-ui') }}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

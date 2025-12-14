@@ -11,6 +11,12 @@ use App\Http\Controllers\PdfController; // Impor Controller
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\InfoSekolahController;
 use App\Http\Controllers\GuruController;
+use App\Http\Controllers\SiswaController;
+use App\Http\Controllers\KelasController;
+use App\Http\Controllers\MapelController;
+use App\Http\Controllers\PembelajaranController;
+use App\Http\Controllers\MasterEkskulController;
+use App\Http\Controllers\PesertaEkskulController;
 
 /*
 |--------------------------------------------------------------------------
@@ -139,7 +145,104 @@ Route::prefix('master-data')->name('master.')->group(function () {
         
     // Route Ekspor/Impor
     Route::post('guru/import', [GuruController::class, 'importCsv'])->name('guru.import');
+    Route::post('guru/import/xlsx', [GuruController::class, 'importXlsx'])->name('guru.import.xlsx'); // NEW: Excel Import
     Route::get('guru/export/pdf', [GuruController::class, 'exportPdf'])->name('guru.export.pdf');
     Route::get('guru/export/csv', [GuruController::class, 'exportCsv'])->name('guru.export.csv');
         // ... (Route untuk Guru, Siswa, Kelas, dll. akan ditambahkan di sini)
+    
+    Route::resource('siswa', SiswaController::class)
+        ->names('siswa') // Memberikan nama master.siswa.index, .create, .store, dll.
+        ->parameters(['siswa' => 'siswa']) // Menggunakan singular 'siswa' di URL/Binding {siswa}
+        ->middleware('can:manage-master');
+    
+    // Tambahan untuk Import/Export (jika perlu)
+    Route::get('siswa/export/pdf', [SiswaController::class, 'exportPdf'])->name('siswa.export.pdf');
+    Route::get('siswa/export/csv', [SiswaController::class, 'exportCsv'])->name('siswa.export.csv');
+    Route::post('siswa/import/csv', [SiswaController::class, 'importCsv'])->name('siswa.import.csv');
+    // Route baru untuk Excel. Kita akan membuat method importXlsx jika Anda memutuskan menggunakan library Excel
+    Route::post('siswa/import/xlsx', [SiswaController::class, 'importXlsx'])->name('siswa.import.xlsx');
+
+    // Resource Route untuk CRUD dasar (index, create, store, show, edit, update, destroy)
+    Route::resource('kelas', KelasController::class)
+        ->names('kelas') // Memberikan nama master.kelas.index, .create, .store, dll.
+        ->parameters(['kelas' => 'id_kelas']) // Menggunakan id_kelas di URL/Binding {id_kelas}
+        ->middleware('can:manage-master'); 
+        
+    // Route Ekspor
+    Route::get('kelas/export/pdf', [KelasController::class, 'exportPdf'])->name('kelas.export.pdf');
+    Route::get('kelas/export/csv', [KelasController::class, 'exportCsv'])->name('kelas.export.csv');
+    Route::get('kelas/{id_kelas}/export/single', [KelasController::class, 'exportKelas'])->name('kelas.export.single');
+    Route::get('kelas/{id_kelas}/anggota', [KelasController::class, 'anggota'])->name('kelas.anggota');
+    Route::delete('kelas/anggota/{id_siswa}', [KelasController::class, 'hapusAnggota'])->name('kelas.anggota.delete');
+
+    // TAMBAH: MATA PELAJARAN (MAPEL)
+    Route::resource('mapel', MapelController::class)
+        ->names('mapel') // Nama route: master.mapel.index, .create, dll.
+        ->parameters(['mapel' => 'id_mapel']) // Binding ke {id_mapel}
+        ->middleware('can:manage-master');
+
+    //  KOREKSI: PEMBELAJARAN
+    Route::prefix('pembelajaran')->group(function () {
+        //  KOREKSI METHOD: Menunjuk ke PembelajaranController@dataPembelajaran
+        Route::get('/', [PembelajaranController::class, 'dataPembelajaran'])->name('pembelajaran.index'); 
+        //  TAMBAH ROUTE CREATE (GET /master-data/pembelajaran/create)
+        Route::get('/create', [PembelajaranController::class, 'create'])->name('pembelajaran.create');
+        //  TAMBAH ROUTE EDIT
+        Route::get('/{id}/edit', [PembelajaranController::class, 'edit'])->name('pembelajaran.edit');
+        // Store (POST /master-data/pembelajaran) -> PembelajaranController@store
+        Route::post('/', [PembelajaranController::class, 'store'])->name('pembelajaran.store');
+        // Update (PUT/PATCH /master-data/pembelajaran/{id}) -> PembelajaranController@update
+        Route::match(['put', 'patch'], '/{id}', [PembelajaranController::class, 'update'])->name('pembelajaran.update');
+        // Destroy (DELETE /master-data/pembelajaran/{id}) -> PembelajaranController@destroy
+        Route::delete('/{id}', [PembelajaranController::class, 'destroy'])->name('pembelajaran.destroy');
+        
+        // Route Export
+        Route::get('/export/pdf', [PembelajaranController::class, 'exportPdf'])->name('pembelajaran.export.pdf');
+        Route::get('/export/csv', [PembelajaranController::class, 'exportCsv'])->name('pembelajaran.export.csv');
+    })->middleware('can:manage-master');
+
+    Route::prefix('ekskul')->group(function () {
+    
+        // =========================================================
+        // 1. MASTER EKSKUL (List Ekstrakurikuler) -> ekskul.list.*
+        // =========================================================
+        
+        // Pastikan nama rute master.ekskul.list.* diganti menjadi ekskul.list.*
+        Route::prefix('list')->name('ekskul.list.')->group(function () {
+            
+            // INDEX: Menggantikan dataEkskul (dipanggil saat route ekskul.list.index)
+            Route::get('/', [MasterEkskulController::class, 'index'])->name('index'); 
+            
+            // CREATE, STORE
+            Route::get('/create', [MasterEkskulController::class, 'create'])->name('create');
+            Route::post('/', [MasterEkskulController::class, 'store'])->name('store');
+
+            // EDIT, UPDATE, DELETE
+            Route::get('/{id_ekskul}/edit', [MasterEkskulController::class, 'edit'])->name('edit');
+            Route::match(['put', 'patch'], '/{id_ekskul}', [MasterEkskulController::class, 'update'])->name('update');
+            Route::delete('/{id_ekskul}', [MasterEkskulController::class, 'destroy'])->name('destroy');
+        });
+
+
+        // =========================================================
+        // 2. PESERTA EKSKUL (Data Ekstrakurikuler) -> ekskul.siswa.*
+        // =========================================================
+
+        Route::prefix('peserta')->name('ekskul.siswa.')->group(function () {
+            
+            // INDEX: Menggantikan dataEkskul (dipanggil saat route ekskul.siswa.index)
+            Route::get('/', [PesertaEkskulController::class, 'index'])->name('index');
+            
+            // CREATE, STORE
+            Route::get('/create', [PesertaEkskulController::class, 'create'])->name('create');
+            Route::post('/', [PesertaEkskulController::class, 'store'])->name('store');
+            
+            // EDIT, UPDATE, DELETE
+            Route::get('/{id_ekskul_siswa}/edit', [PesertaEkskulController::class, 'edit'])->name('edit');
+            Route::match(['put', 'patch'], '/{id_ekskul_siswa}', [PesertaEkskulController::class, 'update'])->name('update');
+            Route::delete('/{id_ekskul_siswa}', [PesertaEkskulController::class, 'destroy'])->name('destroy');
+        });
+
+    })->middleware('can:manage-master'); // Middleware tetap dipertahankan
+
 });

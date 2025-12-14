@@ -10,7 +10,7 @@
         <div class="collapse navbar-collapse mt-sm-0 mt-2 me-md-0 me-sm-4" id="navbar">
             <div class="ms-md-auto pe-md-3 d-flex align-items-center">
                 <div class="input-group">
-                    <span class="input-group-text text-body bg-white  border-end-0 ">
+                    <span class="input-group-text text-body bg-white  border-end-0 ">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16px" height="16px" fill="none"
                             viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -26,11 +26,11 @@
 
                     <a href="login" onclick="event.preventDefault();
                 this.closest('form').submit();">
-                        <button class="btn btn-sm  btn-white  mb-0 me-1" type="submit">Log out</button>
+                        <button class="btn btn-sm  btn-white  mb-0 me-1" type="submit">Log out</button>
                     </a>
                 </form>
             </div>
-            <ul class="navbar-nav  justify-content-end">
+            <ul class="navbar-nav  justify-content-end">
                 <li class="nav-item d-xl-none ps-3 d-flex align-items-center">
                     <a href="javascript:;" class="nav-link text-body p-0" id="iconNavbarSidenav">
                         <div class="sidenav-toggler-inner">
@@ -60,14 +60,15 @@
                                 clip-rule="evenodd" />
                         </svg>
                     </a>
-                    <ul class="dropdown-menu  dropdown-menu-end  px-2 py-3 me-sm-n4"
+                    <ul class="dropdown-menu  dropdown-menu-end  px-2 py-3 me-sm-n4"
                         aria-labelledby="dropdownMenuButton">
                         <li class="mb-2">
                             <a class="dropdown-item border-radius-md" href="javascript:;">
                                 <div class="d-flex py-1">
                                     <div class="my-auto">
-                                        <img src="../assets/img/team-2.jpg"
-                                            class="avatar avatar-sm border-radius-sm  me-3 ">
+                                        {{-- 🛑 KOREKSI 1: team-2.jpg --}}
+                                        <img src="{{ asset('assets/img/team-2.jpg') }}"
+                                            class="avatar avatar-sm border-radius-sm  me-3 ">
                                     </div>
                                     <div class="d-flex flex-column justify-content-center">
                                         <h6 class="text-sm font-weight-normal mb-1">
@@ -85,8 +86,9 @@
                             <a class="dropdown-item border-radius-md" href="javascript:;">
                                 <div class="d-flex py-1">
                                     <div class="my-auto">
-                                        <img src="../assets/img/small-logos/logo-google.svg"
-                                            class="avatar avatar-sm border-radius-sm bg-gradient-dark p-2  me-3 ">
+                                        {{-- 🛑 KOREKSI 2: logo-google.svg --}}
+                                        <img src="{{ asset('assets/img/small-logos/logo-google.svg') }}"
+                                            class="avatar avatar-sm border-radius-sm bg-gradient-dark p-2  me-3 ">
                                     </div>
                                     <div class="d-flex flex-column justify-content-center">
                                         <h6 class="text-sm font-weight-normal mb-1">
@@ -103,7 +105,7 @@
                         <li>
                             <a class="dropdown-item border-radius-md" href="javascript:;">
                                 <div class="d-flex py-1">
-                                    <div class="avatar avatar-sm border-radius-sm bg-slate-800  me-3  my-auto">
+                                    <div class="avatar avatar-sm border-radius-sm bg-slate-800  me-3  my-auto">
                                         <svg width="12px" height="12px" viewBox="0 0 43 36" version="1.1"
                                             xmlns="http://www.w3.org/2000/svg"
                                             xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -141,11 +143,11 @@
                 </li>
                 <li class="nav-item ps-2 d-flex align-items-center">
                     <a href="javascript:;" class="nav-link text-body p-0">
-                        <img src="../assets/img/team-2.jpg" class="avatar avatar-sm" alt="avatar" />
+                        {{-- 🛑 KOREKSI 3: team-2.jpg (Avatar utama) --}}
+                        <img src="{{ asset('assets/img/team-2.jpg') }}" class="avatar avatar-sm" alt="avatar" />
                     </a>
                 </li>
             </ul>
         </div>
     </div>
 </nav>
-<!-- End Navbar -->

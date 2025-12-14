@@ -18,14 +18,14 @@ return new class extends Migration
             // Data Pribadi Siswa
             $table->string('tempat_lahir', 100)->nullable();
             $table->date('tanggal_lahir')->nullable();
-            $table->enum('agama', ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu'])->nullable();
+            $table->string('agama', 150)->nullable();
             $table->string('nik', 20)->unique()->nullable();
             $table->string('no_hp', 20)->nullable();
             $table->string('email', 100)->nullable();
             
             // Data Kesehatan & Fisik
-            $table->tinyInteger('bb')->nullable()->comment('Berat Badan');
-            $table->tinyInteger('tb')->nullable()->comment('Tinggi Badan');
+            $table->string('bb')->nullable()->comment('Berat Badan');
+            $table->string('tb')->nullable()->comment('Tinggi Badan');
             $table->string('lingkar_kepala', 10)->nullable();
             
             // Data Alamat Rinci
@@ -53,13 +53,13 @@ return new class extends Migration
             $table->string('no_regis_akta_lahir', 50)->nullable();
             
             // Data Bantuan
-            $table->boolean('penerima_kps')->default(false);
+            $table->string('penerima_kps', 50)->nullable();
             $table->string('no_kps', 50)->nullable();
-            $table->boolean('penerima_kip')->default(false);
+            $table->string('penerima_kip', 50)->nullable();
             $table->string('no_kip', 50)->nullable();
             $table->string('nama_kip', 150)->nullable();
             $table->string('no_kks', 50)->nullable();
-            $table->boolean('layak_pip_usulan')->default(false);
+            $table->string('layak_pip_usulan', 50)->nullable();
             $table->string('alasan_layak_pip', 100)->nullable();
             $table->string('kebutuhan_khusus', 100)->nullable();
 
@@ -69,8 +69,8 @@ return new class extends Migration
             $table->string('rek_atas_nama', 150)->nullable();
 
             // Data Keluarga & Wali
-            $table->tinyInteger('anak_ke_berapa')->nullable();
-            $table->tinyInteger('jml_saudara_kandung')->nullable();
+            $table->string('anak_ke_berapa', 50)->nullable();
+            $table->string('jml_saudara_kandung', 50)->nullable();
             
             // Data Ayah
             $table->string('nama_ayah', 150)->nullable();
