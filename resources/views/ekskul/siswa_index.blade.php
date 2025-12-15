@@ -17,7 +17,7 @@
                         <div class="card-header p-0 position-relative mt-n4 mx-3 z-index-2">
                             <div class="bg-gradient-primary shadow-primary border-radius-lg pt-4 pb-3 d-flex justify-content-between align-items-center">
                                 <h6 class="text-white text-capitalize ps-3 mb-0"><i class="fas fa-users me-2"></i> Daftar Peserta Ekstrakurikuler</h6>
-                                {{-- 🛑 PERUBAHAN ROUTE --}}
+                                {{-- Mengarah ke Create --}}
                                 <a href="{{ route('master.ekskul.siswa.create') }}" class="btn bg-gradient-light me-3 mb-0">Tambah Peserta Ekskul</a>
                             </div>
                         </div>
@@ -44,7 +44,6 @@
                             
                             {{-- FILTER FORM --}}
                             <div class="p-4 border-bottom">
-                                {{-- 🛑 PERUBAHAN ROUTE --}}
                                 <form action="{{ route('master.ekskul.siswa.index') }}" method="GET" class="row">
                                     
                                     <div class="col-md-4 mb-3">
@@ -81,7 +80,6 @@
 
                                     <div class="col-12 pt-2">
                                         <button type="submit" class="btn btn-info mb-0 me-2">Tampilkan Data</button>
-                                        {{-- 🛑 PERUBAHAN ROUTE --}}
                                         <a href="{{ route('master.ekskul.siswa.index') }}" class="btn btn-secondary mb-0">Reset Filter</a>
                                     </div>
                                 </form>
@@ -118,15 +116,9 @@
                                                     </td>
                                                     <td class="align-middle text-center">
                                                         
-                                                        {{-- Tombol Edit (Kiri) --}}
-                                                        {{-- 🛑 PERUBAHAN: Tambahkan id_kelas sebagai query parameter --}}
-                                                        <a href="{{ route('master.ekskul.siswa.edit', $p->id_ekskul) }}?filter_kelas={{ $p->siswa->id_kelas ?? '' }}" 
-                                                            class="btn btn-link text-info text-gradient px-3 mb-0 me-2">
-                                                            <i class="fas fa-pencil-alt me-2"></i> Edit
-                                                        </a>
+                                                        {{-- 🛑 Tombol Edit Dihilangkan --}}
                                                         
-                                                        {{-- Tombol Hapus (Kanan) --}}
-                                                        {{-- 🛑 PERUBAHAN ROUTE --}}
+                                                        {{-- Tombol Hapus (Tinggal Tombol Ini Saja) --}}
                                                         <form action="{{ route('master.ekskul.siswa.destroy', $p->id) }}" method="POST" style="display:inline;">
                                                             @csrf
                                                             @method('DELETE')
@@ -145,7 +137,6 @@
                             
                             {{-- Custom Pagination Links --}}
                             <div class="d-flex justify-content-center p-3"> 
-                                {{-- Gunakan view kustom yang sesuai dengan style index Siswa Anda --}}
                                 {{ $peserta->links('vendor.pagination.bootstrap-5') }}
                             </div>
 

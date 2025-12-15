@@ -5,11 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Rapor extends Model
+class RaporNilai extends Model // 🛑 Renamed
 {
-    protected $table = 'rapor';
+    protected $table = 'rapor'; // Nama tabel tetap 'rapor'
     protected $primaryKey = 'id_rapor';
-    public $incrementing = true; // kalau id_rapor auto increment
+    public $incrementing = true; 
     protected $keyType = 'int';
 
     protected $fillable = [
@@ -21,6 +21,7 @@ class Rapor extends Model
         'id_tahun_ajaran',
         'semester'
     ];
+    
     public function kelas()
     {
         return $this->belongsTo(Kelas::class, 'id_kelas');
@@ -35,9 +36,4 @@ class Rapor extends Model
     {
         return $this->belongsTo(Siswa::class, 'id_siswa');
     }
-
-    // public function tahunAjaran()
-    // {
-    //     return $this->belongsTo(TahunAjaran::class, 'id_tahun_ajaran');
-    // }
 }

@@ -17,6 +17,9 @@ use App\Http\Controllers\MapelController;
 use App\Http\Controllers\PembelajaranController;
 use App\Http\Controllers\MasterEkskulController;
 use App\Http\Controllers\PesertaEkskulController;
+use App\Http\Controllers\RaporNilaiController;
+use App\Http\Controllers\RaporCatatanController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -245,4 +248,26 @@ Route::prefix('master-data')->name('master.')->group(function () {
 
     })->middleware('can:manage-master'); // Middleware tetap dipertahankan
 
+    Route::prefix('rapornilai')->name('rapornilai.')->group(function () {
+        
+        // 1. READ: Dashboard Progres (Route: rapornilai.index)
+        Route::get('/', [RaporNilaiController::class, 'index'])->name('index'); 
+        
+        // 2. CREATE: Menampilkan form input/edit nilai (Route: rapornilai.create)
+        Route::get('/create', [RaporNilaiController::class, 'create'])->name('create');
+        
+        // 3. STORE/UPDATE: Proses Simpan/Update data (Route: rapornilai.store)
+        Route::post('/', [RaporNilaiController::class, 'store'])->name('store');
+        
+        // 4. DELETE: Menghapus data berdasarkan ID Rapor (Route: rapornilai.destroy)
+        Route::delete('/{id_rapor}', [RaporNilaiController::class, 'destroy'])->name('destroy'); 
+
+        
+        // B. Catatan Wali Kelas 
+        Route::prefix('wali')->name('wali.')->group(function () {
+            Route::get('/catatan', [RaporCatatanController::class, 'inputCatatan'])->name('catatan');
+            Route::post('/simpan', [RaporCatatanController::class, 'simpanCatatan'])->name('simpan');
+            Route::get('/get-siswa/{id_kelas}', [RaporCatatanController::class, 'getSiswa'])->name('get_siswa'); 
+        });
+    });
 });

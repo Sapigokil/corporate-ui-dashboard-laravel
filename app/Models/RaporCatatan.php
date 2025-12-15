@@ -5,9 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Catatan extends Model
+class RaporCatatan extends Model // 🛑 Renamed
 {
-    protected $table = 'catatan';
+    protected $table = 'catatan'; // Nama tabel tetap 'catatan'
     protected $primaryKey = 'id_catatan';
     public $timestamps = true;
 
@@ -21,6 +21,8 @@ class Catatan extends Model
         'ijin',
         'alpha',
         'catatan_wali_kelas',
+        'tahun_ajaran', 
+        'semester'
     ];
 
     public function siswa()

@@ -60,7 +60,7 @@
                                             </td>
                                             <td class="align-middle">
                                                 {{-- Aksi Edit Izin --}}
-                                                @can('pengaturan-manage-roles')
+                                                {{-- @can('pengaturan-manage-roles') --}}
                                                 <a href="{{ route('roles.edit', $role->id) }}" class="text-primary font-weight-bold text-xs" data-toggle="tooltip">
                                                     <i class="fas fa-pencil-alt me-2"></i> Edit Izin
                                                 </a>
@@ -77,7 +77,7 @@
                                                         </button>
                                                     </form>
                                                 @endif
-                                                @endcan
+                                                {{-- @endcan --}}
                                             </td>
                                         </tr>
                                         @empty
