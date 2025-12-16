@@ -78,6 +78,44 @@
 
     @yield('content')
 
+    <style>
+            /* Kontainer Utama Sidebar */
+            .sidebar {
+                background-color: #E3F2FD !important; /* Biru sangat muda (Soft Blue) */
+                color: #0D47A1 !important;            /* Biru tua agar teks sangat jelas */
+                border-right: 1px solid #BBDEFB !important;
+            }
+
+            /* Judul atau Header di Sidebar */
+            .sidebar-header {
+                background-color: #BBDEFB; /* Sedikit lebih gelap dari background */
+                color: #01579B;            /* Teks biru pekat */
+                font-weight: bold;
+                padding: 15px;
+            }
+
+            /* Menu Link */
+            .sidebar-link {
+                color: #1565C0;            /* Warna teks menu */
+                text-decoration: none;
+                padding: 10px 15px;
+                display: block;
+                transition: 0.3s;
+            }
+
+            /* Efek saat Menu Disorot (Hover) atau Aktif */
+            .sidebar-link:hover, .sidebar-link.active {
+                background-color: #2196F3; /* Biru cerah saat dipilih */
+                color: #ffffff;            /* Teks menjadi putih agar kontras */
+            }
+
+            /* Icon di Sidebar (Jika ada) */
+            .sidebar-link i {
+                color: #1976D2;            /* Warna icon sedikit lebih gelap */
+                margin-right: 10px;
+            }
+</style>
+
     <div class="fixed-plugin">
         <a class="fixed-plugin-button text-dark position-fixed px-3 py-2">
             <i class="fa fa-cog py-2"></i>

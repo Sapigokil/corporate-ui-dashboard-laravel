@@ -9,6 +9,28 @@
         </a>
     </div>
 
+    <style>
+    /* Mengatasi teks yang memudar pada menu sidebar */
+        .nav-sidebar .nav-link p {
+            color: #052c65 !important; /* Biru Navy yang sangat gelap agar tajam */
+            font-weight: 600 !important; /* Membuat font sedikit lebih tebal */
+            opacity: 1 !important;      /* Memastikan tidak ada efek transparansi */
+        }
+
+        /* Mengatasi teks pada header sidebar (jika ada) */
+        .nav-header {
+            color: #000000 !important; /* Hitam pekat untuk label kategori */
+            font-weight: bold !important;
+            opacity: 1 !important;
+        }
+
+        /* Mengatasi teks kecil (badge atau info tambahan) */
+        .sidebar .badge {
+            font-weight: bold;
+        }
+    </style>
+
+
     <hr class="horizontal light my-2">
 
     <div class="collapse navbar-collapse px-4 w-auto" id="sidenav-collapse-main">

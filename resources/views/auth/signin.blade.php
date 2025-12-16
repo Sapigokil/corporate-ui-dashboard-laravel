@@ -18,8 +18,8 @@
                                     <p class="mb-0">Welcome back!</p>
                                     <p class="mb-0">Create a new acount<br></p>
                                     <p class="mb-0">OR Sign in with these credentials:</p>
-                                    <p class="mb-0">Email: <b>admin@erapor.test</b></p>
-                                    <p class="mb-0">Password: <b>password</b></p>
+                                    {{-- <p class="mb-0">Email: <b>admin@erapor.test</b></p>
+                                    <p class="mb-0">Password: <b>password</b></p> --}}
                                 </div>
                                 <div class="text-center">
                                     @if (session('status'))
@@ -40,7 +40,7 @@
                                         <div class="mb-3">
                                             <input type="email" id="email" name="email" class="form-control"
                                                 placeholder="Enter your email address"
-                                                value="{{ old('email') ? old('email') : 'admin@erapor.test' }}"
+                                                value="{{ old('email') ? old('email') : 'test@m.test' }}"
                                                 aria-label="Email" aria-describedby="email-addon">
                                         </div>
                                         <label>Password</label>
@@ -74,12 +74,12 @@
                                         </div>
                                     </form>
                                 </div>
-                                <div class="card-footer text-center pt-0 px-lg-2 px-1">
+                                {{-- <div class="card-footer text-center pt-0 px-lg-2 px-1">
                                     <p class="mb-4 text-xs mx-auto">
                                         Don't have an account?
                                         <a href="{{ route('sign-up') }}" class="text-dark font-weight-bold">Sign up</a>
                                     </p>
-                                </div>
+                                </div> --}}
                             </div>
                         </div>
                         <div class="col-md-6">
