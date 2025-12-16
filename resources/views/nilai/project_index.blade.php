@@ -6,7 +6,7 @@
 @section('title', 'Input Nilai Project (P5)')
 
 @php
-    // --- LOGIKA TAHUN AJARAN & SEMESTER (Diambil dari Sumatif index) ---
+    // --- LOGIKA TAHUN AJARAN & SEMESTER ---
     $request = request();
     $tahunSekarang = date('Y');
     $bulanSekarang = date('n');
@@ -14,11 +14,11 @@
     if ($bulanSekarang < 7) {
         $defaultTA1 = $tahunSekarang - 1;
         $defaultTA2 = $tahunSekarang;
-        $defaultSemester = 'Genap'; // Digunakan di View, akan di-map di Controller
+        $defaultSemester = 'Genap';
     } else {
         $defaultTA1 = $tahunSekarang;
         $defaultTA2 = $tahunSekarang + 1;
-        $defaultSemester = 'Ganjil'; // Digunakan di View, akan di-map di Controller
+        $defaultSemester = 'Ganjil';
     }
 
     $defaultTahunAjaran = $defaultTA1 . '/' . $defaultTA2;
@@ -43,14 +43,31 @@
                     <div class="card my-4 shadow-xs border">
                         
                         {{-- ================================================================= --}}
-                        {{-- HEADER DINAMIS --}}
+                        {{-- HEADER DINAMIS + TOMBOL DOWNLOAD/IMPORT --}}
                         {{-- ================================================================= --}}
                         <div class="card-header p-0 position-relative mt-n4 mx-3 z-index-2">
                             <div class="bg-gradient-primary shadow-primary border-radius-lg pt-4 pb-3 d-flex justify-content-between align-items-center">
+                                
                                 <h6 class="text-white text-capitalize ps-3 mb-0">
-                                    <i class="fas fa-folder-open me-2"></i> Input Nilai Project (P5)
+                                    <i class="fas fa-folder-open me-2"></i> Input Nilai Project
                                 </h6>
-                                {{-- Tombol Download/Import di Project biasanya opsional --}}
+                                
+                                {{-- 🛑 TOMBOL BARU 🛑 --}}
+                                <div class="pe-3">
+                                    {{-- Tombol Pertama: Download Template (Memicu Modal) --}}
+                                    <button class="btn bg-gradient-light text-dark btn-sm mb-0 me-2" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#downloadTemplateModal">
+                                        <i class="fas fa-file-excel me-1"></i> Download Template
+                                    </button>
+                                    
+                                    {{-- Tombol Kedua: Import (Memicu Modal Import) --}}
+                                    <button class="btn bg-gradient-success btn-sm mb-0" data-bs-toggle="modal" data-bs-target="#importModal">
+                                        <i class="fas fa-file-import me-1"></i> Import
+                                    </button>
+                                </div>
+                                {{-- 🛑 END TOMBOL BARU 🛑 --}}
+
                             </div>
                         </div>
                         {{-- ================================================================= --}}
@@ -79,7 +96,7 @@
                             
                             {{-- FORM FILTER --}}
                             <div class="p-4 border-bottom">
-                                {{-- 🛑 Route Filter: master.project.index (Mengarah ke ProjectController::index) 🛑 --}}
+                                {{-- Route Filter: master.project.index --}}
                                 <form action="{{ route('master.project.index') }}" method="GET" class="row align-items-end">
                                     
                                     {{-- 1. Kelas --}}
@@ -96,7 +113,7 @@
                                         </select>
                                     </div>
                                     
-                                    {{-- 2. Mapel (Project dapat di-ampu beberapa mapel) --}}
+                                    {{-- 2. Mapel --}}
                                     <div class="col-md-3 mb-3">
                                         <label for="id_mapel" class="form-label">Mata Pelajaran Pengampu:</label>
                                         <select name="id_mapel" id="id_mapel" required class="form-select" {{ !request('id_kelas') ? 'disabled' : '' }}>
@@ -156,8 +173,8 @@
                                     </p>
                                 
                                 @else
-                                    {{-- 🛑 Route Simpan: master.project.simpan 🛑 --}}
-                                    <form action="{{ route('master.project.simpan') }}" method="POST" class="mt-4">
+                                    {{-- Route Simpan: master.project.store --}}
+                                    <form action="{{ route('master.project.store') }}" method="POST" class="mt-4">
                                         @csrf
 
                                         {{-- Hidden Inputs (Wajib dikirim untuk updateOrCreate) --}}
@@ -243,4 +260,188 @@
             <x-app.footer />
         </div>
     </main>
+
+    {{-- ================================================================= --}}
+    {{-- MODAL POP-UP DOWNLOAD TEMPLATE --}}
+    {{-- ================================================================= --}}
+    <div class="modal fade" id="downloadTemplateModal" tabindex="-1" aria-labelledby="downloadTemplateModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="downloadTemplateModalLabel">Download Template Project</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <form action="{{ route('master.project.download') }}" method="GET"> 
+                    {{-- Hidden input Project ID (jika diperlukan untuk controller, di ProjectController sudah diasumsikan tidak perlu) --}}
+                    
+                    <div class="modal-body">
+                        <p class="text-secondary">Gunakan template ini untuk mengimport nilai Project. Anda harus memilih Kelas, Mapel, Semester, dan Tahun Ajaran.</p>
+                        
+                        <div class="mb-3">
+                            <label for="id_kelas_modal" class="form-label">Kelas:</label>
+                            <select name="id_kelas" id="id_kelas_modal" required class="form-select">
+                                <option value="">Pilih Kelas</option>
+                                @foreach(\App\Models\Kelas::orderBy('nama_kelas')->get() as $k)
+                                    <option value="{{ $k->id_kelas }}">{{ $k->nama_kelas }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_mapel_modal" class="form-label">Mata Pelajaran:</label>
+                            <select name="id_mapel" id="id_mapel_modal" required class="form-select">
+                                <option value="">Pilih Mata Pelajaran</option>
+                                @foreach(\App\Models\MataPelajaran::all() as $m)
+                                    <option value="{{ $m->id_mapel }}">{{ $m->nama_mapel }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="semester_modal" class="form-label">Semester:</label>
+                            <select name="semester" id="semester_modal" required class="form-select">
+                                @foreach($semesterList as $sem)
+                                    <option value="{{ $sem }}" {{ $defaultSemester == $sem ? 'selected' : '' }}>{{ $sem }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="tahun_ajaran_modal" class="form-label">Tahun Ajaran:</label>
+                            <select name="tahun_ajaran" id="tahun_ajaran_modal" required class="form-select">
+                                @foreach ($tahunAjaranList as $ta)
+                                    <option value="{{ $ta }}" {{ $defaultTahunAjaran == $ta ? 'selected' : '' }}>{{ $ta }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                        <button type="submit" class="btn bg-gradient-info">Download</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- ================================================================= --}}
+    {{-- MODAL POP-UP IMPORT NILAI --}}
+    {{-- ================================================================= --}}
+    <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importModalLabel">Import Nilai Project</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                {{-- 🛑 ROUTE IMPORT PROJECT 🛑 --}}
+                <form action="{{ route('master.project.import') }}" method="POST" enctype="multipart/form-data"> 
+                    @csrf
+                    
+                    <div class="modal-body">
+                        <p class="text-secondary font-weight-bold text-center">
+                            Pastikan Excel sesuai dengan Template yang telah diunduh.
+                        </p>
+                        
+                        {{-- 1. Kelas --}}
+                        <div class="mb-3">
+                            <label for="id_kelas_import" class="form-label">Kelas:</label>
+                            <select name="id_kelas" id="id_kelas_import" required class="form-select">
+                                <option value="">Pilih Kelas</option>
+                                @foreach(\App\Models\Kelas::orderBy('nama_kelas')->get() as $k)
+                                    <option value="{{ $k->id_kelas }}">{{ $k->nama_kelas }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- 2. Mapel --}}
+                        <div class="mb-3">
+                            <label for="id_mapel_import" class="form-label">Mata Pelajaran:</label>
+                            <select name="id_mapel" id="id_mapel_import" required class="form-select">
+                                <option value="">Pilih Mata Pelajaran</option>
+                                @foreach(\App\Models\MataPelajaran::all() as $m)
+                                    <option value="{{ $m->id_mapel }}">{{ $m->nama_mapel }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- 3. Semester --}}
+                        <div class="mb-3">
+                            <label for="semester_import" class="form-label">Semester:</label>
+                            <select name="semester" id="semester_import" required class="form-select">
+                                @foreach($semesterList as $sem)
+                                    <option value="{{ $sem }}" {{ $defaultSemester == $sem ? 'selected' : '' }}>{{ $sem }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        
+                        {{-- 4. Tahun Ajaran --}}
+                        <div class="mb-3">
+                            <label for="tahun_ajaran_import" class="form-label">Tahun Ajaran:</label>
+                            <select name="tahun_ajaran" id="tahun_ajaran_import" required class="form-select">
+                                @foreach ($tahunAjaranList as $ta)
+                                    <option value="{{ $ta }}" {{ $defaultTahunAjaran == $ta ? 'selected' : '' }}>{{ $ta }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- 5. File Excel --}}
+                        <div class="mb-3">
+                            <label for="file_excel" class="form-label text-start d-block">Pilih File Excel:</label>
+                            <input type="file" name="file_excel" id="file_excel" required class="form-control" accept=".xlsx, .xls">
+                        </div>
+
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn bg-gradient-success">Lanjutkan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- 🛑 LOADING OVERLAY DAN SCRIPT HARUS DILUAR TAG MAIN 🛑 --}}
+    <div id="loadingOverlay" style="
+        display: none; 
+        position: fixed; 
+        top: 0; 
+        left: 0; 
+        width: 100%; 
+        height: 100%; 
+        background: rgba(0, 0, 0, 0.7); 
+        justify-content: center; 
+        align-items: center; 
+        color: white; 
+        font-size: 1.5rem; 
+        z-index: 9999;
+    ">
+        <div class="spinner-border text-light me-3" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        Sedang memproses import nilai... Mohon tunggu.
+    </div>
+
+    {{-- SCRIPT JAVASCRIPT --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const importForm = document.querySelector('#importModal form');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            
+            if (importForm) {
+                importForm.addEventListener('submit', function() {
+                    loadingOverlay.style.display = 'flex';
+                    this.querySelector('button[type="submit"]').disabled = true;
+                });
+            }
+            
+            @if (session('error') || session('success'))
+                loadingOverlay.style.display = 'none';
+            @endif
+        });
+    </script>
 @endsection

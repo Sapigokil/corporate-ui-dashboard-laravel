@@ -24,6 +24,7 @@ use App\Http\Controllers\RaporCatatanController;
 use App\Http\Controllers\SumatifController;
 use App\Http\Controllers\ProjectController; 
 use App\Http\Controllers\NilaiAkhirController;
+use App\Http\Controllers\CatatanController;
 
 
 /*
@@ -168,7 +169,11 @@ Route::group(['prefix' => 'master', 'as' => 'master.', 'middleware' => 'auth'], 
         // 2. NILAI PROJECT (P5) (master.project.*)
         Route::group(['prefix' => 'project', 'as' => 'project.', 'controller' => ProjectController::class], function () {
             Route::get('/', 'index')->name('index'); // master.project.index
-            Route::post('simpan', 'simpan')->name('simpan'); // master.project.simpan
+            Route::post('simpan', 'simpan')->name('store'); // master.project.simpan
+            // 🛑 ROUTE BARU UNTUK IMPORT/EXPORT
+            Route::get('/download-template', [ProjectController::class, 'downloadTemplate'])->name('download'); 
+            Route::post('/import', [ProjectController::class, 'import'])->name('import');
+        
         });
         
         // 3. RAPOR NILAI & CATATAN WALI KELAS (master.rapornilai.*)
@@ -189,6 +194,26 @@ Route::group(['prefix' => 'master', 'as' => 'master.', 'middleware' => 'auth'], 
         Route::group(['prefix' => 'akhir', 'as' => 'nilaiakhir.', 'controller' => NilaiAkhirController::class], function () {
             Route::get('/', 'index')->name('index'); // master.nilaiakhir.index
             Route::post('hitung', 'hitung')->name('hitung'); // master.nilaiakhir.hitung (untuk proses generate/hitung ulang)
+        });
+
+        Route::group(['prefix' => 'catatan', 'as' => 'catatan.'], function () {
+            // Route untuk halaman input utama
+            Route::get('/input', [CatatanController::class, 'inputCatatan'])->name('input');
+            
+            // Route untuk proses simpan
+            Route::post('/simpan', [CatatanController::class, 'simpanCatatan'])->name('simpan');
+            
+            // Route untuk Download Template Excel
+            Route::get('/template', [CatatanController::class, 'downloadTemplate'])->name('template');
+            
+            // Route untuk Proses Import Excel
+            Route::post('/import', [CatatanController::class, 'importExcel'])->name('import');
+
+            // Route untuk dashboard progres
+            // Route::get('/progress', [CatatanController::class, 'indexProgressCatatan'])->name('progress');
+            
+            // Route AJAX untuk ambil siswa (jika diperlukan oleh view)
+            Route::get('/get-siswa/{id_kelas}', [CatatanController::class, 'getSiswa'])->name('getSiswa');
         });
 
 

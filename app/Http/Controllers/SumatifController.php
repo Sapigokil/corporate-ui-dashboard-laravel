@@ -19,7 +19,7 @@ use Illuminate\Support\Collection;
 class SumatifController extends Controller
 {
     // Method Helper (tujuanPembelajaran)
-    private function tujuanPembelajaran(int $nilai): string
+    private function DeskripsiSumatif(int $nilai): string
     {
         if ($nilai < 78) return 'Belum Berkembang';
         if ($nilai <= 85) return 'Layak';

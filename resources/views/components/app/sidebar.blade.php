@@ -175,6 +175,13 @@
                             </a>
                         </li>
 
+                        {{-- 🛑 SUB MENU BARU: CATATAN WALIKELAS 🛑 --}}
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('master.catatan.input') ? 'active' : '' }}" href="{{ route('master.catatan.input') }}">
+                                <span class="sidenav-normal"> Catatan Walikelas </span>
+                            </a>
+                        </li>
+
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('master.nilaiakhir.index') ? 'active' : 'text-white' }}" 
                             href="{{ route('master.nilaiakhir.index') }}">

@@ -72,7 +72,7 @@ return new class extends Migration
         Schema::table('catatan', function (Blueprint $table) {
             $table->foreign('id_siswa')->references('id_siswa')->on('siswa')->onDelete('cascade');
             $table->foreign('id_kelas')->references('id_kelas')->on('kelas')->onDelete('cascade');
-            $table->foreign('id_ekskul')->references('id_ekskul')->on('ekskul')->onDelete('set null');
+            // $table->foreign('id_ekskul')->references('id_ekskul')->on('ekskul')->onDelete('set null');
         });
         Schema::table('catatan_rapor', function (Blueprint $table) {
             $table->foreign('id_siswa')->references('id_siswa')->on('siswa')->onDelete('cascade');
@@ -138,7 +138,7 @@ return new class extends Migration
         Schema::table('catatan', function (Blueprint $table) {
             $table->dropForeign(['id_siswa']);
             $table->dropForeign(['id_kelas']);
-            $table->dropForeign(['id_ekskul']);
+            // $table->dropForeign(['id_ekskul']);
         });
 
         // ---------------------------------------------------------------------

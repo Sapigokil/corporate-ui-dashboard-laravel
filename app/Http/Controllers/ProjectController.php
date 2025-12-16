@@ -8,6 +8,9 @@ use App\Models\Siswa;
 use App\Models\MataPelajaran;
 use App\Models\Project;
 use App\Models\Pembelajaran;
+use App\Exports\ProjectTemplateExport; // 🛑 ASUMSI CLASS BARU
+use App\Imports\ProjectImport;         // 🛑 ASUMSI CLASS BARU
+use Maatwebsite\Excel\Facades\Excel;
 
 
 class ProjectController extends Controller
@@ -138,5 +141,81 @@ class ProjectController extends Controller
         }
 
         return back()->with('success', 'Nilai project berhasil disimpan!');
+    }
+
+    // === METHOD DOWNLOAD TEMPLATE PROJECT ===
+    public function downloadTemplate(Request $request)
+    {
+        $request->validate([
+            'id_kelas' => 'required|exists:kelas,id_kelas',
+            'id_mapel' => 'required|exists:mata_pelajaran,id_mapel',
+            'semester' => 'required',
+            'tahun_ajaran' => 'required',
+        ]);
+
+        $kelas = Kelas::find($request->id_kelas);
+        $mapel = MataPelajaran::find($request->id_mapel);
+        
+        $siswa = Siswa::where('id_kelas', $request->id_kelas)->orderBy('nama_siswa')->get();
+        
+        // Cek Agama Khusus
+        if ($mapel && $mapel->agama_khusus) {
+            $siswa = $siswa->filter(fn($s) => optional($s->detail)->agama == $mapel->agama_khusus);
+        }
+
+        if ($siswa->isEmpty()) {
+            return back()->with('error', 'Tidak ada siswa yang ditemukan untuk filter ini. Template tidak dapat dibuat.');
+        }
+
+        $fileName = 'Template_Project_P5_' . $kelas->nama_kelas . '_' . $mapel->nama_mapel . '.xlsx';
+        
+        // 🛑 Panggil Class Export Project yang baru
+        return Excel::download(new ProjectTemplateExport(
+            $request->all(),
+            $siswa,
+            $kelas,
+            $mapel
+        ), $fileName);
+    }
+    
+    // === METHOD IMPORT NILAI PROJECT ===
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file_excel' => 'required|file|mimes:xlsx,xls',
+            'id_kelas' => 'required|exists:kelas,id_kelas',
+            'id_mapel' => 'required|exists:mata_pelajaran,id_mapel',
+            'semester' => 'required',
+            'tahun_ajaran' => 'required',
+        ]);
+        
+        $filters = $request->only(['id_kelas', 'id_mapel', 'semester', 'tahun_ajaran']);
+
+        try {
+            // 🛑 Panggil Class Import Project yang baru
+            $import = new ProjectImport($filters);
+            
+            // Lakukan import
+            Excel::import($import, $request->file('file_excel'));
+
+            $totalStored = $import->getStoredCount();
+            $totalSkipped = $import->getSkippedCount();
+            
+            $message = "Import Project selesai. Berhasil disimpan: **{$totalStored} baris**. Dilewati (Nama Siswa tidak ditemukan/Nilai kosong): **{$totalSkipped} baris**.";
+
+            // Redirect kembali ke halaman index Project
+            return redirect()->route('master.project.index', $request->query())->with('success', $message);
+
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            $failures = $e->failures();
+            $errors = [];
+            foreach (array_slice($failures, 0, 3) as $failure) {
+                 $errors[] = "Baris " . $failure->row() . ": " . implode(", ", $failure->errors());
+            }
+            return back()->withInput()->with('error', 'Validasi Gagal (Template atau Data Input): ' . implode(' | ', $errors));
+
+        } catch (\Exception $e) {
+            return back()->withInput()->with('error', 'Import Gagal: Terjadi kesalahan internal: ' . $e->getMessage());
+        }
     }
 }
