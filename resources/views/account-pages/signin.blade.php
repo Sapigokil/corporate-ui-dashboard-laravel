@@ -1,12 +1,12 @@
 <x-app-layout>
 
-    <div class="container position-sticky z-index-sticky top-0">
+    <!-- <div class="container position-sticky z-index-sticky top-0">
         <div class="row">
             <div class="col-12">
                 <x-sidenav-white />
             </div>
         </div>
-    </div>
+    </div> -->
     <main class="main-content  mt-0">
         <section>
             <div class="page-header min-vh-100">
@@ -36,7 +36,7 @@
                                             <input type="email" class="form-control" placeholder="Enter password"
                                                 aria-label="Password" aria-describedby="password-addon">
                                         </div>
-                                        <div class="d-flex align-items-center">
+                                        <!-- <div class="d-flex align-items-center">
                                             <div class="form-check form-check-info text-left mb-0">
                                                 <input class="form-check-input" type="checkbox" value=""
                                                     id="flexCheckDefault">
@@ -46,16 +46,16 @@
                                             </div>
                                             <a href="javascript:;" class="text-xs font-weight-bold ms-auto">Forgot
                                                 password</a>
-                                        </div>
+                                        </div> -->
                                         <div class="text-center">
                                             <button type="button" class="btn btn-dark w-100 mt-4 mb-3">Sign in</button>
-                                            <button type="button" class="btn btn-white btn-icon w-100 mb-3">
+                                            <!-- <button type="button" class="btn btn-white btn-icon w-100 mb-3">
                                                 <span class="btn-inner--icon me-1">
                                                     <img class="w-5" src="../assets/img/logos/google-logo.svg"
                                                         alt="google-logo" />
                                                 </span>
                                                 <span class="btn-inner--text">Sign in with Google</span>
-                                            </button>
+                                            </button> -->
                                         </div>
                                     </form>
                                 </div>
@@ -75,8 +75,8 @@
                                         class="blur mt-12 p-4 text-center border border-white border-radius-md position-absolute fixed-bottom m-4">
                                         <h2 class="mt-3 text-dark font-weight-bold">Enter our global community of
                                             developers.</h2>
-                                        <h6 class="text-dark text-sm mt-5">Copyright © 2022 Corporate UI Design System
-                                            by Creative Tim.</h6>
+                                        <!-- <h6 class="text-dark text-sm mt-5">Copyright © 2022 Corporate UI Design System
+                                            by Creative Tim.</h6> -->
                                     </div>
                                 </div>
                             </div>

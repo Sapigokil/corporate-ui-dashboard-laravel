@@ -58,6 +58,9 @@
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('master.sekolah.index') ? 'active' : 'text-white' }}" href="{{ route('master.sekolah.index') }}">
                                 <span class="sidenav-mini-icon"> S </span>
+                                <!-- <div class="icon icon-shape icon-xs shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
+                                    <i class="fas fa-building text-dark"></i>
+                                </div> -->
                                 <span class="sidenav-normal"> Data Sekolah </span>
                             </a>
                         </li>
