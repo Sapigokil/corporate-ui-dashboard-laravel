@@ -14,7 +14,7 @@ class Catatan extends Model
     protected $fillable = [
         'id_siswa',
         'id_kelas',
-        // 'id_ekskul',
+        'id_ekskul',
         'kokurikuler',
         'ekskul',
         'predikat',

@@ -11,6 +11,7 @@ use App\Models\NilaiAkhir;
 use App\Models\Pembelajaran;
 use App\Models\Sumatif; 
 use App\Models\Project; 
+use App\Http\Controllers\RaporController;
 
 
 class NilaiAkhirController extends Controller
@@ -231,8 +232,20 @@ class NilaiAkhirController extends Controller
                     'nilai_akhir' => $nilaiAkhir,
                     'capaian_akhir' => $capaianAkhir,
                 ];
+
+                // // Panggil mesin penghitung status rapor
+                // $raporCtrl = app(RaporController::class);
+                // foreach ($siswa as $s) {
+                //     $raporCtrl->perbaruiStatusRapor(
+                //         $s->id_siswa, 
+                //         $request->semester, 
+                //         $request->tahun_ajaran
+                //     );
+                // }
             }
         }
+
+        
         
         render_view:
         return view('nilai.nilaiakhir', compact(

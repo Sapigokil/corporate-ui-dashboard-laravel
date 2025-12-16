@@ -1,0 +1,233 @@
+@extends('layouts.app')
+
+@section('title', 'Cetak Rapor Siswa')
+
+@section('content')
+
+@php
+    // --- LOGIKA TAHUN AJARAN & SEMESTER OTOMATIS (Sama dengan Index Rapor) ---
+    $tahunSekarang = date('Y');
+    $bulanSekarang = date('n');
+
+    if ($bulanSekarang < 7) {
+        $defaultTA1 = $tahunSekarang - 1;
+        $defaultTA2 = $tahunSekarang;
+        $defaultSemester = 'Genap';
+    } else {
+        $defaultTA1 = $tahunSekarang;
+        $defaultTA2 = $tahunSekarang + 1;
+        $defaultSemester = 'Ganjil';
+    }
+
+    $defaultTahunAjaran = $defaultTA1 . '/' . $defaultTA2;
+    
+    // Gunakan value dari controller, jika kosong gunakan default
+    $selectedTA = $tahun_ajaran ?? $defaultTahunAjaran;
+    $selectedSemester = $semesterRaw ?? $defaultSemester;
+
+    $tahunMulai = 2024; 
+    $tahunAkhir = date('Y') + 2; 
+    $tahunAjaranList = [];
+    for ($tahun = $tahunAkhir; $tahun >= $tahunMulai; $tahun--) {
+        $tahunAjaranList[] = $tahun . '/' . ($tahun + 1);
+    }
+    $semesterList = ['Ganjil', 'Genap']; 
+@endphp
+
+<main class="main-content position-relative max-height-vh-100 h-100 border-radius-lg">
+    <x-app.navbar />
+    <div class="container-fluid py-4 px-5">
+        <div class="card shadow-xs border mb-4">
+            <div class="card-header bg-gradient-info py-3 d-flex justify-content-between align-items-center">
+                <h6 class="text-white mb-0"><i class="fas fa-print me-2"></i> Daftar Cetak Rapor</h6>
+                
+                @if($id_kelas)
+                <button type="button" id="btnSync" onclick="sinkronkanSatuKelas()" class="btn btn-white btn-sm mb-0">
+                    <i class="fas fa-sync-alt me-1" id="syncIcon"></i> <span id="syncText">Perbarui Status Data</span>
+                </button>
+                @endif
+            </div>
+            
+            <div class="card-body">
+                {{-- Form Filter --}}
+                <form action="{{ route('rapornilai.cetak') }}" method="GET" class="row align-items-end mb-4">
+                    <div class="col-md-3">
+                        <label class="form-label font-weight-bold">Pilih Kelas</label>
+                        <select name="id_kelas" class="form-select" required onchange="this.form.submit()">
+                            <option value="">-- Pilih Kelas --</option>
+                            @foreach($kelas as $k)
+                                <option value="{{ $k->id_kelas }}" {{ $id_kelas == $k->id_kelas ? 'selected' : '' }}>{{ $k->nama_kelas }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label font-weight-bold">Semester</label>
+                        <select name="semester" class="form-select" onchange="this.form.submit()">
+                            @foreach($semesterList as $smt)
+                                <option value="{{ $smt }}" {{ $selectedSemester == $smt ? 'selected' : '' }}>{{ $smt }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label font-weight-bold">Tahun Ajaran</label>
+                        <select name="tahun_ajaran" class="form-select" onchange="this.form.submit()">
+                            @foreach($tahunAjaranList as $ta)
+                                <option value="{{ $ta }}" {{ $selectedTA == $ta ? 'selected' : '' }}>{{ $ta }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-dark w-100 mb-0">Tampilkan</button>
+                    </div>
+                </form>
+
+                @if($id_kelas)
+                <div class="table-responsive p-0">
+                    <table class="table align-items-center mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="text-center text-xxs font-weight-bolder opacity-7" style="width: 5%">No</th>
+                                <th class="text-xxs font-weight-bolder opacity-7 ps-2">Nama Siswa</th>
+                                <th class="text-center text-xxs font-weight-bolder opacity-7">Progress Mapel</th>
+                                <th class="text-center text-xxs font-weight-bolder opacity-7">Catatan Wali</th>
+                                <th class="text-center text-xxs font-weight-bolder opacity-7">Status Akhir</th>
+                                <th class="text-center text-xxs font-weight-bolder opacity-7">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($siswaList as $idx => $s)
+                            <tr>
+                                <td class="text-center text-sm">{{ $idx + 1 }}</td>
+                                <td class="text-sm">
+                                    <span class="font-weight-bold">{{ $s->nama_siswa }}</span><br>
+                                    <small class="text-secondary">{{ $s->nis }}</small>
+                                </td>
+                                <td class="text-center text-sm">
+                                    @if($s->status_monitoring)
+                                        @php
+                                            $isComplete = $s->status_monitoring->mapel_tuntas_input >= $s->status_monitoring->total_mapel_seharusnya;
+                                        @endphp
+                                        <span class="badge {{ $isComplete ? 'bg-gradient-success' : 'bg-light text-dark' }}">
+                                            {{ $s->status_monitoring->mapel_tuntas_input }} / {{ $s->status_monitoring->total_mapel_seharusnya }} Mapel
+                                        </span>
+                                    @else
+                                        <span class="text-secondary text-xs italic">Belum disinkronkan</span>
+                                    @endif
+                                </td>
+                                <td class="text-center align-middle">
+                                    @if($s->status_monitoring && $s->status_monitoring->is_catatan_wali_ready)
+                                        <div class="d-flex flex-column align-items-center">
+                                            <span class="text-success mb-1" data-bs-toggle="tooltip" title="Catatan Tersedia">
+                                                <i class="fas fa-check-circle fa-lg"></i>
+                                            </span>
+                                            <div class="text-xxs text-muted fst-italic px-2" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                                "{{ $s->data_catatan->catatan_wali_kelas ?? '-' }}"
+                                            </div>
+                                        </div>
+                                    @else
+                                        <div class="d-flex flex-column align-items-center" data-bs-toggle="tooltip" title="Wali kelas belum mengisi catatan">
+                                            <span class="text-danger mb-1">
+                                                <i class="fas fa-times-circle fa-lg"></i>
+                                            </span>
+                                            <span class="text-xxs text-danger font-weight-bold">Belum Ada</span>
+                                        </div>
+                                    @endif
+                                </td>
+                                <td class="text-center">
+                                    @if($s->status_monitoring && $s->status_monitoring->status_akhir == 'Siap Cetak')
+                                        <span class="badge badge-sm bg-gradient-success">Siap Cetak</span>
+                                    @else
+                                        <span class="badge badge-sm bg-gradient-warning">Belum Lengkap</span>
+                                    @endif
+                                </td>
+                                <td class="text-center">
+                                    @if($s->status_monitoring && $s->status_monitoring->status_akhir == 'Siap Cetak')
+                                        <a href="{{ route('rapornilai.cetak_proses', $s->id_siswa) }}" target="_blank" class="btn btn-link text-info text-gradient px-3 mb-0">
+                                            <i class="fas fa-print me-2"></i>Cetak
+                                        </a>
+                                    @else
+                                        <button class="btn btn-link text-secondary px-3 mb-0" disabled 
+                                                data-bs-toggle="tooltip" title="Lengkapi nilai mapel dan catatan wali untuk mencetak">
+                                            <i class="fas fa-print me-2"></i>Cetak
+                                        </button>
+                                    @endif
+                                </td>
+                            </tr>
+                            @empty
+                            <tr><td colspan="6" class="text-center py-4">Tidak ada data siswa.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                @else
+                <div class="text-center py-5">
+                    <i class="fas fa-users fa-3x text-light mb-3"></i>
+                    <p class="text-secondary">Pilih kelas untuk melihat daftar rapor.</p>
+                </div>
+                @endif
+            </div>
+        </div>
+    </div>
+</main>
+
+{{-- SCRIPT TETAP SAMA SEPERTI SEBELUMNYA --}}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+$(document).ready(function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+});
+
+function sinkronkanSatuKelas() {
+    const btn = $('#btnSync');
+    const icon = $('#syncIcon');
+
+    Swal.fire({
+        title: 'Perbarui Data?',
+        text: "Sistem akan menghitung ulang progres nilai dan catatan untuk kelas ini.",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Ya, Sinkronkan!',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Sedang Memproses',
+                html: 'Mohon tunggu sebentar...',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            btn.prop('disabled', true);
+            icon.addClass('fa-spin');
+
+            $.ajax({
+                url: "{{ route('rapornilai.sinkronkan_kelas') }}",
+                method: "POST",
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    id_kelas: "{{ $id_kelas }}",
+                    semester: "{{ $selectedSemester }}",
+                    tahun_ajaran: "{{ $selectedTA }}"
+                },
+                success: function(res) {
+                    Swal.fire({ icon: 'success', title: 'Berhasil!', timer: 1500, showConfirmButton: false })
+                    .then(() => { window.location.reload(); });
+                },
+                error: function(xhr) {
+                    btn.prop('disabled', false);
+                    icon.removeClass('fa-spin');
+                    Swal.fire({ icon: 'error', title: 'Gagal!', text: xhr.responseJSON ? xhr.responseJSON.message : 'Terjadi kesalahan' });
+                }
+            });
+        }
+    });
+}
+</script>
+@endsection

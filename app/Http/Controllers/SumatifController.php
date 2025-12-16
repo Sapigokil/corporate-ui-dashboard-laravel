@@ -14,6 +14,7 @@ use App\Exports\SumatifTemplateExport;
 use App\Imports\SumatifImport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 
 class SumatifController extends Controller
@@ -267,5 +268,17 @@ class SumatifController extends Controller
             // Tangani error umum
             return back()->withInput()->with('error', 'Import Gagal: Terjadi kesalahan internal: ' . $e->getMessage());
         }
+    }
+
+    public function getMapelByKelas($id_kelas)
+    {
+        // Mengambil mapel yang terdaftar di kelas tersebut melalui tabel pembelajaran
+        $mapel = DB::table('pembelajaran')
+            ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
+            ->where('pembelajaran.id_kelas', $id_kelas)
+            ->select('mata_pelajaran.id_mapel', 'mata_pelajaran.nama_mapel')
+            ->get();
+
+        return response()->json($mapel);
     }
 }

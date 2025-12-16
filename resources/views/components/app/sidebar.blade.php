@@ -199,46 +199,62 @@
             @endcan
 
             {{-- ============================================================= --}}
-            {{-- === MENU BARU: DATA RAPOR (Menu 3) === --}}
+            {{-- === UPDATE MENU: DATA RAPOR === --}}
             {{-- ============================================================= --}}
             @php
-                // Semua route yang terkait dengan Rapor (Progres & Catatan Wali Kelas)
+                // Definisi route agar menu otomatis terbuka (expand) saat diakses
                 $raporRoutes = [
-                    'master.rapornilai.*',
+                    'rapornilai.index',      
+                    'rapornilai.cetak',      
+                    'rapornilai.cetak_proses' 
                 ];
                 $isRaporActive = request()->routeIs($raporRoutes); 
             @endphp
 
             @can('manage-master') 
+            @php
+                // Logika untuk mengecek apakah sedang di halaman rapor agar menu otomatis terbuka
+                $isRaporActive = request()->routeIs('rapornilai.*');
+            @endphp
+
             <li class="nav-item">
-                <a data-bs-toggle="collapse" href="#dataRaporMenu" class="nav-link {{ $isRaporActive ? 'active' : 'text-white' }}" aria-controls="dataRaporMenu" role="button" aria-expanded="{{ $isRaporActive ? 'true' : 'false' }}">
-                    {{-- IKON DIKEMBALIKAN --}}
+                {{-- Main Menu Toggle --}}
+                <a data-bs-toggle="collapse" href="#dataRaporMenu" 
+                    class="nav-link {{ $isRaporActive ? 'active' : 'text-white' }}" 
+                    aria-controls="dataRaporMenu" role="button" 
+                    aria-expanded="{{ $isRaporActive ? 'true' : 'false' }}">
+                    
                     <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
-                        <i class="fas fa-file-invoice text-sm {{ $isRaporActive ? 'text-white' : 'text-dark opacity-10' }}"></i>
+                        {{-- Warna ikon berubah jadi putih jika aktif (mengikuti gaya Material Dashboard Anda) --}}
+                        <i class="fas fa-file-invoice text-sm {{ $isRaporActive ? 'text-dark' : 'text-dark opacity-10' }}"></i>
                     </div>
                     <span class="nav-link-text ms-1">Data Rapor</span>
                 </a>
                 
+                {{-- Submenu Items --}}
                 <div class="collapse {{ $isRaporActive ? 'show' : '' }}" id="dataRaporMenu">
                     <ul class="nav ms-4 ps-3">
                         
-                        {{-- Submenu: Dashboard Nilai Rapor (Route: master.rapornilai.index) --}}
+                        {{-- Menu Monitoring (Yang sudah ada) --}}
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('master.rapornilai.index') ? 'active' : 'text-white' }}" 
-                            href="{{ route('master.rapornilai.index') }}">
-                                <span class="sidenav-mini-icon"> DR </span>
-                                <span class="sidenav-normal"> Dashboard Nilai </span>
+                            <a class="nav-link {{ Route::is('rapornilai.index') ? 'active' : '' }}" href="{{ route('rapornilai.index') }}">
+                                <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
+                                    <i class="fas fa-desktop text-dark text-sm"></i>
+                                </div>
+                                <span class="nav-link-text ms-1">Monitoring Rapor</span>
                             </a>
                         </li>
-                        
-                        {{-- Link: Catatan Wali Kelas (Route: master.rapornilai.wali.catatan) --}}
+
+                        {{-- MENU BARU: Cetak Rapor --}}
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('master.rapornilai.wali.catatan') ? 'active' : 'text-white' }}" 
-                            href="{{ route('master.rapornilai.wali.catatan') }}">
-                                <span class="sidenav-mini-icon"> CK </span>
-                                <span class="sidenav-normal"> Catatan Wali Kelas </span>
+                            <a class="nav-link {{ Route::is('rapornilai.cetak') ? 'active' : '' }}" href="{{ route('rapornilai.cetak') }}">
+                                <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
+                                    <i class="fas fa-print text-dark text-sm"></i>
+                                </div>
+                                <span class="nav-link-text ms-1">Cetak Rapor</span>
                             </a>
                         </li>
+
                     </ul>
                 </div>
             </li>
@@ -268,11 +284,10 @@
             @php $isCetakActive = request()->routeIs('cetak.rapor'); @endphp
             @can('cetak-dokumen') 
             <li class="nav-item">
-                <a class="nav-link {{ $isCetakActive ? 'active' : 'text-white' }}" href="#">
-                    <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
-                        <i class="fas fa-print text-sm {{ $isCetakActive ? 'text-white' : 'text-dark opacity-10' }}"></i>
-                    </div>
-                    <span class="nav-link-text ms-1">Cetak Rapor</span>
+                <a class="nav-link {{ request()->routeIs('master.rapornilai.cetak') ? 'active' : 'text-white' }}" 
+                href="{{ route('master.rapornilai.cetak') }}">
+                    <span class="sidenav-mini-icon"> CR </span>
+                    <span class="sidenav-normal"> Cetak Rapor </span>
                 </a>
             </li>
             @endcan
@@ -313,6 +328,32 @@
             </li>
             @endcan
 
+            {{-- 🛑 6. MENU BARU: PENGATURAN 🛑 --}}
+            @php 
+                $pengaturanRoutes = ['pengaturan.kok.index'];
+                $isPengaturanActive = request()->routeIs($pengaturanRoutes);
+            @endphp
+            @can('pengaturan-manage-users') {{-- Gunakan permission yang sesuai --}}
+            <li class="nav-item">
+                <a data-bs-toggle="collapse" href="#pengaturanMenu" class="nav-link {{ $isPengaturanActive ? 'active' : 'text-white' }}" aria-controls="pengaturanMenu" role="button" aria-expanded="{{ $isPengaturanActive ? 'true' : 'false' }}">
+                    <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-cogs text-sm {{ $isPengaturanActive ? 'text-white' : 'text-dark opacity-10' }}"></i>
+                    </div>
+                    <span class="nav-link-text ms-1">Pengaturan</span>
+                </a>
+
+                <div class="collapse {{ $isPengaturanActive ? 'show' : '' }}" id="pengaturanMenu">
+                    <ul class="nav ms-4 ps-3">
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('pengaturan.kok.index') ? 'active' : 'text-white' }}" href="{{ route('pengaturan.kok.index') }}">
+                                <span class="sidenav-mini-icon"> K </span>
+                                <span class="sidenav-normal"> Kokurikuler </span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
             {{-- 7. PROFIL SAYA --}}
             @php $isProfileActive = false; @endphp
             <li class="nav-item">
@@ -325,6 +366,7 @@
             </li>
 
         </ul>
+        @endcan
     </div>
 
     <div class="sidenav-footer mx-4">

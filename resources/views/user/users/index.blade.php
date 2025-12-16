@@ -20,7 +20,7 @@
                                 <h6 class="text-white text-capitalize ps-3">Daftar Akun Pengguna E-Rapor</h6>
                                 {{-- Hanya Admin yang berhak menambah pengguna --}}
                                 @can('pengaturan-manage-users')
-                                <a href="{{ route('users.create') }}" class="btn btn-white me-3 mb-0">
+                                <a href="{{ route('master.users.create') }}" class="btn btn-white me-3 mb-0">
                                     <i class="fas fa-plus me-1"></i> Tambah Pengguna Baru
                                 </a>
                                 @endcan
@@ -72,14 +72,14 @@
                                                 @can('pengaturan-manage-users')
                                                 
                                                 {{-- Aksi Edit --}}
-                                                <a href="{{ route('users.edit', $user->id) }}" class="text-primary font-weight-bold text-xs" data-toggle="tooltip">
+                                                <a href="{{ route('master.users.edit', $user->id) }}" class="text-primary font-weight-bold text-xs" data-toggle="tooltip">
                                                     <i class="fas fa-edit me-2"></i> Edit
                                                 </a>
                                                 
                                                 {{-- Aksi Delete --}}
                                                 {{-- Cek Ganda: 1. Bukan diri sendiri, DAN 2. Tidak memiliki role 'admin' --}}
                                                 @if ($user->id !== Auth::id() && !$user->hasRole('admin')) 
-                                                    <form action="{{ route('users.destroy', $user->id) }}" method="POST" class="d-inline">
+                                                    <form action="{{ route('master.users.destroy', $user->id) }}" method="POST" class="d-inline">
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit" class="btn btn-link text-danger p-0 m-0 ms-3 text-xs" 

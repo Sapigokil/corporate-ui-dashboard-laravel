@@ -20,7 +20,7 @@
                                 <h6 class="text-white text-capitalize ps-3">Daftar Role Pengguna E-Rapor</h6>
                                 {{-- Hanya Admin yang berhak menambah role --}}
                                 @can('pengaturan-manage-roles')
-                                <a href="{{ route('roles.create') }}" class="btn btn-white me-3 mb-0">
+                                <a href="{{ route('master.roles.create') }}" class="btn btn-white me-3 mb-0">
                                     <i class="fas fa-plus me-1"></i> Tambah Role Baru
                                 </a>
                                 @endcan
@@ -61,14 +61,14 @@
                                             <td class="align-middle">
                                                 {{-- Aksi Edit Izin --}}
                                                 {{-- @can('pengaturan-manage-roles') --}}
-                                                <a href="{{ route('roles.edit', $role->id) }}" class="text-primary font-weight-bold text-xs" data-toggle="tooltip">
+                                                <a href="{{ route('master.roles.edit', $role->id) }}" class="text-primary font-weight-bold text-xs" data-toggle="tooltip">
                                                     <i class="fas fa-pencil-alt me-2"></i> Edit Izin
                                                 </a>
                                                 
                                                 {{-- Aksi Delete --}}
                                                 {{-- Aksi Delete (Tombol Hapus) --}}
                                                 @if (!in_array(strtolower($role->name), ['admin', 'guru', 'wali murid'])) {{-- Lindungi role krusial --}}
-                                                    <form action="{{ route('roles.destroy', $role->id) }}" method="POST" class="d-inline">
+                                                    <form action="{{ route('master.roles.destroy', $role->id) }}" method="POST" class="d-inline">
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit" class="btn btn-link text-danger p-0 m-0 ms-3 text-xs" 

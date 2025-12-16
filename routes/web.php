@@ -25,6 +25,8 @@ use App\Http\Controllers\SumatifController;
 use App\Http\Controllers\ProjectController; 
 use App\Http\Controllers\NilaiAkhirController;
 use App\Http\Controllers\CatatanController;
+use App\Http\Controllers\SetKokurikulerController;
+use App\Http\Controllers\RaporController;
 
 
 /*
@@ -160,7 +162,7 @@ Route::group(['prefix' => 'master', 'as' => 'master.', 'middleware' => 'auth'], 
             Route::get('s1', 'sumatif1')->name('s1'); 
             Route::get('s2', 'sumatif2')->name('s2'); 
             Route::get('s3', 'sumatif3')->name('s3'); 
-            
+            Route::get('get-mapel/{id_kelas}', [SumatifController::class, 'getMapelByKelas'])->name('get_mapel');
             Route::post('simpan', 'simpan')->name('store'); // master.sumatif.store
             Route::get('download-template', 'downloadTemplate')->name('download');
             Route::post('import', 'import')->name('import'); 
@@ -173,7 +175,7 @@ Route::group(['prefix' => 'master', 'as' => 'master.', 'middleware' => 'auth'], 
             // 🛑 ROUTE BARU UNTUK IMPORT/EXPORT
             Route::get('/download-template', [ProjectController::class, 'downloadTemplate'])->name('download'); 
             Route::post('/import', [ProjectController::class, 'import'])->name('import');
-        
+            Route::get('get-mapel/{id_kelas}', [ProjectController::class, 'getMapelByKelas'])->name('get_mapel');
         });
         
         // 3. RAPOR NILAI & CATATAN WALI KELAS (master.rapornilai.*)
@@ -222,3 +224,29 @@ Route::group(['prefix' => 'master', 'as' => 'master.', 'middleware' => 'auth'], 
     
     
 }); // END GROUP MASTER (URL: /master)
+
+Route::group(['prefix' => 'pengaturan', 'as' => 'pengaturan.'], function () {
+    Route::get('/kokurikuler', [SetKokurikulerController::class, 'index'])->name('kok.index');
+    Route::post('/kokurikuler', [SetKokurikulerController::class, 'store'])->name('kok.store');
+    Route::put('/kokurikuler/{id}', [SetKokurikulerController::class, 'update'])->name('kok.update');
+    Route::delete('/kokurikuler/{id}', [SetKokurikulerController::class, 'destroy'])->name('kok.destroy');
+    Route::patch('/kokurikuler/{id}/toggle', [SetKokurikulerController::class, 'toggleStatus'])->name('kok.toggle');
+});
+
+Route::group(['prefix' => 'rapor', 'as' => 'rapornilai.'], function () {
+    // 1. Halaman Monitoring Utama (Sekarang menampilkan Daftar Mapel)
+    Route::get('/index', [RaporController::class, 'index'])->name('index');
+    
+    // 2. Route AJAX untuk Sinkronisasi Status (Kalkulasi Opsi B di latar belakang)
+    Route::post('/sinkronkan', [RaporController::class, 'sinkronkanKelas'])->name('sinkronkan');
+
+    // 3. Route AJAX untuk Modal Detail Siswa (Menampilkan siapa yang tuntas/belum di suatu mapel)
+    Route::get('/detail-siswa', [RaporController::class, 'getDetailSiswa'])->name('detail_siswa');
+    
+    // 4. Proses Cetak Rapor (Halaman Print A4)
+    // Catatan: Karena index sekarang untuk monitoring, route ini akan diakses dari halaman "Cetak" terpisah nanti
+    Route::get('/print/{id_siswa}', [RaporController::class, 'cetak_proses'])->name('cetak_proses');
+    Route::post('/sinkronkan-kelas', [RaporController::class, 'sinkronkanKelas'])->name('sinkronkan_kelas');
+    Route::get('/cetak', [RaporController::class, 'cetakIndex'])->name('cetak');
+    // Route::get('/rapor/cetak-proses/{id_siswa}', [RaporController::class, 'cetak_proses'])->name('rapornilai.cetak_proses');
+});

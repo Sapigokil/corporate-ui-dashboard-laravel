@@ -23,7 +23,7 @@
                         
                         <div class="card-body pb-2 px-4">
                             
-                            <form method="POST" action="{{ route('users.store') }}">
+                            <form method="POST" action="{{ route('master.users.store') }}">
                                 @csrf
                                 
                                 <h6 class="text-sm font-weight-bolder mb-3 text-info">Informasi Akun</h6>
@@ -91,7 +91,7 @@
                                 </div>
 
                                 <div class="text-end mt-4">
-                                    <a href="{{ route('users.index') }}" class="btn btn-outline-secondary me-2">Batal</a>
+                                    <a href="{{ route('master.users.index') }}" class="btn btn-outline-secondary me-2">Batal</a>
                                     <button type="submit" class="btn bg-gradient-primary">Simpan Pengguna</button>
                                 </div>
                             </form>

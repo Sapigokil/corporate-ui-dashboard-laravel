@@ -11,6 +11,7 @@ use App\Models\Pembelajaran;
 use App\Exports\ProjectTemplateExport; // 🛑 ASUMSI CLASS BARU
 use App\Imports\ProjectImport;         // 🛑 ASUMSI CLASS BARU
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\DB;
 
 
 class ProjectController extends Controller
@@ -217,5 +218,17 @@ class ProjectController extends Controller
         } catch (\Exception $e) {
             return back()->withInput()->with('error', 'Import Gagal: Terjadi kesalahan internal: ' . $e->getMessage());
         }
+    }
+
+    public function getMapelByKelas($id_kelas)
+    {
+        // Mengambil mapel yang hanya terdaftar di kelas tersebut melalui tabel pembelajaran (pivot)
+        $mapel = DB::table('pembelajaran')
+            ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
+            ->where('pembelajaran.id_kelas', $id_kelas)
+            ->select('mata_pelajaran.id_mapel', 'mata_pelajaran.nama_mapel')
+            ->get();
+
+        return response()->json($mapel);
     }
 }

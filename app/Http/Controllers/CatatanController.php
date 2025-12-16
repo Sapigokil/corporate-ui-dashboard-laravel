@@ -7,10 +7,12 @@ use App\Models\Kelas;
 use App\Models\Siswa;
 use App\Models\Ekskul;
 use App\Models\NilaiAkhir;
+use App\Models\SetKokurikuler;
 use App\Exports\CatatanTemplateExport; 
 use App\Imports\CatatanImport;         
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\RaporController;
 
 
 class CatatanController extends Controller
@@ -55,24 +57,39 @@ class CatatanController extends Controller
      */
     public function inputCatatan(Request $request)
     {
+        // Ambil semua kelas untuk filter dropdown
         $kelas = Kelas::all();
-        $siswa = Siswa::when($request->id_kelas, function($q) use ($request) {
-            $q->where('id_kelas', $request->id_kelas);
-        })->get();
-
+        
+        // Inisialisasi variabel awal agar tidak error saat view dimuat pertama kali
+        $set_kokurikuler = collect(); 
+        $siswa = collect();
         $rapor = null;
         $ekskul = Ekskul::all(); 
         $siswaTerpilih = null;
         $dataEkskulTersimpan = []; 
         $templateKokurikuler = '';
 
+        // Load siswa jika kelas dipilih (untuk dropdown siswa)
+        if ($request->id_kelas) {
+            $siswa = Siswa::where('id_kelas', $request->id_kelas)->get();
+        }
+
+        // Eksekusi logika utama jika filter lengkap
         if ($request->id_kelas && $request->id_siswa && $request->tahun_ajaran && $request->semester) {
-            $siswaTerpilih = Siswa::find($request->id_siswa);
+            // Gunakan Eager Loading 'kelas' untuk mendapatkan data 'tingkat'
+            $siswaTerpilih = Siswa::with('kelas')->find($request->id_siswa);
             $kelasTerpilih = Kelas::find($request->id_kelas);
             
+            if ($siswaTerpilih && $siswaTerpilih->kelas) {
+                // Ambil template kokurikuler berdasarkan TINGKAT (Angka: 10, 11, 12)
+                $set_kokurikuler = SetKokurikuler::where('tingkat', $siswaTerpilih->kelas->tingkat)
+                                    ->where('aktif', 1)
+                                    ->get();
+            }
+
             $semesterInt = $this->mapSemesterToInt($request->semester);
 
-            // 1. Ambil Nilai Akhir & Template
+            // 1. Ambil Nilai Akhir & Template Fallback (dari Config jika ada)
             $dataNilai = NilaiAkhir::where('id_siswa', $request->id_siswa)
                 ->where('semester', $semesterInt)
                 ->where('tahun_ajaran', $request->tahun_ajaran)
@@ -86,7 +103,7 @@ class CatatanController extends Controller
                 $templateKokurikuler = config("catatan.template_kokurikuler.$kelasLevel.$kategori") ?? '';
             }    
 
-            // 2. Ambil data catatan
+            // 2. Ambil data catatan dari tabel 'catatan'
             $rapor = \DB::table('catatan')
                 ->where('id_kelas', $request->id_kelas)
                 ->where('id_siswa', $request->id_siswa)
@@ -94,11 +111,11 @@ class CatatanController extends Controller
                 ->where('semester', $semesterInt)
                 ->first();
 
-            // 3. Parsing data ekskul, predikat, dan keterangan (Perbaikan Utama)
+            // 3. Parsing data ekskul, predikat, dan keterangan
             if ($rapor && !empty($rapor->ekskul)) {
                 $ids = explode(',', $rapor->ekskul);
-                $preds = explode(',', $rapor->predikat ?? ''); // Explode kolom predikat
-                $kets = explode(' | ', $rapor->keterangan ?? ''); // Explode kolom keterangan
+                $preds = explode(',', $rapor->predikat ?? ''); 
+                $kets = explode(' | ', $rapor->keterangan ?? ''); 
 
                 foreach ($ids as $index => $id) {
                     if (!empty(trim($id))) {
@@ -113,8 +130,14 @@ class CatatanController extends Controller
         } 
 
         return view('nilai.catatan', compact(
-            'kelas', 'siswa', 'rapor', 'ekskul', 
-            'siswaTerpilih', 'dataEkskulTersimpan', 'templateKokurikuler'
+            'kelas', 
+            'siswa', 
+            'rapor', 
+            'ekskul', 
+            'siswaTerpilih', 
+            'dataEkskulTersimpan', 
+            'templateKokurikuler',
+            'set_kokurikuler'
         ));
     }
 
@@ -172,6 +195,13 @@ class CatatanController extends Controller
                 'catatan_wali_kelas' => $request->catatan_wali_kelas,
                 'updated_at'         => now(),
             ]
+        );
+
+        // Panggil mesin penghitung status rapor
+        app(RaporController::class)->perbaruiStatusRapor(
+            $request->id_siswa, 
+            $request->semester, 
+            $request->tahun_ajaran
         );
 
         return back()->with('success', 'Data berhasil disimpan!');

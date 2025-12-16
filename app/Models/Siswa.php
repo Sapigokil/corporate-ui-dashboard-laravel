@@ -23,19 +23,19 @@ class Siswa extends Model
         return $this->hasOne(DetailSiswa::class, 'id_siswa');
     }
 
-    public function kelas()
-    {
-        return $this->belongsTo(Kelas::class, 'id_kelas');
-    }
-
     public function ekskul()
     {
         return $this->belongsTo(Ekskul::class, 'id_ekskul');
     }
-
-    public function ulangan()
+    
+    public function nilai_akhir()
     {
-        return $this->hasMany(UlanganHarian::class, 'id_siswa', 'id_siswa');
+        return $this->hasMany(NilaiAkhir::class, 'id_siswa');
+    }
+
+    public function kelas()
+    {
+        return $this->belongsTo(Kelas::class, 'id_kelas', 'id_kelas');
     }
 
 }

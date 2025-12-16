@@ -58,7 +58,7 @@
     <link id="pagestyle" href="{{ asset('assets/css/corporate-ui-dashboard.css?v=1.0.0') }}" rel="stylesheet" />
 </head>
 
-<body class="g-sidenav-show  bg-gray-100">
+<body class="g-sidenav-show bg-gray-100">
     @php
         $topSidenavArray = ['wallet', 'profile'];
         $topSidenavTransparent = ['signin', 'signup'];
