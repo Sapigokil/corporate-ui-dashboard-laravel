@@ -1,12 +1,12 @@
 <x-guest-layout>
 
-    <div class="container position-sticky z-index-sticky top-0">
+    <!-- <div class="container position-sticky z-index-sticky top-0">
         <div class="row">
             <div class="col-12">
                 <x-guest.sidenav-guest />
             </div>
         </div>
-    </div>
+    </div> -->
     <main class="main-content  mt-0">
         <section>
             <div class="page-header min-vh-100">
@@ -15,8 +15,9 @@
                         <div class="col-md-6">
                             <div class="position-absolute w-40 top-0 start-0 h-100 d-md-block d-none">
                                 <div class="oblique-image position-absolute d-flex fixed-top ms-auto h-100 z-index-0 bg-cover me-n8"
-                                    style="background-image:url('../assets/img/image-sign-up.jpg')">
-                                    <div class="my-auto text-start max-width-350 ms-7">
+                                    style="background-image:url('{{ asset('assets/img/sign-in-bg.jpg') }}');  background-size: cover;
+                                    background-position: 70% center;">
+                                    <!-- <div class="my-auto text-start max-width-350 ms-7">
                                         <h1 class="mt-3 text-white font-weight-bolder">Start your <br> new journey.</h1>
                                         <p class="text-white text-lg mt-4 mb-4">Use these awesome forms to login or
                                             create new account in your project for free.</p>
@@ -50,7 +51,7 @@
                                     <div class="text-start position-absolute fixed-bottom ms-7">
                                         <h6 class="text-white text-sm mb-5">Copyright © 2022 Corporate UI Design System
                                             by Creative Tim.</h6>
-                                    </div>
+                                    </div> -->
                                 </div>
                             </div>
                         </div>
@@ -90,7 +91,7 @@
                                                 <span class="text-danger text-sm">{{ $message }}</span>
                                             @enderror
                                         </div>
-                                        <div class="form-check form-check-info text-left mb-0">
+                                        <!-- <div class="form-check form-check-info text-left mb-0">
                                             <input class="form-check-input" type="checkbox" name="terms"
                                                 id="terms" required>
                                             <label class="font-weight-normal text-dark mb-0" for="terms">
@@ -100,16 +101,16 @@
                                             @error('terms')
                                                 <span class="text-danger text-sm">{{ $message }}</span>
                                             @enderror
-                                        </div>
+                                        </div> -->
                                         <div class="text-center">
                                             <button type="submit" class="btn btn-dark w-100 mt-4 mb-3">Sign up</button>
-                                            <button type="button" class="btn btn-white btn-icon w-100 mb-3">
+                                            <!-- <button type="button" class="btn btn-white btn-icon w-100 mb-3">
                                                 <span class="btn-inner--icon me-1">
                                                     <img class="w-5" src="../assets/img/logos/google-logo.svg"
                                                         alt="google-logo" />
                                                 </span>
                                                 <span class="btn-inner--text">Sign up with Google</span>
-                                            </button>
+                                            </button> -->
                                         </div>
                                     </form>
                                 </div>
