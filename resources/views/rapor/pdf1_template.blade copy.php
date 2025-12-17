@@ -116,7 +116,7 @@
             vertical-align: middle;
             font-weight: bold;
             padding: 5px;
-            border: 1px solid rgb(139, 13, 13);
+            border: 1px solid black;
         }
         .bg-light {
             background-color: #f2f2f2;
@@ -168,10 +168,6 @@
             padding-right: 10px; /* Jarak kanan */
             margin-bottom: 150px;
             font-size: 11pt;
-        }
-
-        .main-table{
-            margin-bottom: 30px;
         }
 
         .table-ttd {
@@ -279,7 +275,7 @@
     <div class="judul-rapor">LAPORAN HASIL BELAJAR</div>
     {{-- <h4 class="text-center" style="margin-top: 5px;">LAPORAN HASIL BELAJAR</h4> --}}
     </body>
-    <table class="main-table" style="margin-bottom: 30px">
+    <table class="main-table">
         <thead>
             <tr>
                 <th class="text-center" style="width: 5%;">No</th>
@@ -298,23 +294,23 @@
                     <td class="text-center">{{ $loop->iteration }}</td>
                     <td>{{ $m->nama_mapel }}</td>
                     <td class="text-center">{{ $m->nilai_akhir }}</td>
-                    <td style="font-size: 11pt;">{{ $m->capaian }}</td>
+                    <td style="font-size: 9pt;">{{ $m->capaian }}</td>
                 </tr>
                 @endforeach
             @endforeach
         </tbody>
     </table>
-<table class="main-table" style="margin-bottom: 30px">
+<table class="main-table">
     <thead>
         <tr class="bg-light">
             {{-- Baris 1: Judul --}}
-            <th class="text-center">KOKURIKULER</th>
+            <th class="text-center">Kokurikuler</th>
         </tr>
     </thead>
     <tbody>
         <tr>
             {{-- Baris 2: Konten Teks Panjang --}}
-            <td style="padding: 12px; text-align: justify; font-size: 11pt; line-height: 1.5; min-height: 60px;">
+            <td style="padding: 12px; text-align: justify; font-size: 10pt; line-height: 1.5; min-height: 60px;">
                 {{ $catatan->kokurikuler ?? '-' }}
             </td>
         </tr>

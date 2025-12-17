@@ -342,7 +342,7 @@ class RaporController extends Controller
             'nip_wali' => $dataGuru->nip ?? '-',
         ];
 
-        $pdf = Pdf::loadView('rapor.pdf1_template', $data)->setPaper('f4', 'portrait');
+        $pdf = Pdf::loadView('rapor.pdf1_template', $data)->setPaper('a4', 'portrait');
         return $pdf->stream('Rapor_'.$siswa->nama_siswa.'.pdf');
     }
 }

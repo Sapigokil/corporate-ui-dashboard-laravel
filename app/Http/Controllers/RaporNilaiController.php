@@ -205,4 +205,66 @@ class RaporNilaiController extends Controller
         }
         return back()->with('error', 'Data nilai rapor tidak ditemukan.');
     }
+
+    public function detailProgress(Request $request)
+    {
+        try {
+            $id_siswa = $request->id_siswa;
+            $id_kelas = $request->id_kelas;
+            $semester = $request->semester;
+            $tahun_ajaran = $request->tahun_ajaran;
+
+            // 1. Ambil Mapel WAJIB berdasarkan Ploting Kelas (Pembelajaran)
+            $mapelWajib = \DB::table('pembelajaran')
+                ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
+                ->where('pembelajaran.id_kelas', $id_kelas)
+                ->select('mata_pelajaran.id_mapel', 'mata_pelajaran.nama_mapel', 'mata_pelajaran.kategori')
+                ->get();
+
+            // 2. Ambil Mapel yang SUDAH ADA NILAINYA untuk siswa ini
+            $nilaiSiswa = \DB::table('nilai_akhir')
+                ->where('id_siswa', $id_siswa)
+                ->where('semester', $semester)
+                ->where('tahun_ajaran', $tahun_ajaran)
+                ->get()
+                ->keyBy('id_mapel'); // Kita buat id_mapel sebagai key agar mudah dicocokkan
+
+            // 3. Proses Pencocokan (Reconciliation)
+            $dataResult = $mapelWajib->map(function($mapel) use ($nilaiSiswa) {
+                // Mencocokkan: Apakah id_mapel di daftar wajib ada di daftar nilai?
+                $dataNilai = $nilaiSiswa->get($mapel->id_mapel);
+                $sudahAdaNilai = !is_null($dataNilai);
+
+                return [
+                    'nama_mapel' => $mapel->nama_mapel,
+                    'kategori'   => $mapel->kategori ?? 'Umum',
+                    'is_lengkap' => $sudahAdaNilai,
+                    'nilai_akhir' => $sudahAdaNilai ? $dataNilai->nilai_akhir : '-'
+                ];
+            });
+
+            // 4. Urutkan (Gunakan referensi Kurikulum Merdeka yang sudah disimpan)
+            $sortedData = $dataResult->sortBy(function($item) {
+                $priorityMap = [
+                    'Pendidikan Agama dan Budi Pekerti' => 10,
+                    'Pendidikan Pancasila' => 20,
+                    'Bahasa Indonesia' => 30,
+                    'Pendidikan Jasmani, Olah Raga, dan Kesehatan' => 40,
+                    'Sejarah' => 50,
+                    'Seni dan Budaya' => 60,
+                    'Matematika' => 110,
+                    'Bahasa Inggris' => 120,
+                    'Informatika' => 130,
+                    'Projek Ilmu Pengetahuan Alam dan Sosial' => 140,
+                    'Projek Kreatif dan Kewirausahaan' => 150,
+                ];
+                return $priorityMap[$item['nama_mapel']] ?? 500;
+            })->values();
+
+            return response()->json(['data' => $sortedData]);
+
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Gagal mencocokkan data: ' . $e->getMessage()], 500);
+        }
+    }
 }

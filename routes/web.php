@@ -248,5 +248,22 @@ Route::group(['prefix' => 'rapor', 'as' => 'rapornilai.'], function () {
     Route::get('/print/{id_siswa}', [RaporController::class, 'cetak_proses'])->name('cetak_proses');
     Route::post('/sinkronkan-kelas', [RaporController::class, 'sinkronkanKelas'])->name('sinkronkan_kelas');
     Route::get('/cetak', [RaporController::class, 'cetakIndex'])->name('cetak');
+    
     // Route::get('/rapor/cetak-proses/{id_siswa}', [RaporController::class, 'cetak_proses'])->name('rapornilai.cetak_proses');
 });
+
+// 3. RAPOR NILAI & CATATAN WALI KELAS (master.rapornilai.*)
+Route::prefix('rapor')->name('rapornilai.')->group(function () {
+    Route::get('/', [RaporNilaiController::class, 'index'])->name('index'); 
+    Route::get('/create', [RaporNilaiController::class, 'create'])->name('create');
+    Route::post('/', [RaporNilaiController::class, 'store'])->name('store');
+    Route::delete('/{id_rapor}', [RaporNilaiController::class, 'destroy'])->name('destroy'); 
+
+    Route::prefix('wali')->name('wali.')->group(function () {
+        Route::get('/catatan', [RaporCatatanController::class, 'inputCatatan'])->name('catatan');
+        Route::post('/simpan', [RaporCatatanController::class, 'simpanCatatan'])->name('simpan');
+        Route::get('/get-siswa/{id_kelas}', [RaporCatatanController::class, 'getSiswa'])->name('get_siswa'); 
+    });
+});
+
+Route::get('/rapor-nilai/detail-progress', [RaporNilaiController::class, 'detailProgress'])->name('rapornilai.detail_progress');

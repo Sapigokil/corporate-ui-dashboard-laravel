@@ -102,12 +102,16 @@
                                     <span class="font-weight-bold">{{ $s->nama_siswa }}</span><br>
                                     <small class="text-secondary">{{ $s->nis }}</small>
                                 </td>
+                                {{-- Ganti bagian <td> Progress Mapel dengan ini --}}
                                 <td class="text-center text-sm">
                                     @if($s->status_monitoring)
                                         @php
                                             $isComplete = $s->status_monitoring->mapel_tuntas_input >= $s->status_monitoring->total_mapel_seharusnya;
                                         @endphp
-                                        <span class="badge {{ $isComplete ? 'bg-gradient-success' : 'bg-light text-dark' }}">
+                                        <span class="badge {{ $isComplete ? 'bg-gradient-success' : 'bg-light text-dark' }} cursor-pointer" 
+                                            onclick="showDetailProgress('{{ $s->id_siswa }}', '{{ $s->nama_siswa }}')"
+                                            style="cursor: pointer;"
+                                            data-bs-toggle="tooltip" title="Klik untuk lihat detail mapel">
                                             {{ $s->status_monitoring->mapel_tuntas_input }} / {{ $s->status_monitoring->total_mapel_seharusnya }} Mapel
                                         </span>
                                     @else
@@ -169,7 +173,38 @@
         </div>
     </div>
 </main>
-
+{{-- MODAL DETAIL PROGRESS --}}
+<div class="modal fade" id="modalDetailProgress" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-gray-100">
+                <h6 class="modal-title font-weight-bolder text-dark">
+                    <i class="fas fa-list-check text-info me-2"></i> Detail Progress Nilai: <span id="modalStudentName" class="text-primary"></span>
+                </h6>
+                <button type="button" class="btn-close text-dark" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-items-center mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="text-xxs font-weight-bolder opacity-7 ps-3">Mata Pelajaran</th>
+                                <th class="text-center text-xxs font-weight-bolder opacity-7">Status Input</th>
+                                <th class="text-center text-xxs font-weight-bolder opacity-7">Nilai Akhir</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listDetailMapel">
+                            {{-- Data akan diisi via JavaScript --}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-gray-100">
+                <button type="button" class="btn btn-sm btn-dark mb-0" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
 {{-- SCRIPT TETAP SAMA SEPERTI SEBELUMNYA --}}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -229,5 +264,150 @@ function sinkronkanSatuKelas() {
         }
     });
 }
+
+function showDetailProgress(idSiswa, namaSiswa) {
+    $('#modalStudentName').text(namaSiswa);
+    $('#listDetailMapel').html('<tr><td colspan="3" class="text-center py-4"><i class="fas fa-spinner fa-spin me-2"></i> Mengambil data...</td></tr>');
+    $('#modalDetailProgress').modal('show');
+
+    $.ajax({
+        url: "{{ route('rapornilai.detail_progress') }}", // Anda perlu membuat route & function ini di Controller
+        method: "GET",
+        data: {
+            id_siswa: idSiswa,
+            id_kelas: "{{ $id_kelas }}",
+            semester: "{{ $selectedSemester }}",
+            tahun_ajaran: "{{ $selectedTA }}"
+        },
+        success: function(res) {
+        let html = '';
+        if (res.data.length > 0) {
+            res.data.forEach(function(item) {
+               <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+$(document).ready(function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+});
+
+function sinkronkanSatuKelas() {
+    const btn = $('#btnSync');
+    const icon = $('#syncIcon');
+
+    Swal.fire({
+        title: 'Perbarui Data?',
+        text: "Sistem akan menghitung ulang progres nilai dan catatan untuk kelas ini.",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Ya, Sinkronkan!',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Sedang Memproses',
+                html: 'Mohon tunggu sebentar...',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            btn.prop('disabled', true);
+            icon.addClass('fa-spin');
+
+            $.ajax({
+                url: "{{ route('rapornilai.sinkronkan_kelas') }}",
+                method: "POST",
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    id_kelas: "{{ $id_kelas }}",
+                    semester: "{{ $selectedSemester }}",
+                    tahun_ajaran: "{{ $selectedTA }}"
+                },
+                success: function(res) {
+                    Swal.fire({ icon: 'success', title: 'Berhasil!', timer: 1500, showConfirmButton: false })
+                    .then(() => { window.location.reload(); });
+                },
+                error: function(xhr) {
+                    btn.prop('disabled', false);
+                    icon.removeClass('fa-spin');
+                    Swal.fire({ icon: 'error', title: 'Gagal!', text: xhr.responseJSON ? xhr.responseJSON.message : 'Terjadi kesalahan' });
+                }
+            });
+        }
+    });
+}
+
+function showDetailProgress(idSiswa, namaSiswa) {
+    // 1. Tampilkan Modal & Loading
+    $('#modalStudentName').text(namaSiswa);
+    $('#listDetailMapel').html('<tr><td colspan="3" class="text-center py-4"><i class="fas fa-spinner fa-spin me-2"></i> Mengambil data...</td></tr>');
+    $('#modalDetailProgress').modal('show');
+
+    // 2. Jalankan AJAX
+    $.ajax({
+        url: "{{ route('rapornilai.detail_progress') }}",
+        method: "GET",
+        data: {
+            id_siswa: idSiswa,
+            id_kelas: "{{ $id_kelas }}",
+            semester: "{{ $selectedSemester }}",
+            tahun_ajaran: "{{ $selectedTA }}"
+        },
+        success: function(res) {
+            let html = '';
+            // Cek apakah data ada dan merupakan array
+            if (res.data && res.data.length > 0) {
+                res.data.forEach(function(item) {
+                    // Penentuan warna baris & status
+                    let rowStyle = item.is_lengkap 
+                        ? 'background-color: rgba(45, 206, 137, 0.05);' 
+                        : 'background-color: rgba(245, 54, 88, 0.05);';
+                    
+                    let badgeClass = item.is_lengkap ? 'bg-gradient-success' : 'bg-gradient-danger';
+                    let statusText = item.is_lengkap ? 'Lengkap' : 'Belum Input';
+                    let iconStatus = item.is_lengkap 
+                        ? '<i class="fas fa-check-circle text-success me-2"></i>' 
+                        : '<i class="fas fa-exclamation-circle text-danger me-2"></i>';
+
+                    html += `
+                        <tr style="${rowStyle}">
+                            <td class="ps-3">
+                                <div class="d-flex align-items-center">
+                                    ${iconStatus}
+                                    <div class="d-flex flex-column text-start">
+                                        <span class="text-sm font-weight-bold text-dark">${item.nama_mapel}</span>
+                                        <span class="text-xxs text-secondary text-uppercase">${item.kategori || 'Umum'}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge badge-sm ${badgeClass}" style="min-width: 90px;">
+                                    ${statusText}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="text-sm font-weight-bolder ${item.is_lengkap ? 'text-dark' : 'text-muted'}">
+                                    ${item.nilai_akhir && item.nilai_akhir !== '-' ? item.nilai_akhir : '<span class="text-xs opacity-5">-</span>'}
+                                </span>
+                            </td>
+                        </tr>`;
+                });
+            } else {
+                html = '<tr><td colspan="3" class="text-center py-4 text-muted">Tidak ada data mapel wajib untuk kelas ini.</td></tr>';
+            }
+            $('#listDetailMapel').html(html);
+        },
+        error: function(xhr) {
+            let errorText = xhr.responseJSON ? xhr.responseJSON.message : 'Gagal memuat data.';
+            $('#listDetailMapel').html(`<tr><td colspan="3" class="text-center text-danger py-4">${errorText}</td></tr>`);
+        }
+    });
+}
+
 </script>
 @endsection
