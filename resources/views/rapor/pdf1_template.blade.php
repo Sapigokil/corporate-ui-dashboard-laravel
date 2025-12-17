@@ -80,12 +80,12 @@
 
         .judul-rapor {
             text-align: center;
-            font-size: 12pt;
+            font-size: 13pt;
             font-weight: bold;
             letter-spacing: 1.5px;
             text-transform: uppercase;
             /* Margin top dibuat sangat kecil atau bahkan 0 untuk menaikkan teks */
-            margin-top: 5px; 
+            margin-top: -5px; 
             margin-bottom: 15px;
         }
 
@@ -234,7 +234,7 @@
                     <tr>
                         <td style="width: 120px;">Fase</td>
                         <td style="width: 15px;">:</td>
-                        <td>{{ $siswa->kelas->fase ?? 'F' }}</td>
+                        <td>{{ $siswa->kelas->fase ?? '-' }}</td>
                     </tr>
                 </table>
             </td>
@@ -242,7 +242,7 @@
         <tr>
             <td class="col-title-left">Nama Sekolah</td>
             <td class="col-dots">:</td>
-            <td class="col-value-left" style="font-weight: normal;">{{ $infosekolah->nama_sekolah ?? 'SMKN 1 SALATIGA' }}</td>
+            <td class="col-value-left" style="font-weight: normal;">{{ $infoSekolah->nama_sekolah ?? 'SMKN 1 SALATIGA' }}</td>
             
             <td class="col-spacer"></td>
             
@@ -259,7 +259,7 @@
         <tr>
             <td class="col-title-left">Alamat</td>
             <td class="col-dots">:</td>
-            <td class="col-value-left font-alamat">{{ $infosekolah->alamat ?? '-' }}</td>
+            <td class="col-value-left font-alamat">{{ $infoSekolah }}</td>
             
             <td class="col-spacer"></td>
             

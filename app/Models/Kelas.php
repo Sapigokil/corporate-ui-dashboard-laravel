@@ -54,4 +54,15 @@ class Kelas extends Model
     {
         return $query->where('jurusan', $jurusan);
     }
+
+    public function getFaseAttribute()
+    {
+        $tingkat = (int) $this->tingkat;
+
+        return match ($tingkat) {
+            10 => 'E',
+            11, 12 => 'F',
+            default => '-',
+        };
+    }
 }

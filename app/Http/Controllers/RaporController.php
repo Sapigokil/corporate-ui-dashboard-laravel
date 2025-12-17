@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Siswa;
 use App\Models\Kelas;
+use App\Models\InfoSekolah;
 use App\Models\Catatan;
 use App\Models\StatusRapor;
 use Illuminate\Http\Request;
@@ -22,6 +23,11 @@ class RaporController extends Controller
         $semesterRaw = $request->semester ?? 'Ganjil';
         $tahun_ajaran = $request->tahun_ajaran ?? '2025/2026';
         $semesterInt = (strtoupper($semesterRaw) == 'GANJIL') ? 1 : 2;
+
+        // Ambil data sekolah agar tidak undefined di view monitoring
+        $infoSekolah = InfoSekolah::first();
+        $namasekolah = $infoSekolah->nama_sekolah ?? 'E-Rapor SMK';
+        $alamatsekolah = $infoSekolah->jalan ?? 'Alamat belum diatur';
 
         $monitoring = [];
 
@@ -56,7 +62,7 @@ class RaporController extends Controller
                     }, 'combined_grades')
                     ->select('id_siswa', DB::raw('count(*) as total'))
                     ->groupBy('id_siswa')
-                    ->having('total', '>=', 1) // Konsisten dengan Sinkronisasi (Minimal 1 Nilai)
+                    ->having('total', '>=', 1)
                     ->pluck('id_siswa');
 
                     $monitoring[] = (object)[
@@ -70,7 +76,7 @@ class RaporController extends Controller
             }
         }
 
-        return view('rapor.index_rapor', compact('kelas', 'monitoring', 'id_kelas', 'semesterRaw', 'tahun_ajaran'));
+        return view('rapor.index_rapor', compact('kelas', 'monitoring', 'id_kelas', 'semesterRaw', 'tahun_ajaran', 'namasekolah', 'alamatsekolah'));
     }
 
     /**
@@ -107,7 +113,7 @@ class RaporController extends Controller
         }, 'combined_grades')
         ->select('id_siswa', DB::raw('count(*) as total'))
         ->groupBy('id_siswa')
-        ->having('total', '>=', 1) // Konsisten dengan Sinkronisasi
+        ->having('total', '>=', 1)
         ->pluck('id_siswa')
         ->toArray();
 
@@ -121,7 +127,7 @@ class RaporController extends Controller
     }
 
     /**
-     * Mesin Sinkronisasi: Update data ke tabel status_rapor
+     * Mesin Sinkronisasi
      */
     public function perbaruiStatusRapor($id_siswa, $semester, $tahun_ajaran)
     {
@@ -163,11 +169,7 @@ class RaporController extends Controller
             ->exists();
 
         return StatusRapor::updateOrCreate(
-            [
-                'id_siswa' => $id_siswa, 
-                'semester' => $semesterInt, 
-                'tahun_ajaran' => (string)$tahun_ajaran
-            ],
+            ['id_siswa' => $id_siswa, 'semester' => $semesterInt, 'tahun_ajaran' => (string)$tahun_ajaran],
             [
                 'id_kelas' => $siswa->id_kelas,
                 'total_mapel_seharusnya' => $totalMapel,
@@ -178,33 +180,21 @@ class RaporController extends Controller
         );
     }
 
-    /**
-     * Tombol Sinkronisasi Massal (Satu Kelas)
-     */
     public function sinkronkanKelas(Request $request)
     {
         try {
             $id_kelas = $request->id_kelas;
             $semester = $request->semester;
             $tahun_ajaran = $request->tahun_ajaran;
-
-            if (!$id_kelas) {
-                return response()->json(['success' => false, 'message' => 'ID Kelas tidak ditemukan'], 400);
-            }
+            if (!$id_kelas) return response()->json(['success' => false, 'message' => 'ID Kelas tidak ditemukan'], 400);
 
             $daftarSiswa = Siswa::where('id_kelas', $id_kelas)->get();
-
             foreach ($daftarSiswa as $s) {
                 $this->perbaruiStatusRapor($s->id_siswa, $semester, $tahun_ajaran);
             }
-
             return response()->json(['success' => true, 'message' => 'Sinkronisasi berhasil']);
-
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false, 
-                'message' => 'Error: ' . $e->getMessage()
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
     }
 
@@ -222,12 +212,12 @@ class RaporController extends Controller
         $siswaList = [];
 
         if ($id_kelas) {
-            $siswaList = Siswa::where('id_kelas', $id_kelas)
+            $siswaList = Siswa::with('kelas')
+                ->where('id_kelas', $id_kelas)
                 ->orderBy('nama_siswa', 'asc')
                 ->get();
 
             foreach ($siswaList as $s) {
-                // Gunakan casting (int) dan trim() agar data terbaca sempurna
                 $s->status_monitoring = DB::table('status_rapor')
                     ->where('id_siswa', $s->id_siswa)
                     ->where('semester', (int)$semesterInt)
@@ -245,9 +235,6 @@ class RaporController extends Controller
         return view('rapor.cetak_rapor', compact('kelas', 'siswaList', 'id_kelas', 'semesterRaw', 'tahun_ajaran'));
     }
 
-    /**
-     * AJAX: Get Mapel by Kelas
-     */
     public function getMapelByKelas($id_kelas)
     {
         $mapel = DB::table('pembelajaran')
@@ -255,7 +242,6 @@ class RaporController extends Controller
             ->where('pembelajaran.id_kelas', $id_kelas)
             ->select('mata_pelajaran.id_mapel', 'mata_pelajaran.nama_mapel')
             ->get();
-
         return response()->json($mapel);
     }
 
@@ -265,16 +251,30 @@ class RaporController extends Controller
         $tahun_ajaran = $request->tahun_ajaran ?? '2025/2026';
         $semesterInt = (strtoupper($semesterRaw) == 'GANJIL' || $semesterRaw == '1') ? 1 : 2;
 
+        // 1. Ambil data siswa beserta relasi kelas
         $siswa = Siswa::with('kelas')->findOrFail($id_siswa);
-        $infoSekolah = DB::table('info_sekolah')->first();
+        
+        // 2. Ambil data sekolah
+        $getSekolah = InfoSekolah::first();
+        $nama_sekolah = $getSekolah->nama_sekolah ?? 'SMKN 1 SALATIGA';
+        $alamat_sekolah = $getSekolah->jalan ?? 'Jl. Jend. Sudirman No. 1 Salatiga';
 
+        // 3. Logika Generate FASE (Tingkat X -> E, XI/XII -> F)
+        // Kita gunakan trim() untuk membersihkan spasi yang mungkin ada di database
+        $tingkat = trim($siswa->kelas->tingkat ?? '');
+        $fase = match (strtoupper($tingkat)) {
+            'X', '10' => 'E',
+            'XI', '11', 'XII', '12' => 'F',
+            default => '-'
+        };
+
+        // 4. Data Wali Kelas & Guru
         $namaWali = $siswa->kelas->wali_kelas;
         $dataGuru = DB::table('guru')
-        ->where('nama_guru', 'LIKE', '%' . $namaWali . '%')
-        ->first();
+            ->where('nama_guru', 'LIKE', '%' . $namaWali . '%')
+            ->first();
 
-        // Ambil Mata Pelajaran berdasarkan kategori (Umum / Kejuruan / Pilihan)
-        // Asumsi: tabel mata_pelajaran memiliki kolom 'kategori'
+        // 5. Olah Mata Pelajaran & Nilai
         $mapelGroup = DB::table('pembelajaran')
             ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
             ->where('pembelajaran.id_kelas', $siswa->id_kelas)
@@ -282,9 +282,20 @@ class RaporController extends Controller
             ->get()
             ->groupBy('kategori');
 
+        // --- LOGIKA PENGURUTAN KATEGORI SESUAI REVISI ---
+        $urutanKategori = [
+            'Mata Pelajaran Umum'   => 1,
+            'Mata Pelajaran Kejuruan' => 2,
+            'Mata Pelajaran Pilihan'  => 3,
+            'Muatan Lokal'           => 4
+        ];
+
+        $mapelGroup = $mapelGroup->sortBy(function ($value, $key) use ($urutanKategori) {
+            return $urutanKategori[$key] ?? 99; // Jika kategori tidak terdaftar, taruh di paling bawah
+        });
+
         foreach ($mapelGroup as $kategori => $daftarMapel) {
             foreach ($daftarMapel as $mp) {
-                // Ambil Nilai Akhir (Rata-rata Sumatif & Project)
                 $nilaiSumatif = DB::table('sumatif')
                     ->where(['id_siswa' => $id_siswa, 'id_mapel' => $mp->id_mapel, 'semester' => $semesterInt, 'tahun_ajaran' => $tahun_ajaran])
                     ->avg('nilai') ?: 0;
@@ -294,29 +305,25 @@ class RaporController extends Controller
                     ->avg('nilai') ?: 0;
 
                 $mp->nilai_akhir = round(($nilaiSumatif + $nilaiProject) / 2);
-                
-                // Logika Capaian Kompetensi (Contoh sederhana)
                 $mp->capaian = $mp->nilai_akhir >= 85 
-                    ? "Menunjukkan penguasaan yang sangat baik dalam hal seluruh kompetensi."
+                    ? "Menunjukkan penguasaan yang sangat baik dalam seluruh kompetensi."
                     : "Perlu penguatan dalam beberapa materi inti.";
             }
         }
 
+        // 6. Catatan & Ekskul
         $catatan = DB::table('catatan')
             ->where(['id_siswa' => $id_siswa, 'semester' => $semesterInt, 'tahun_ajaran' => $tahun_ajaran])
             ->first();
 
         $dataEkskul = [];
         if ($catatan && !empty($catatan->ekskul)) {
-            // 1. Split data string
-            $ids = explode(',', $catatan->ekskul);       // Contoh: "3,6"
-            $predikats = explode(',', $catatan->predikat); // Contoh: "A,B"
-            $keterangans = explode('|', $catatan->keterangan); // Contoh: "Aktif|Sangat Baik"
+            $ids = explode(',', $catatan->ekskul);
+            $predikats = explode(',', $catatan->predikat);
+            $keterangans = explode('|', $catatan->keterangan);
 
-            // 2. Loop dan cocokkan dengan tabel ekskul
             foreach ($ids as $index => $id) {
                 $namaEkskul = DB::table('ekskul')->where('id_ekskul', trim($id))->value('nama_ekskul');
-                
                 if ($namaEkskul) {
                     $dataEkskul[] = (object)[
                         'nama' => $namaEkskul,
@@ -327,19 +334,24 @@ class RaporController extends Controller
             }
         }    
 
+        // --- BARIS dd($fase) DIHAPUS AGAR PROSES LANJUT KE GENERATE PDF ---
+
+        // 7. Penyelarasan Variabel agar Blade tidak Error
         $data = [
-            'siswa' => $siswa,
-            'infoSekolah' => $infoSekolah,
-            'nipd' => $siswa->nis,
-            'nisn' => $siswa->nisn,
-            'mapelGroup' => $mapelGroup,
-            'catatan' => $catatan,
-            'dataEkskul' => $dataEkskul,
-            'semester' => $semesterRaw,
-            'tahun_ajaran' => $tahun_ajaran,
-            'semesterInt' => $semesterInt,
-            'namaWali' => $namaWali,
-            'nip_wali' => $dataGuru->nip ?? '-',
+            'siswa'         => $siswa,
+            'sekolah'       => $nama_sekolah,    
+            'infoSekolah'   => $alamat_sekolah,  
+            'fase'          => $fase,            // Key ini yang akan dipanggil di view sebagai $fase
+            'nipd'          => $siswa->nis,
+            'nisn'          => $siswa->nisn,
+            'mapelGroup'    => $mapelGroup,
+            'catatan'       => $catatan,
+            'dataEkskul'    => $dataEkskul,
+            'semester'      => $semesterRaw,
+            'tahun_ajaran'  => $tahun_ajaran,
+            'semesterInt'   => $semesterInt,
+            'namaWali'      => $namaWali,
+            'nip_wali'      => $dataGuru->nip ?? '-',
         ];
 
         $pdf = Pdf::loadView('rapor.pdf1_template', $data)->setPaper('a4', 'portrait');
