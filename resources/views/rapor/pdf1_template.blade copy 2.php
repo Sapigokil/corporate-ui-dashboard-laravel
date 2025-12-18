@@ -20,7 +20,7 @@
             top: 50px; /* Menempel ke margin atas yang sudah kita set di @page */
             left: 0px;
             right: 0px;
-            /* height: 90px; Sesuaikan dengan tinggi total header Anda */
+            height: 90px; /* Sesuaikan dengan tinggi total header Anda */
             border-bottom: 2px solid #000;
             background-color: white; /* Mencegah tembus pandang */
             z-index: 1000;
@@ -46,13 +46,13 @@
         }
 
         /* Definisi Lebar Kolom */
-        .col-title-left { width: 95px; }
+        .col-title-left { width: 110px; }
         .col-dots { width: 15px; text-align: center; }
-        .col-value-left { width: 330px; font-weight: bold; } /* Menampung Nama/Sekolah */
+        .col-value-left { width: 280px; font-weight: bold; } /* Menampung Nama/Sekolah */
         .col-spacer { width: 5px; } /* Ruang kosong di tengah */
         
         .col-title-right { width: 110px; }
-        .col-value-right { width: 80px; }
+        .col-value-right { width: 120px; }
 
         .font-alamat {
             font-size: 10pt;
@@ -218,19 +218,6 @@
             font-family: 'Arial', sans-serif; 
             padding-bottom: 55px; /* Memberi ruang untuk teks footer PHP */
         }
-
-        .text-justify {
-            text-align: justify;
-            text-justify: inter-word; /* Membantu perataan kata yang lebih halus di DomPDF */
-            line-height: 1.4;        /* Memberi ruang agar teks panjang lebih enak dibaca */
-        }
-        /* PENYESUAIAN 2: Mencegah pemutusan halaman pada blok TTD */
-        .keep-together {
-            page-break-inside: avoid;
-            break-inside: avoid;
-            width: 100%;
-            background-color: transparent !important;
-        }
     </style>
 </head>
 <body>
@@ -328,16 +315,13 @@
                 <tr>
                     <td class="text-center">{{ $loop->iteration }}</td>
                     <td>{{ $m->nama_mapel }}</td>
-                    <td class="text-center">
-                        {{ number_format((float)$m->nilai_akhir, 0, '', '') }}
-                    </td>
-                    <td class="text-justify" style="font-size: 9pt; text-align: justify">{{ $m->capaian }}</td>
+                    <td class="text-center">{{ $m->nilai_akhir }}</td>
+                    <td style="font-size: 9pt;">{{ $m->capaian }}</td>
                 </tr>
                 @endforeach
             @endforeach
         </tbody>
     </table>
-<div class="keep-together">    
 <table class="main-table">
     <thead>
         <tr class="bg-light">
@@ -354,8 +338,7 @@
         </tr>
     </tbody>
 </table>
-</div>
-<div class="keep-together">    
+    
 <table class="main-table">
     <thead>
         <tr class="bg-light">
@@ -386,55 +369,53 @@
         @endfor
     </tbody>
 </table>
-</div>
-<div class="keep-together">
-    <table class="container-bawah">
-        <tr>
-            <td style="width: 45%;">
-                <table class="tabel-info-rapor">
-                    <thead>
-                        <tr>
-                            <th colspan="2">Ketidakhadiran</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td style="width: 70%;">Sakit</td>
-                            <td class="text-center">{{ $catatan->sakit ?? 0 }} hari</td>
-                        </tr>
-                        <tr>
-                            <td>Izin</td>
-                            <td class="text-center">{{ $catatan->ijin ?? 0 }} hari</td>
-                        </tr>
-                        <tr>
-                            <td>Tanpa Keterangan</td>
-                            <td class="text-center">{{ $catatan->alpha ?? 0 }} hari</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </td>
 
-            <td style="width: 4%;"></td>
+<table class="container-bawah">
+    <tr>
+        <td style="width: 45%;">
+            <table class="tabel-info-rapor">
+                <thead>
+                    <tr>
+                        <th colspan="2">Ketidakhadiran</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="width: 70%;">Sakit</td>
+                        <td class="text-center">{{ $catatan->sakit ?? 0 }} hari</td>
+                    </tr>
+                    <tr>
+                        <td>Izin</td>
+                        <td class="text-center">{{ $catatan->ijin ?? 0 }} hari</td>
+                    </tr>
+                    <tr>
+                        <td>Tanpa Keterangan</td>
+                        <td class="text-center">{{ $catatan->alpha ?? 0 }} hari</td>
+                    </tr>
+                </tbody>
+            </table>
+        </td>
 
-            <td style="width: 51%;">
-                <table class="tabel-info-rapor">
-                    <thead>
-                        <tr>
-                            <th>Catatan Wali Kelas</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td style="height: 68px; vertical-align: top; text-align: justify; font-style: italic; font-size: 9pt;">
-                                {{ $catatan->catatan_wali_kelas ?? '-' }}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </td>
-        </tr>
-    </table>
+        <td style="width: 4%;"></td>
 
+        <td style="width: 51%;">
+            <table class="tabel-info-rapor">
+                <thead>
+                    <tr>
+                        <th>Catatan Wali Kelas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="height: 68px; vertical-align: top; text-align: justify; font-style: italic; font-size: 9pt;">
+                            {{ $catatan->catatan_wali_kelas ?? '-' }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </td>
+    </tr>
+</table>
 
     <table class="table-ttd">
         <tr>
@@ -448,17 +429,8 @@
             <td style="width: 30%;">
                 </td>
 
-            {{-- <td style="width: 35%;">
-                Salatiga, {{ \Carbon\Carbon::now()->isoFormat('D MMMM Y') }}<br>
-                Wali Kelas,
-                <div class="space-ttd"></div>
-                <span class="font-bold" style="text-decoration: underline;">
-                    {{ $nama_wali ?? 'NAMA WALI KELAS' }}
-                </span><br>
-                NIP. {{ $nip_wali ?? '-' }}
-            </td> --}}
             <td style="width: 35%;">
-                Salatiga, 19 Desember 2025<br>
+                Salatiga, {{ \Carbon\Carbon::now()->isoFormat('D MMMM Y') }}<br>
                 Wali Kelas,
                 <div class="space-ttd"></div>
                 <span class="font-bold" style="text-decoration: underline;">
@@ -481,7 +453,6 @@
         {{-- NIP Kepala Sekolah --}}
         <span>NIP. {{ $info_sekolah->nip_kepsek ?? '-' }}</span>
     </div>
-</div>
 <div class="footer-fixed" style="position: fixed; bottom: -30px; left: 0; right: 0; height: 40px; border-top: 1px solid #000; z-index: 1000;"></div>
 
 <script type="text/php">
