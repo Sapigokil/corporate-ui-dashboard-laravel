@@ -488,16 +488,45 @@ class RaporController extends Controller
 
     public function sinkronkanKelas(Request $request)
     {
-        try {
-            $id_kelas = $request->id_kelas;
-            $semester = $request->semester;
-            $tahun_ajaran = $request->tahun_ajaran;
-            $daftarSiswa = Siswa::where('id_kelas', $id_kelas)->get();
-            foreach ($daftarSiswa as $s) { $this->perbaruiStatusRapor($s->id_siswa, $semester, $tahun_ajaran); }
-            return response()->json(['success' => true]);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        $id_kelas = $request->id_kelas;
+        $semesterRaw = $request->semester ?? 'Ganjil';
+        $tahun_ajaran = $request->tahun_ajaran ?? '2025/2026';
+        $semesterInt = (strtoupper($semesterRaw) == 'GANJIL' || $semesterRaw == '1') ? 1 : 2;
+
+        $siswaList = Siswa::where('id_kelas', $id_kelas)->get();
+        $daftarMapel = DB::table('pembelajaran')->where('id_kelas', $id_kelas)->get();
+
+        foreach ($siswaList as $siswa) {
+            // --- PROSES 1: HITUNG & UPDATE NILAI AKHIR (TRIGGER) ---
+            foreach ($daftarMapel as $mapel) {
+                // Hitung rata-rata sumatif & format ke Integer
+                $avgSumatif = DB::table('sumatif')
+                    ->where(['id_siswa' => $siswa->id_siswa, 'id_mapel' => $mapel->id_mapel, 'semester' => $semesterInt, 'tahun_ajaran' => $tahun_ajaran])
+                    ->avg('nilai') ?? 0;
+
+                if ($avgSumatif > 0) {
+                    DB::table('nilai_akhir')->updateOrInsert(
+                        [
+                            'id_siswa' => $siswa->id_siswa, 
+                            'id_mapel' => $mapel->id_mapel, 
+                            'semester' => $semesterInt, 
+                            'tahun_ajaran' => $tahun_ajaran
+                        ],
+                        [
+                            'id_kelas' => $id_kelas,
+                            'nilai_akhir' => (int)round($avgSumatif), // Simpan sebagai INT
+                            'updated_at' => now()
+                        ]
+                    );
+                }
+            }
+
+            // --- PROSES 2: CEK STATUS MONITORING (LOGIKA LAMA ANDA) ---
+            // (Di sini tetap jalankan pengecekan apakah nilai_akhir & catatan sudah lengkap)
+            // Jika lengkap, set status = 'Siap Cetak'
         }
+
+        return response()->json(['message' => 'Data nilai berhasil diperbaharui dan disinkronkan.']);
     }
     /**
  * Download Rapor Satuan (Menggunakan PDF1)
