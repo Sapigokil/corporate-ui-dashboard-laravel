@@ -177,16 +177,10 @@
                     {{-- TOMBOL CETAK MASSAL DI BAWAH TABEL SISI KANAN --}}
                     @if($id_kelas && count($siswaList) > 0)
                         <div class="d-flex justify-content-end p-3">
-                            <form action="{{ route('rapornilai.cetak_massal') }}" method="GET" target="_blank">
-                                {{-- Hidden input agar filter massal sama dengan filter yang sedang aktif --}}
-                                <input type="hidden" name="id_kelas" value="{{ $id_kelas }}">
-                                <input type="hidden" name="semester" value="{{ $selectedSemester }}">
-                                <input type="hidden" name="tahun_ajaran" value="{{ $selectedTA }}">
-                                
-                                <button type="submit" class="btn bg-gradient-success mb-0">
-                                    <i class="fas fa-file-pdf me-2"></i> Cetak Rapor Massal (Satu Kelas)
-                                </button>
-                            </form>
+                            <button onclick="downloadZipWithLoading('{{ route('rapornilai.download_massal') }}?id_kelas={{ $id_kelas }}&semester={{ $selectedSemester }}&tahun_ajaran={{ $selectedTA }}')" 
+                                    class="btn bg-gradient-success mb-0">
+                                <i class="fas fa-file-archive me-2"></i> Download Massal (ZIP)
+                            </button>
                         </div>
                     @endif
 
@@ -436,6 +430,25 @@ function showDetailProgress(idSiswa, namaSiswa) {
         }
     });
 }
+    function downloadZipWithLoading(url) {
+        Swal.fire({
+            title: 'Sedang Memproses...',
+            html: 'Mohon tunggu, sistem sedang membuat file PDF satu per satu dan menyusunnya ke dalam ZIP.',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Trigger download
+        window.location.href = url;
+
+        // Tutup loading setelah beberapa detik (karena response download tidak bisa men-trigger callback selesai)
+        setTimeout(() => {
+            Swal.close();
+        }, 5000); 
+    }
 
 </script>
 @endsection

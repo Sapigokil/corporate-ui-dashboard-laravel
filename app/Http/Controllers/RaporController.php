@@ -10,6 +10,9 @@ use App\Models\StatusRapor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
+use ZipArchive;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
 
 class RaporController extends Controller
 {
@@ -519,6 +522,8 @@ class RaporController extends Controller
      */
     public function download_massal(Request $request)
     {
+        set_time_limit(0); // Mencegah timeout untuk proses banyak siswa
+        
         $id_kelas = $request->id_kelas;
         $semesterRaw = $request->semester ?? 'Ganjil';
         $tahun_ajaran = $request->tahun_ajaran ?? '2025/2026';
@@ -527,16 +532,31 @@ class RaporController extends Controller
 
         $daftarSiswa = Siswa::where('id_kelas', $id_kelas)->orderBy('nama_siswa', 'asc')->get();
         
-        $allData = [];
-        foreach ($daftarSiswa as $siswa) {
-            $allData[] = $this->persiapkanDataRapor($siswa->id_siswa, $semesterRaw, $tahun_ajaran);
+        $zip = new ZipArchive;
+        $zipFileName = 'Rapor_Kelas_' . $id_kelas . '_' . time() . '.zip';
+        $zipFilePath = storage_path('app/public/' . $zipFileName);
+
+        if ($zip->open($zipFilePath, ZipArchive::CREATE | ZipArchive::OVERWRITE) === TRUE) {
+            foreach ($daftarSiswa as $siswa) {
+                // Ambil data menggunakan helper yang sudah ada (identik dengan PDF1)
+                $data = $this->persiapkanDataRapor($siswa->id_siswa, $semesterRaw, $tahun_ajaran);
+                
+                // Render view PDF1 (Satuan) agar layout tetap rapi & konsisten
+                $pdf = \Pdf::loadView('rapor.pdf1_template', $data)
+                        ->setPaper('a4', 'portrait')
+                        ->setOption(['isPhpEnabled' => true, 'isRemoteEnabled' => true]);
+                
+                // Masukkan file ke dalam ZIP
+                $safeName = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '_', $siswa->nama_siswa);
+                $zip->addFromString($safeName . '.pdf', $pdf->output());
+            }
+            $zip->close();
+
+            return response()->download($zipFilePath)->deleteFileAfterSend(true);
         }
 
-        $pdf = Pdf::loadView('rapor.pdf_massal_template', compact('allData'))
-                ->setPaper('a4', 'portrait')
-                ->setOption(['isPhpEnabled' => true, 'isRemoteEnabled' => true]);
-
-        $filename = 'Rapor_Massal_Kelas_' . $id_kelas . '.pdf';
-        return $pdf->download($filename); // Perintah Download
+        return redirect()->back()->with('error', 'Gagal membuat file ZIP.');
     }
+
+    
 }
