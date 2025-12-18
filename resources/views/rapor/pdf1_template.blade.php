@@ -291,7 +291,7 @@
         <tbody>
             @foreach($mapelGroup as $kategori => $mapels)
                 <tr class="kategori-row">
-                    <td colspan="4">{{ $labelKategori[$kategori] ?? 'KATEGORI ' . $kategori }}</td>
+                    <td colspan="4">{{ $labelKategori[$kategori] ?? $kategori }}</td>
                 </tr>
                 @foreach($mapels as $index => $m)
                 <tr>

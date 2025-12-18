@@ -14,7 +14,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class RaporController extends Controller
 {
     /**
-     * Halaman Monitoring Progres
+     * Halaman Monitoring Progres Per Mata Pelajaran
      */
     public function index(Request $request)
     {
@@ -78,7 +78,7 @@ class RaporController extends Controller
     }
 
     /**
-     * Halaman Daftar Siswa
+     * Halaman Cetak Rapor (Daftar Siswa Per Kelas)
      */
     public function cetakIndex(Request $request)
     {
@@ -115,7 +115,7 @@ class RaporController extends Controller
     }
 
     /**
-     * Mesin Cetak PDF: Pemisahan Berdasarkan Kategori (Integer 1-4)
+     * Proses Cetak PDF: Urutan 1-4 Tanpa Kata "KATEGORI"
      */
     public function cetak_proses($id_siswa, Request $request)
     {
@@ -138,21 +138,21 @@ class RaporController extends Controller
             default => '-'
         };
 
-        // --- TAHAP 1-4: PECAH PER KATEGORI INTEGER ---
+        // --- TAHAP PECAH 1-1 BERDASARKAN INTEGER (1-4) ---
+        // Header disesuaikan: Menghilangkan kata "KATEGORI"
         $mapelFinal = [];
-        $daftarKategori = [
-            1 => 'Mata Pelajaran Umum',
-            2 => 'Mata Pelajaran Kejuruan',
-            3 => 'Mata Pelajaran Pilihan',
-            4 => 'Muatan Lokal'
+        $daftarUrutan = [
+            1 => 'MATA PELAJARAN UMUM',
+            2 => 'MATA PELAJARAN KEJURUAN',
+            3 => 'MATA PELAJARAN PILIHAN',
+            4 => 'MUATAN LOKAL'
         ];
 
-        foreach ($daftarKategori as $key => $label) {
-            // Ambil mapel kelas tersebut yang masuk kategori integer terkait
+        foreach ($daftarUrutan as $key => $headerLabel) {
             $kelompok = DB::table('pembelajaran')
                 ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
                 ->where('pembelajaran.id_kelas', $siswa->id_kelas)
-                ->where('mata_pelajaran.kategori', $key) // Pencarian berdasarkan integer 1-4
+                ->where('mata_pelajaran.kategori', $key)
                 ->select('mata_pelajaran.id_mapel', 'mata_pelajaran.nama_mapel')
                 ->get();
 
@@ -163,8 +163,7 @@ class RaporController extends Controller
                         ? "Menunjukkan penguasaan yang baik dalam " . $mp->nama_mapel 
                         : "Perlu bimbingan dalam " . $mp->nama_mapel;
                 }
-                // Simpan ke array dengan label kategori agar bisa di-loop di View
-                $mapelFinal[$label] = $kelompok;
+                $mapelFinal[$headerLabel] = $kelompok;
             }
         }
 
@@ -191,7 +190,7 @@ class RaporController extends Controller
     }
 
     /**
-     * Private Helper: Hitung Nilai Akhir
+     * Helper Hitung Nilai Akhir
      */
     private function hitungNilai($id_siswa, $id_mapel, $semester, $tahun)
     {
