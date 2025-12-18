@@ -46,13 +46,13 @@
         }
 
         /* Definisi Lebar Kolom */
-        .col-title-left { width: 110px; }
+        .col-title-left { width: 95px; }
         .col-dots { width: 15px; text-align: center; }
-        .col-value-left { width: 280px; font-weight: bold; } /* Menampung Nama/Sekolah */
+        .col-value-left { width: 330px; font-weight: bold; } /* Menampung Nama/Sekolah */
         .col-spacer { width: 5px; } /* Ruang kosong di tengah */
         
         .col-title-right { width: 110px; }
-        .col-value-right { width: 120px; }
+        .col-value-right { width: 80px; }
 
         .font-alamat {
             font-size: 10pt;
@@ -324,7 +324,7 @@
                     <td class="text-center">
                         {{ number_format((float)$m->nilai_akhir, 0, '', '') }}
                     </td>
-                    <td style="font-size: 9pt; text-align: justify">{{ $m->capaian }}</td>
+                    <td class="text-justify" style="font-size: 9pt; text-align: justify">{{ $m->capaian }}</td>
                 </tr>
                 @endforeach
             @endforeach
@@ -437,8 +437,17 @@
             <td style="width: 30%;">
                 </td>
 
-            <td style="width: 35%;">
+            {{-- <td style="width: 35%;">
                 Salatiga, {{ \Carbon\Carbon::now()->isoFormat('D MMMM Y') }}<br>
+                Wali Kelas,
+                <div class="space-ttd"></div>
+                <span class="font-bold" style="text-decoration: underline;">
+                    {{ $nama_wali ?? 'NAMA WALI KELAS' }}
+                </span><br>
+                NIP. {{ $nip_wali ?? '-' }}
+            </td> --}}
+            <td style="width: 35%;">
+                Salatiga, 19 Desember 2025<br>
                 Wali Kelas,
                 <div class="space-ttd"></div>
                 <span class="font-bold" style="text-decoration: underline;">
