@@ -13,19 +13,19 @@
     @endphp
     <style>
         @page {
-            margin: 10px 50px 50px 50px; /* Atas dibuat tipis (10px) agar mepet */
+            margin: 50px 50px 50px 50px; /* Atas dibuat tipis (10px) agar mepet */
         }      
         .header-fixed {
             position: fixed;
-            top: 20px; /* Menempel ke margin atas yang sudah kita set di @page */
+            top: 50px; /* Menempel ke margin atas yang sudah kita set di @page */
             left: 0px;
             right: 0px;
-            height: 160px; /* Sesuaikan dengan tinggi total header Anda */
+            height: 90px; /* Sesuaikan dengan tinggi total header Anda */
             border-bottom: 2px solid #000;
             background-color: white; /* Mencegah tembus pandang */
             z-index: 1000;
         }
-        body { font-family: 'Arial', sans-serif; font-size: 11pt; line-height: 1.3; }
+        body { font-family: 'Arial', sans-serif; font-size: 11pt; line-height: 1.3; padding-bottom: 50px; }
         .header-table td { vertical-align: top; padding-bottom: 5px; }
         .main-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         .main-table th, .main-table td { border: 1px solid black; padding: 8px; text-align: left; }
@@ -85,7 +85,7 @@
             letter-spacing: 1.5px;
             text-transform: uppercase;
             /* Margin top dibuat sangat kecil atau bahkan 0 untuk menaikkan teks */
-            margin-top: -5px; 
+            margin-top: 5px; 
             margin-bottom: 15px;
         }
 
@@ -127,21 +127,21 @@
 
         @page { margin: 0mm 50px 50px 50px; } /* Margin kertas */
 
-        .header-fixed {
+        /* .header-fixed {
             position: fixed;
-            top: 15px;
+            top: 50px;
             left: 0;
             right: 0;
-            height: 110px;
+            height: 95px;
             border-bottom: 2px solid #000000;
             padding-bottom: 0px;
-        }
+        } */
 
         .header-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 11pt;
-            line-height: 1.2;
+            line-height: 1;
         }
 
         .header-table td { vertical-align: top; padding: 2px 0; }
@@ -199,6 +199,23 @@
             text-decoration: underline;
             display: block;
             margin-top: 70px; /* Ruang kosong untuk tanda tangan & stempel */
+        }
+        
+        /* Container Footer (Hanya untuk Garis) */
+        /* Container Footer (Garis HTML) */
+        .footer-fixed {
+            position: fixed;
+            bottom: -30px; 
+            left: 0;
+            right: 0;
+            height: 40px;
+            border-top: 1px solid #000;
+            z-index: 1000;
+        }
+
+        body { 
+            font-family: 'Arial', sans-serif; 
+            padding-bottom: 55px; /* Memberi ruang untuk teks footer PHP */
         }
     </style>
 </head>
@@ -283,8 +300,8 @@
         <thead>
             <tr>
                 <th class="text-center" style="width: 5%;">No</th>
-                <th class="text-center" style="width: 30%;">Mata Pelajaran</th>
-                <th class="text-center" style="width: 15%;">Nilai Akhir</th>
+                <th class="text-center" style="width: 25%;">Mata Pelajaran</th>
+                <th class="text-center" style="width: 11%;">Nilai Akhir</th>
                 <th class="text-center">Capaian Kompetensi</th>
             </tr>
         </thead>
@@ -435,5 +452,35 @@
         {{-- NIP Kepala Sekolah --}}
         <span>NIP. {{ $info_sekolah->nip_kepsek ?? '-' }}</span>
     </div>
+<div class="footer-fixed" style="position: fixed; bottom: -30px; left: 0; right: 0; height: 40px; border-top: 1px solid #000; z-index: 1000;"></div>
+
+<script type="text/php">
+    if (isset($pdf)) {
+        // Coba gunakan nama font standar yang biasanya memiliki varian italic otomatis di DomPDF
+        // Jika 'Arial' tidak mau miring, gunakan 'Helvetica-Oblique'
+        $font = $fontMetrics->get_font("helvetica", "italic");
+        
+        $size = 9;
+        $color = array(0, 0, 0);
+        $width = $pdf->get_width();
+        $height = $pdf->get_height();
+        $marginSide = 50; 
+        
+        // Posisi Y (Sedikit di bawah garis)
+        $y = $height - 33; 
+
+        // --- TEKS KIRI: Identitas Siswa ---
+        $leftText = "{{ $siswa->kelas->nama_kelas }} / {{ strtoupper($siswa->nama_siswa) }} / {{ $siswa->nipd }}";
+        $pdf->page_text($marginSide, $y, $leftText, $font, $size, $color);
+
+        // --- TEKS KANAN: Penomoran Halaman ---
+        $rightText = "Halaman {PAGE_NUM} dari {PAGE_COUNT}";
+        
+        // Estimasi posisi X (115 adalah kompensasi lebar teks miring)
+        $x = $width - $marginSide - 115; 
+        
+        $pdf->page_text($x, $y, $rightText, $font, $size, $color);
+    }
+</script>
 </body>
 </html>

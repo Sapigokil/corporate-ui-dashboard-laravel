@@ -324,8 +324,8 @@ class RaporController extends Controller
                     
                     $dataEkskul[] = (object)[
                         'nama' => $namaEkskulReal ?? 'Ekstra ID: ' . $idEkstra,
-                        'predikat' => isset($grades[$index]) ? trim($grades[$index]) : '-',
-                        'keterangan' => isset($descs[$index]) ? trim($descs[$index]) : '-'
+                        'predikat' => $grades[$index] ?? '-',
+                        'keterangan' => $descs[$index] ?? '-'
                     ];
                 }
             }
@@ -350,7 +350,12 @@ class RaporController extends Controller
             'nip_wali'      => $dataGuru->nip ?? '-',
         ];
 
-        $pdf = Pdf::loadView('rapor.pdf1_template', $data)->setPaper('a4', 'portrait');
+        $pdf = Pdf::loadView('rapor.pdf1_template', $data)
+                ->setPaper('a4', 'portrait')
+                ->setOption([
+                    'isPhpEnabled' => true,
+                    'isRemoteEnabled' => true // Tambahkan ini jika ada gambar eksternal
+                ]);
         return $pdf->stream('Rapor_'.$siswa->nama_siswa.'.pdf');
     }
 }
