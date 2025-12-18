@@ -378,26 +378,26 @@ class RaporController extends Controller
                 
                 $teksCapaian = $existing->capaian_akhir ?? null;
 
-                // Jika capaian belum ada, kita bantu buatkan otomatis dari data TP
-                if (empty($teksCapaian)) {
-                    $nilaiTp = DB::table('nilai_tp')
-                        ->join('tujuan_pembelajaran', 'nilai_tp.id_tp', '=', 'tujuan_pembelajaran.id_tp')
-                        ->where(['id_siswa' => $id_siswa, 'id_mapel' => $pb->id_mapel, 'semester' => $semesterInt, 'tahun_ajaran' => $tahun_ajaran])
-                        ->orderBy('nilai', 'desc')
-                        ->get();
+                // // Jika capaian belum ada, kita bantu buatkan otomatis dari data TP
+                // if (empty($teksCapaian)) {
+                //     $nilaiTp = DB::table('nilai_tp')
+                //         ->join('tujuan_pembelajaran', 'nilai_tp.id_tp', '=', 'tujuan_pembelajaran.id_tp')
+                //         ->where(['id_siswa' => $id_siswa, 'id_mapel' => $pb->id_mapel, 'semester' => $semesterInt, 'tahun_ajaran' => $tahun_ajaran])
+                //         ->orderBy('nilai', 'desc')
+                //         ->get();
 
-                    if ($nilaiTp->isNotEmpty()) {
-                        $tpMax = $nilaiTp->first();
-                        $tpMin = $nilaiTp->last();
+                //     if ($nilaiTp->isNotEmpty()) {
+                //         $tpMax = $nilaiTp->first();
+                //         $tpMin = $nilaiTp->last();
                         
-                        $teksCapaian = "Menunjukkan penguasaan yang sangat baik dalam " . $tpMax->deskripsi;
-                        if ($tpMax->id_tp != $tpMin->id_tp) {
-                            $teksCapaian .= ", namun perlu bimbingan dalam " . $tpMin->deskripsi;
-                        }
-                    } else {
-                        $teksCapaian = 'Menunjukkan pemahaman yang baik dalam materi ini.';
-                    }
-                }
+                //         $teksCapaian = "Menunjukkan penguasaan yang sangat baik dalam " . $tpMax->deskripsi;
+                //         if ($tpMax->id_tp != $tpMin->id_tp) {
+                //             $teksCapaian .= ", namun perlu bimbingan dalam " . $tpMin->deskripsi;
+                //         }
+                //     } else {
+                //         $teksCapaian = 'Menunjukkan pemahaman yang baik dalam materi ini.';
+                //     }
+                // }
 
                 // 3. Update atau Insert
                 DB::table('nilai_akhir')->updateOrInsert(
