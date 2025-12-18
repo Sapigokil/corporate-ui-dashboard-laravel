@@ -251,7 +251,7 @@ class RaporController extends Controller
     }
 
     /**
-     * Proses Cetak PDF Rapor: Urutan Terkunci 1-4 & Ambil Data Final
+     * Proses Cetak PDF Rapor: Urutan Terkunci 1-4 & Ambil Data Final dengan Pembulatan 0
      */
     public function cetak_proses($id_siswa, Request $request)
     {
@@ -300,8 +300,8 @@ class RaporController extends Controller
                         ])
                         ->first();
 
-                    // Gunakan variabel nilai_akhir agar tidak terjadi error di Blade
-                    $mp->nilai_akhir = $dataFinal->nilai_akhir ?? 0;
+                    // Menerapkan pembulatan 0 angka di belakang koma pada nilai akhir
+                    $mp->nilai_akhir = isset($dataFinal->nilai_akhir) ? round($dataFinal->nilai_akhir, 0) : 0;
                     $mp->capaian = $dataFinal->capaian_akhir ?? '-';
                 }
                 $mapelFinal[$headerLabel] = $kelompok;
