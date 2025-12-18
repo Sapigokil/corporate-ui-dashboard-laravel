@@ -15,7 +15,7 @@
                         <div class="col-md-6">
                             <div class="position-absolute w-40 top-0 start-0 h-100 d-md-block d-none">
                                 <div class="oblique-image position-absolute d-flex fixed-top ms-auto h-100 z-index-0 bg-cover me-n8"
-                                    style="background-image:url('{{ asset('assets/img/sign-in-bg.jpg') }}');  background-size: cover;
+                                    style="background-image:url('{{ asset('assets/img/sign-in-bg-2.jpg') }}');  background-size: cover;
                                     background-position: 70% center;">
                                     <!-- <div class="my-auto text-start max-width-350 ms-7">
                                         <h1 class="mt-3 text-white font-weight-bolder">Start your <br> new journey.</h1>
@@ -59,12 +59,12 @@
                             <div class="card card-plain mt-8">
                                 <div class="card-header pb-0 text-left bg-transparent">
                                     <h3 class="font-weight-black text-dark display-6">Sign up</h3>
-                                    <p class="mb-0">Nice to meet you! Please enter your details.</p>
+                                    <p class="mb-0">Selamat datang, Masukkan data diri Anda.</p>
                                 </div>
                                 <div class="card-body">
                                     <form role="form" method="POST" action="sign-up">
                                         @csrf
-                                        <label>Name</label>
+                                        <label>Nama</label>
                                         <div class="mb-3">
                                             <input type="text" id="name" name="name" class="form-control"
                                                 placeholder="Enter your name" value="{{old("name")}}" aria-label="Name"
@@ -73,7 +73,7 @@
                                                 <span class="text-danger text-sm">{{ $message }}</span>
                                             @enderror
                                         </div>
-                                        <label>Email Address</label>
+                                        <label>Email</label>
                                         <div class="mb-3">
                                             <input type="email" id="email" name="email" class="form-control"
                                                 placeholder="Enter your email address" value="{{old("email")}}" aria-label="Email"
@@ -116,7 +116,7 @@
                                 </div>
                                 <div class="card-footer text-center pt-0 px-lg-2 px-1">
                                     <p class="mb-4 text-xs mx-auto">
-                                        Already have an account?
+                                        Sudah punya akun?
                                         <a href="{{ route('sign-in') }}" class="text-dark font-weight-bold">Sign
                                             in</a>
                                     </p>

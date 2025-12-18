@@ -28,6 +28,36 @@
         .sidebar .badge {
             font-weight: bold;
         }
+
+        #sidenav-main {
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #sidenav-collapse-main {
+            height: calc(100vh - 80px);
+            overflow-y: auto;
+        }
+
+#sidenav-main .collapse .nav-link::before {
+    background-color: #ffffff !important; /* PUTIH */
+    opacity: 0.6 !important;
+}
+
+/* DOT submenu AKTIF */
+#sidenav-main .collapse .nav-link.active::before {
+    background-color: #ffffff !important;
+    opacity: 1 !important;
+    transform: scale(1.2);
+}
+
+#sidenav-main .collapse .nav-link::before {
+    width: 8px;
+    height: 8px;
+    margin-right: 10px;
+}
+
+
     </style>
 
 
@@ -202,7 +232,7 @@
 
                         {{-- 🛑 SUB MENU BARU: CATATAN WALIKELAS 🛑 --}}
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('master.catatan.input') ? 'active' : '' }}" href="{{ route('master.catatan.input') }}">
+                            <a class="nav-link {{ request()->routeIs('master.catatan.input') ? 'active' : 'text-white' }}" href="{{ route('master.catatan.input') }}">
                                 <span class="sidenav-normal"> Catatan Walikelas </span>
                             </a>
                         </li>
