@@ -383,53 +383,54 @@
         @endfor
     </tbody>
 </table>
-<div class="keep-together"
-<table class="container-bawah">
-    <tr>
-        <td style="width: 45%;">
-            <table class="tabel-info-rapor">
-                <thead>
-                    <tr>
-                        <th colspan="2">Ketidakhadiran</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td style="width: 70%;">Sakit</td>
-                        <td class="text-center">{{ $catatan->sakit ?? 0 }} hari</td>
-                    </tr>
-                    <tr>
-                        <td>Izin</td>
-                        <td class="text-center">{{ $catatan->ijin ?? 0 }} hari</td>
-                    </tr>
-                    <tr>
-                        <td>Tanpa Keterangan</td>
-                        <td class="text-center">{{ $catatan->alpha ?? 0 }} hari</td>
-                    </tr>
-                </tbody>
-            </table>
-        </td>
+<div class="keep-together">
+    <table class="container-bawah">
+        <tr>
+            <td style="width: 45%;">
+                <table class="tabel-info-rapor">
+                    <thead>
+                        <tr>
+                            <th colspan="2">Ketidakhadiran</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="width: 70%;">Sakit</td>
+                            <td class="text-center">{{ $catatan->sakit ?? 0 }} hari</td>
+                        </tr>
+                        <tr>
+                            <td>Izin</td>
+                            <td class="text-center">{{ $catatan->ijin ?? 0 }} hari</td>
+                        </tr>
+                        <tr>
+                            <td>Tanpa Keterangan</td>
+                            <td class="text-center">{{ $catatan->alpha ?? 0 }} hari</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
 
-        <td style="width: 4%;"></td>
+            <td style="width: 4%;"></td>
 
-        <td style="width: 51%;">
-            <table class="tabel-info-rapor">
-                <thead>
-                    <tr>
-                        <th>Catatan Wali Kelas</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td style="height: 68px; vertical-align: top; text-align: justify; font-style: italic; font-size: 9pt;">
-                            {{ $catatan->catatan_wali_kelas ?? '-' }}
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </td>
-    </tr>
-</table>
+            <td style="width: 51%;">
+                <table class="tabel-info-rapor">
+                    <thead>
+                        <tr>
+                            <th>Catatan Wali Kelas</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="height: 68px; vertical-align: top; text-align: justify; font-style: italic; font-size: 9pt;">
+                                {{ $catatan->catatan_wali_kelas ?? '-' }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        </tr>
+    </table>
+
 
     <table class="table-ttd">
         <tr>
