@@ -234,22 +234,23 @@ Route::group(['prefix' => 'pengaturan', 'as' => 'pengaturan.'], function () {
 });
 
 Route::group(['prefix' => 'rapor', 'as' => 'rapornilai.'], function () {
-    // 1. Halaman Monitoring Utama (Sekarang menampilkan Daftar Mapel)
+    // 1. Halaman Monitoring Utama
     Route::get('/index', [RaporController::class, 'index'])->name('index');
     
-    // 2. Route AJAX untuk Sinkronisasi Status (Kalkulasi Opsi B di latar belakang)
+    // 2. Route AJAX untuk Sinkronisasi Status
     Route::post('/sinkronkan', [RaporController::class, 'sinkronkanKelas'])->name('sinkronkan');
-
-    // 3. Route AJAX untuk Modal Detail Siswa (Menampilkan siapa yang tuntas/belum di suatu mapel)
-    Route::get('/detail-siswa', [RaporController::class, 'getDetailSiswa'])->name('detail_siswa');
-    
-    // 4. Proses Cetak Rapor (Halaman Print A4)
-    // Catatan: Karena index sekarang untuk monitoring, route ini akan diakses dari halaman "Cetak" terpisah nanti
-    Route::get('/print/{id_siswa}', [RaporController::class, 'cetak_proses'])->name('cetak_proses');
     Route::post('/sinkronkan-kelas', [RaporController::class, 'sinkronkanKelas'])->name('sinkronkan_kelas');
-    Route::get('/cetak', [RaporController::class, 'cetakIndex'])->name('cetak');
+
+    // 3. Route AJAX untuk Modal Detail (Monitoring & Progress)
+    Route::get('/detail-siswa', [RaporController::class, 'getDetailSiswa'])->name('detail_siswa');
+    Route::get('/detail-progress', [RaporController::class, 'getDetailProgress'])->name('detail_progress');
     
-    // Route::get('/rapor/cetak-proses/{id_siswa}', [RaporController::class, 'cetak_proses'])->name('rapornilai.cetak_proses');
+    // 4. Proses Cetak Rapor
+    Route::get('/cetak', [RaporController::class, 'cetakIndex'])->name('cetak');
+    Route::get('/print/{id_siswa}', [RaporController::class, 'cetak_proses'])->name('cetak_proses');
+    
+    // --- TAMBAHKAN ROUTE BARU DI SINI ---
+    Route::get('/cetak-massal', [RaporController::class, 'cetak_massal'])->name('cetak_massal');
 });
 
 // 3. RAPOR NILAI & CATATAN WALI KELAS (master.rapornilai.*)

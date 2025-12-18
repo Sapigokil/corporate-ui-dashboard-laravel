@@ -162,6 +162,22 @@
                             @endforelse
                         </tbody>
                     </table>
+                    {{-- TOMBOL CETAK MASSAL DI BAWAH TABEL SISI KANAN --}}
+                    @if($id_kelas && count($siswaList) > 0)
+                        <div class="d-flex justify-content-end p-3">
+                            <form action="{{ route('rapornilai.cetak_massal') }}" method="GET" target="_blank">
+                                {{-- Hidden input agar filter massal sama dengan filter yang sedang aktif --}}
+                                <input type="hidden" name="id_kelas" value="{{ $id_kelas }}">
+                                <input type="hidden" name="semester" value="{{ $selectedSemester }}">
+                                <input type="hidden" name="tahun_ajaran" value="{{ $selectedTA }}">
+                                
+                                <button type="submit" class="btn bg-gradient-success mb-0">
+                                    <i class="fas fa-file-pdf me-2"></i> Cetak Rapor Massal (Satu Kelas)
+                                </button>
+                            </form>
+                        </div>
+                    @endif
+
                 </div>
                 @else
                 <div class="text-center py-5">
