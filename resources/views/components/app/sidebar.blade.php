@@ -1,4 +1,6 @@
-<aside class="sidenav navbar navbar-vertical navbar-expand-xs border-0 bg-slate-900 fixed-start" id="sidenav-main">
+<aside class="sidenav navbar navbar-vertical navbar-expand-xs border-0 fixed-start" id="sidenav-main" style="background:
+linear-gradient(180deg, #0f172a, #020617);">
+
     <div class="sidenav-header">
         <i class="fas fa-times p-3 cursor-pointer text-secondary opacity-5 position-absolute end-0 top-0 d-none d-xl-none"
             id="iconSidenav"></i>
@@ -28,6 +30,63 @@
         .sidebar .badge {
             font-weight: bold;
         }
+
+        /* MENU AKTIF SIDEBAR: UNDERLINE + BOLD */
+        .sidenav .nav-link.active {
+            background: transparent !important;   /* hapus block */
+            color: #ffffff !important;
+            font-weight: 700 !important;           /* bold */
+            border-radius: 0 !important;
+            position: relative;
+        }
+
+        #sidenav-main .collapse .nav-link::before {
+            background-color: #ffffff !important; /* PUTIH */
+            opacity: 0.6 !important;
+        }
+
+        /* DOT submenu AKTIF */
+        #sidenav-main .collapse .nav-link.active::before {
+            background-color: #ffffff !important;
+            opacity: 1 !important;
+            transform: scale(1.2);
+        }
+
+        #sidenav-main .collapse .nav-link::before {
+            width: 8px;
+            height: 8px;
+            margin-right: 10px;
+        }
+
+        /* PANAH DROPDOWN SIDEBAR JADI PUTIH */
+        #sidenav-main .nav-link[data-bs-toggle="collapse"]::after {
+            color: #ffffff !important;
+            border-color: #ffffff !important;
+            opacity: 1 !important;
+        }
+
+        .sidebar .badge {
+            font-weight: bold;
+        }
+
+        #sidenav-main {
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #sidenav-collapse-main {
+            height: calc(100vh - 80px);
+            overflow-y: auto;
+        }
+
+        /* GARIS PEMISAH SIDEBAR */
+        #sidenav-main hr.horizontal {
+        border-top: 1px solid #ffffff !important;
+        background: none !important;
+        opacity: 0.6;
+        }
+
+
     </style>
 
 
@@ -67,9 +126,10 @@
             @can('manage-master') 
             <li class="nav-item">
                 <a data-bs-toggle="collapse" href="#masterDataMenu" class="nav-link {{ $isMasterActive ? 'active' : 'text-white' }}" aria-controls="masterDataMenu" role="button" aria-expanded="{{ $isMasterActive ? 'true' : 'false' }}">
-                    <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
-                        <i class="fas fa-database text-sm {{ $isMasterActive ? 'text-white' : 'text-dark opacity-10' }}"></i>
-                    </div>
+            <div class="me-2 d-flex align-items-center justify-content-center">
+                <i class="fas fa-database text-white"></i>
+            </div>
+
                     <span class="nav-link-text ms-1">Master Data</span>
                 </a>
 
@@ -150,8 +210,8 @@
             <li class="nav-item">
                 <a data-bs-toggle="collapse" href="#dataNilaiMenu" class="nav-link {{ $isNilaiActive ? 'active' : 'text-white' }}" aria-controls="dataNilaiMenu" role="button" aria-expanded="{{ $isNilaiActive ? 'true' : 'false' }}">
                     {{-- IKON DIKEMBALIKAN --}}
-                    <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
-                        <i class="fas fa-marker text-sm {{ $isNilaiActive ? 'text-white' : 'text-dark opacity-10' }}"></i>
+                    <div class="me-2 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-marker text-white"></i>
                     </div>
                     <span class="nav-link-text ms-1">Input Nilai</span>
                 </a>
@@ -202,7 +262,7 @@
 
                         {{-- 🛑 SUB MENU BARU: CATATAN WALIKELAS 🛑 --}}
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('master.catatan.input') ? 'active' : '' }}" href="{{ route('master.catatan.input') }}">
+                            <a class="nav-link {{ request()->routeIs('master.catatan.input') ? 'active' : 'text-white' }}" href="{{ route('master.catatan.input') }}">
                                 <span class="sidenav-normal"> Catatan Walikelas </span>
                             </a>
                         </li>
@@ -246,9 +306,9 @@
                     aria-controls="dataRaporMenu" role="button" 
                     aria-expanded="{{ $isRaporActive ? 'true' : 'false' }}">
                     
-                    <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
+                    <div class="me-2 d-flex align-items-center justify-content-center">
                         {{-- Warna ikon berubah jadi putih jika aktif (mengikuti gaya Material Dashboard Anda) --}}
-                        <i class="fas fa-file-invoice text-sm {{ $isRaporActive ? 'text-dark' : 'text-dark opacity-10' }}"></i>
+                        <i class="fas fa-file-invoice text-white"></i>
                     </div>
                     <span class="nav-link-text ms-1">Data Rapor</span>
                 </a>
@@ -260,20 +320,20 @@
                         {{-- Menu Monitoring (Yang sudah ada) --}}
                         <li class="nav-item">
                             <a class="nav-link {{ Route::is('rapornilai.index') ? 'active' : '' }}" href="{{ route('rapornilai.index') }}">
-                                <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
-                                    <i class="fas fa-desktop text-dark text-sm"></i>
-                                </div>
-                                <span class="nav-link-text ms-1">Monitoring Rapor</span>
+                                <span class="sidenav-mini-icon">
+                                    <i class="fas fa-desktop-invoice text-white"></i>
+                                </span>
+                                <span class="nav-link-text ms-1 text-white">Monitoring Rapor</span>
                             </a>
                         </li>
 
                         {{-- MENU BARU: Cetak Rapor --}}
                         <li class="nav-item">
                             <a class="nav-link {{ Route::is('rapornilai.cetak') ? 'active' : '' }}" href="{{ route('rapornilai.cetak') }}">
-                                <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
-                                    <i class="fas fa-print text-dark text-sm"></i>
-                                </div>
-                                <span class="nav-link-text ms-1">Cetak Rapor</span>
+                            <span class="sidenav-mini-icon">
+                                <i class="fas fa-desktop-invoice text-white"></i>
+                            </span>
+                                <span class="nav-link-text ms-1 text-white">Cetak Rapor</span>
                             </a>
                         </li>
 
@@ -325,10 +385,10 @@
             @can('pengaturan-manage-users')
             <li class="nav-item">
                 <a data-bs-toggle="collapse" href="#manajemenUserMenu" class="nav-link {{ $isManagementActive ? 'active' : 'text-white' }}" aria-controls="manajemenUserMenu" role="button" aria-expanded="{{ $isManagementActive ? 'true' : 'false' }}">
-                    <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
-                        <i class="fas fa-users-cog text-sm {{ $isManagementActive ? 'text-white' : 'text-dark opacity-10' }}"></i>
+                    <div class="me-2 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-users-cog text-white"></i>
                     </div>
-                    <span class="nav-link-text ms-1">Manajemen Pengguna</span>
+                    <span class="nav-link-text ms-1">Manajemen User</span>
                 </a>
 
                 <div class="collapse {{ $isManagementActive ? 'show' : '' }}" id="manajemenUserMenu">
@@ -358,8 +418,8 @@
             @can('pengaturan-manage-users') {{-- Gunakan permission yang sesuai --}}
             <li class="nav-item">
                 <a data-bs-toggle="collapse" href="#pengaturanMenu" class="nav-link {{ $isPengaturanActive ? 'active' : 'text-white' }}" aria-controls="pengaturanMenu" role="button" aria-expanded="{{ $isPengaturanActive ? 'true' : 'false' }}">
-                    <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
-                        <i class="fas fa-cogs text-sm {{ $isPengaturanActive ? 'text-white' : 'text-dark opacity-10' }}"></i>
+                    <div class="me-2 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-cogs text-white"></i>
                     </div>
                     <span class="nav-link-text ms-1">Pengaturan</span>
                 </a>
@@ -380,8 +440,8 @@
             @php $isProfileActive = false; @endphp
             <li class="nav-item">
                 <a class="nav-link {{ $isProfileActive ? 'active' : 'text-white' }}" href="#">
-                    <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
-                        <i class="fas fa-user text-sm {{ $isProfileActive ? 'text-white' : 'text-dark opacity-10' }}"></i>
+                    <div class="me-2 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-user text-white"></i>
                     </div>
                     <span class="nav-link-text ms-1">Profil Saya</span>
                 </a>
