@@ -359,9 +359,11 @@ class RaporController extends Controller
         $siswa = Siswa::with('kelas')->findOrFail($id_siswa);
         $getSekolah = InfoSekolah::first();
 
-        // --- LOGIKA ALWAYS AUTO-SYNC ---
+        // --- LOGIKA ALWAYS AUTO-SYNC (NILAI & CAPAIAN) ---
         $pembelajaranSiswa = DB::table('pembelajaran')->where('id_kelas', $siswa->id_kelas)->get();
+        
         foreach ($pembelajaranSiswa as $pb) {
+            // 1. Kalkulasi Nilai Akhir
             $avgSumatif = DB::table('sumatif')->where(['id_siswa' => $id_siswa, 'id_mapel' => $pb->id_mapel, 'semester' => $semesterInt, 'tahun_ajaran' => $tahun_ajaran])->avg('nilai') ?? 0;
             $avgProject = DB::table('project')->where(['id_siswa' => $id_siswa, 'id_mapel' => $pb->id_mapel, 'semester' => $semesterInt, 'tahun_ajaran' => $tahun_ajaran])->avg('nilai') ?? 0;
             
@@ -371,13 +373,39 @@ class RaporController extends Controller
             $nilaiFinal = ($pembagi > 0) ? (int) round($totalNilai / $pembagi, 0) : 0;
 
             if ($nilaiFinal > 0) {
+                // 2. GENERATE CAPAIAN OTOMATIS (Jika di DB masih kosong)
                 $existing = DB::table('nilai_akhir')->where(['id_siswa' => $id_siswa, 'id_mapel' => $pb->id_mapel, 'semester' => $semesterInt, 'tahun_ajaran' => $tahun_ajaran])->first();
+                
+                $teksCapaian = $existing->capaian_akhir ?? null;
+
+                // Jika capaian belum ada, kita bantu buatkan otomatis dari data TP
+                if (empty($teksCapaian)) {
+                    $nilaiTp = DB::table('nilai_tp')
+                        ->join('tujuan_pembelajaran', 'nilai_tp.id_tp', '=', 'tujuan_pembelajaran.id_tp')
+                        ->where(['id_siswa' => $id_siswa, 'id_mapel' => $pb->id_mapel, 'semester' => $semesterInt, 'tahun_ajaran' => $tahun_ajaran])
+                        ->orderBy('nilai', 'desc')
+                        ->get();
+
+                    if ($nilaiTp->isNotEmpty()) {
+                        $tpMax = $nilaiTp->first();
+                        $tpMin = $nilaiTp->last();
+                        
+                        $teksCapaian = "Menunjukkan penguasaan yang sangat baik dalam " . $tpMax->deskripsi;
+                        if ($tpMax->id_tp != $tpMin->id_tp) {
+                            $teksCapaian .= ", namun perlu bimbingan dalam " . $tpMin->deskripsi;
+                        }
+                    } else {
+                        $teksCapaian = 'Menunjukkan pemahaman yang baik dalam materi ini.';
+                    }
+                }
+
+                // 3. Update atau Insert
                 DB::table('nilai_akhir')->updateOrInsert(
                     ['id_siswa' => $id_siswa, 'id_mapel' => $pb->id_mapel, 'semester' => $semesterInt, 'tahun_ajaran' => $tahun_ajaran],
                     [
                         'id_kelas' => $siswa->id_kelas, 
                         'nilai_akhir' => $nilaiFinal, 
-                        'capaian_akhir' => $existing->capaian_akhir ?? 'Menunjukkan pemahaman yang baik dalam materi ini.', 
+                        'capaian_akhir' => $teksCapaian, 
                         'updated_at' => now()
                     ]
                 );
@@ -587,5 +615,35 @@ class RaporController extends Controller
         return redirect()->back()->with('error', 'Gagal membuat file ZIP.');
     }
 
-    
+    private function generateCapaianOtomatis($id_siswa, $id_mapel, $semester, $tahun_ajaran)
+    {
+        // 1. Ambil semua nilai TP siswa untuk mapel ini
+        $nilaiTp = DB::table('nilai_tp')
+            ->where([
+                'id_siswa' => $id_siswa,
+                'id_mapel' => $id_mapel,
+                'semester' => $semester,
+                'tahun_ajaran' => $tahun_ajaran
+            ])
+            ->orderBy('nilai', 'desc')
+            ->get();
+
+        if ($nilaiTp->isEmpty()) return null;
+
+        $tertinggi = $nilaiTp->first();
+        $terendah = $nilaiTp->last();
+
+        // 2. Ambil deskripsi TP dari tabel referensi
+        $tpMax = DB::table('tujuan_pembelajaran')->where('id_tp', $tertinggi->id_tp)->first();
+        $tpMin = DB::table('tujuan_pembelajaran')->where('id_tp', $terendah->id_tp)->first();
+
+        // 3. Susun Kalimat Capaian (Justify Friendly)
+        $capaian = "Menunjukkan penguasaan yang sangat baik dalam " . ($tpMax->deskripsi ?? 'materi pembelajaran') . ". ";
+        
+        if ($tertinggi->id_tp != $terendah->id_tp) {
+            $capaian .= "Perlu bimbingan dalam " . ($tpMin->deskripsi ?? 'beberapa materi') . ".";
+        }
+
+        return $capaian;
+    }
 }
