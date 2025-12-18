@@ -20,7 +20,7 @@
             top: 50px; /* Menempel ke margin atas yang sudah kita set di @page */
             left: 0px;
             right: 0px;
-            height: 90px; /* Sesuaikan dengan tinggi total header Anda */
+            /* height: 90px; Sesuaikan dengan tinggi total header Anda */
             border-bottom: 2px solid #000;
             background-color: white; /* Mencegah tembus pandang */
             z-index: 1000;
