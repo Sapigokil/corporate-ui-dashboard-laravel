@@ -336,6 +336,7 @@
             @endforeach
         </tbody>
     </table>
+<div class="keep-together">    
 <table class="main-table">
     <thead>
         <tr class="bg-light">
@@ -352,7 +353,8 @@
         </tr>
     </tbody>
 </table>
-    
+</div>
+<div class="keep-together">    
 <table class="main-table">
     <thead>
         <tr class="bg-light">
@@ -383,6 +385,7 @@
         @endfor
     </tbody>
 </table>
+</div>
 <div class="keep-together">
     <table class="container-bawah">
         <tr>
