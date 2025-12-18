@@ -229,6 +229,7 @@
             page-break-inside: avoid;
             break-inside: avoid;
             width: 100%;
+            background-color: transparent !important;
         }
     </style>
 </head>
