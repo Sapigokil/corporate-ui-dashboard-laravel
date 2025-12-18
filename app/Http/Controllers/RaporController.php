@@ -496,4 +496,47 @@ class RaporController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
+    /**
+ * Download Rapor Satuan (Menggunakan PDF1)
+ */
+    public function download_satuan($id_siswa, Request $request)
+    {
+        $semesterRaw = $request->semester ?? 'Ganjil';
+        $tahun_ajaran = $request->tahun_ajaran ?? '2025/2026';
+
+        $data = $this->persiapkanDataRapor($id_siswa, $semesterRaw, $tahun_ajaran);
+        
+        $pdf = Pdf::loadView('rapor.pdf1_template', $data)
+                ->setPaper('a4', 'portrait')
+                ->setOption(['isPhpEnabled' => true, 'isRemoteEnabled' => true]);
+
+        $filename = 'Rapor_' . str_replace(' ', '_', $data['siswa']->nama_siswa) . '.pdf';
+        return $pdf->download($filename); // Perintah Download
+    }
+
+    /**
+     * Download Rapor Massal (Menggunakan PDF2)
+     */
+    public function download_massal(Request $request)
+    {
+        $id_kelas = $request->id_kelas;
+        $semesterRaw = $request->semester ?? 'Ganjil';
+        $tahun_ajaran = $request->tahun_ajaran ?? '2025/2026';
+
+        if (!$id_kelas) return redirect()->back()->with('error', 'Pilih kelas.');
+
+        $daftarSiswa = Siswa::where('id_kelas', $id_kelas)->orderBy('nama_siswa', 'asc')->get();
+        
+        $allData = [];
+        foreach ($daftarSiswa as $siswa) {
+            $allData[] = $this->persiapkanDataRapor($siswa->id_siswa, $semesterRaw, $tahun_ajaran);
+        }
+
+        $pdf = Pdf::loadView('rapor.pdf_massal_template', compact('allData'))
+                ->setPaper('a4', 'portrait')
+                ->setOption(['isPhpEnabled' => true, 'isRemoteEnabled' => true]);
+
+        $filename = 'Rapor_Massal_Kelas_' . $id_kelas . '.pdf';
+        return $pdf->download($filename); // Perintah Download
+    }
 }

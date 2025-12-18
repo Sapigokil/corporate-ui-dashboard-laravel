@@ -144,16 +144,28 @@
                                         <span class="badge badge-sm bg-gradient-warning">Belum Lengkap</span>
                                     @endif
                                 </td>
-                                <td class="text-center">
+                                <td class="text-center align-middle">
                                     @if($s->status_monitoring && $s->status_monitoring->status_akhir == 'Siap Cetak')
-                                        <a href="{{ route('rapornilai.cetak_proses', $s->id_siswa) }}" target="_blank" class="btn btn-link text-info text-gradient px-3 mb-0">
-                                            <i class="fas fa-print me-2"></i>Cetak
-                                        </a>
+                                        <div class="d-flex justify-content-center gap-2">
+                                            {{-- Tombol View: Style Identik Badge Status (Biru) --}}
+                                            <a href="{{ route('rapornilai.cetak_proses', $s->id_siswa) }}?semester={{ $selectedSemester }}&tahun_ajaran={{ $selectedTA }}" 
+                                            target="_blank" 
+                                            class="badge border-0" 
+                                            style="background-color: #2196F3; color: white; padding: 8px 16px; font-weight: bold; font-size: 12px; border-radius: 8px; text-decoration: none;">
+                                                View
+                                            </a>
+
+                                            {{-- Tombol Download: Style Identik Badge Status (Hijau) --}}
+                                            <a href="{{ route('rapornilai.download_satuan', $s->id_siswa) }}?semester={{ $selectedSemester }}&tahun_ajaran={{ $selectedTA }}" 
+                                            class="badge border-0" 
+                                            style="background-color: #4CAF50; color: white; padding: 8px 16px; font-weight: bold; font-size: 12px; border-radius: 8px; text-decoration: none;">
+                                                Download
+                                            </a>
+                                        </div>
                                     @else
-                                        <button class="btn btn-link text-secondary px-3 mb-0" disabled 
-                                                data-bs-toggle="tooltip" title="Lengkapi nilai mapel dan catatan wali untuk mencetak">
-                                            <i class="fas fa-print me-2"></i>Cetak
-                                        </button>
+                                        <span class="badge" style="background-color: #f5f5f5; color: #9e9e9e; padding: 8px 16px; border-radius: 8px; font-size: 11px;">
+                                            Belum Lengkap
+                                        </span>
                                     @endif
                                 </td>
                             </tr>
