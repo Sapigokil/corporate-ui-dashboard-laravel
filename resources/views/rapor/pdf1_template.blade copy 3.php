@@ -224,12 +224,6 @@
             text-justify: inter-word; /* Membantu perataan kata yang lebih halus di DomPDF */
             line-height: 1.4;        /* Memberi ruang agar teks panjang lebih enak dibaca */
         }
-        /* PENYESUAIAN 2: Mencegah pemutusan halaman pada blok TTD */
-        .keep-together {
-            page-break-inside: avoid;
-            break-inside: avoid;
-            width: 100%;
-        }
     </style>
 </head>
 <body>
@@ -383,7 +377,7 @@
         @endfor
     </tbody>
 </table>
-<div class="keep-together"
+
 <table class="container-bawah">
     <tr>
         <td style="width: 45%;">
@@ -477,7 +471,7 @@
         <span>NIP. {{ $info_sekolah->nip_kepsek ?? '-' }}</span>
     </div>
 <div class="footer-fixed" style="position: fixed; bottom: -30px; left: 0; right: 0; height: 40px; border-top: 1px solid #000; z-index: 1000;"></div>
-</div>
+
 <script type="text/php">
     if (isset($pdf)) {
         // Coba gunakan nama font standar yang biasanya memiliki varian italic otomatis di DomPDF
