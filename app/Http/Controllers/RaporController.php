@@ -266,7 +266,7 @@ class RaporController extends Controller
             $totalNilai = 0; $pembagi = 0;
             if ($avgSumatif > 0) { $totalNilai += $avgSumatif; $pembagi++; }
             if ($avgProject > 0) { $totalNilai += $avgProject; $pembagi++; }
-            $nilaiFinal = ($pembagi > 0) ? round($totalNilai / $pembagi, 0) : 0;
+            $nilaiFinal = ($pembagi > 0) ? (int) round($totalNilai / $pembagi, 0) : 0;
 
             if ($nilaiFinal > 0) {
                 $existing = DB::table('nilai_akhir')->where(['id_siswa' => $id_siswa, 'id_mapel' => $pb->id_mapel, 'semester' => $semesterInt, 'tahun_ajaran' => $tahun_ajaran])->first();
@@ -365,7 +365,7 @@ class RaporController extends Controller
             $totalNilai = 0; $pembagi = 0;
             if ($avgSumatif > 0) { $totalNilai += $avgSumatif; $pembagi++; }
             if ($avgProject > 0) { $totalNilai += $avgProject; $pembagi++; }
-            $nilaiFinal = ($pembagi > 0) ? round($totalNilai / $pembagi, 0) : 0;
+            $nilaiFinal = ($pembagi > 0) ? (int) round($totalNilai / $pembagi, 0) : 0;
 
             if ($nilaiFinal > 0) {
                 $existing = DB::table('nilai_akhir')->where(['id_siswa' => $id_siswa, 'id_mapel' => $pb->id_mapel, 'semester' => $semesterInt, 'tahun_ajaran' => $tahun_ajaran])->first();
