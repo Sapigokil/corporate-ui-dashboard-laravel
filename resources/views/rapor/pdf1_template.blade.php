@@ -162,12 +162,12 @@
 
         .main-table td, .main-table th {
             border: 1px solid black;
-            padding-top: 10px;    /* Jarak atas */
-            padding-bottom: 10px; /* Jarak bawah */
+            padding-top: 5px;    /* Jarak atas */
+            padding-bottom: 5px; /* Jarak bawah */
             padding-left: 10px;  /* Jarak kiri agar teks tidak nempel garis */
             padding-right: 10px; /* Jarak kanan */
             margin-bottom: 150px;
-            font-size: 11pt;
+            font-size: 9pt;
         }
 
         .main-table{
@@ -183,7 +183,7 @@
             border: none !important; /* Pastikan tidak ada garis tabel */
             text-align: center;
             vertical-align: top;
-            font-size: 11pt;
+            font-size: 9pt;
         }
         .space-ttd {
             height: 70px; /* Ruang untuk tanda tangan basah */
@@ -298,7 +298,7 @@
                     <td class="text-center">{{ $loop->iteration }}</td>
                     <td>{{ $m->nama_mapel }}</td>
                     <td class="text-center">{{ $m->nilai_akhir }}</td>
-                    <td style="font-size: 11pt;">{{ $m->capaian }}</td>
+                    <td style="font-size: 9pt;">{{ $m->capaian }}</td>
                 </tr>
                 @endforeach
             @endforeach
@@ -314,7 +314,7 @@
     <tbody>
         <tr>
             {{-- Baris 2: Konten Teks Panjang --}}
-            <td style="padding: 12px; text-align: justify; font-size: 11pt; line-height: 1.5; min-height: 60px;">
+            <td style="padding: 5px; text-align: justify; font-size: 9pt; line-height: 1.5; min-height: 60px;">
                 {{ $catatan->kokurikuler ?? '-' }}
             </td>
         </tr>
