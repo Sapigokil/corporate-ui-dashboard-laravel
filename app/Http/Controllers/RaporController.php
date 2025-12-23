@@ -494,13 +494,19 @@ class RaporController extends Controller
         $mapelTuntas = 0;
 
         foreach ($daftarMapel as $id_mapel) {
-            $sumatifCount = DB::table('sumatif')->where(['id_siswa' => $id_siswa, 'id_mapel' => $id_mapel, 'semester' => $semesterInt, 'tahun_ajaran' => $tahun_ajaran])->where('nilai', '>', 0)->count();
-            $projectCount = DB::table('project')->where(['id_siswa' => $id_siswa, 'id_mapel' => $id_mapel, 'semester' => $semesterInt, 'tahun_ajaran' => $tahun_ajaran])->where('nilai', '>', 0)->count();
+            $nilaiAkhir = DB::table('nilai_akhir')
+                ->where(['id_siswa' => $id_siswa, 'id_mapel' => $id_mapel, 'semester' => $semesterInt, 'tahun_ajaran' => $tahun_ajaran])
+                ->where('nilai_akhir', '>', 0)
+                ->exists();
 
-            if (($sumatifCount + $projectCount) >= 1) { $mapelTuntas++; }
+            if ($nilaiAkhir) { $mapelTuntas++; }
         }
 
-        $isCatatanReady = DB::table('catatan')->where(['id_siswa' => $id_siswa, 'semester' => $semesterInt, 'tahun_ajaran' => $tahun_ajaran])->whereNotNull('catatan_wali_kelas')->whereRaw("TRIM(catatan_wali_kelas) != ''")->exists();
+        $isCatatanReady = DB::table('catatan')
+            ->where(['id_siswa' => $id_siswa, 'semester' => $semesterInt, 'tahun_ajaran' => $tahun_ajaran])
+            ->whereNotNull('catatan_wali_kelas')
+            ->whereRaw("TRIM(catatan_wali_kelas) != ''")
+            ->exists();
 
         return StatusRapor::updateOrCreate(
             ['id_siswa' => $id_siswa, 'semester' => $semesterInt, 'tahun_ajaran' => (string)$tahun_ajaran],
@@ -548,6 +554,8 @@ class RaporController extends Controller
                     );
                 }
             }
+            // PROSES 2: Perbarui Status Rapor (Siap Cetak atau Tidak)
+            $this->perbaruiStatusRapor($siswa->id_siswa, $semesterRaw, $tahun_ajaran);
 
             // --- PROSES 2: CEK STATUS MONITORING (LOGIKA LAMA ANDA) ---
             // (Di sini tetap jalankan pengecekan apakah nilai_akhir & catatan sudah lengkap)
@@ -615,5 +623,59 @@ class RaporController extends Controller
         return redirect()->back()->with('error', 'Gagal membuat file ZIP.');
     }
 
+    /**
+     * Download Rapor Massal dalam SATU FILE PDF (Single PDF file)
+     * Menggunakan template massal dengan header/footer fixed di setiap halaman
+     */
+    public function download_massal_pdf(Request $request)
+    {
+        // Mencegah timeout jika jumlah siswa banyak
+        set_time_limit(0);
+        ini_set('memory_limit', '512M');
+
+        $id_kelas = $request->id_kelas;
+        $semesterRaw = $request->semester ?? 'Ganjil';
+        $tahun_ajaran = $request->tahun_ajaran ?? '2025/2026';
+
+        if (!$id_kelas) {
+            return redirect()->back()->with('error', 'Silakan pilih kelas terlebih dahulu.');
+        }
+
+        // Ambil daftar siswa berdasarkan kelas
+        $daftarSiswa = Siswa::where('id_kelas', $id_kelas)
+            ->orderBy('nama_siswa', 'asc')
+            ->get();
+
+        if ($daftarSiswa->isEmpty()) {
+            return redirect()->back()->with('error', 'Tidak ada data siswa di kelas ini.');
+        }
+
+        $allData = [];
+
+        foreach ($daftarSiswa as $siswa) {
+            // Gunakan helper persiapkanDataRapor (Eksisting) untuk mengambil data tiap siswa
+            // Ini memastikan logika sinkronisasi & grouping mapel 100% sama dengan cetak satuan
+            $allData[] = $this->persiapkanDataRapor($siswa->id_siswa, $semesterRaw, $tahun_ajaran);
+        }
+
+        // Ambil info kelas untuk penamaan file
+        $dataKelas = Kelas::find($id_kelas);
+        $namaKelasFile = str_replace(' ', '_', $dataKelas->nama_kelas ?? $id_kelas);
+
+        // Load View Massal (pdf2_massal_template)
+        // Pastikan di dalam view pdf2_massal_template menggunakan @foreach($allData as $data)
+        $pdf = Pdf::loadView('rapor.pdf2_massal_template', compact('allData'))
+                ->setPaper('a4', 'portrait')
+                ->setOption([
+                    'isPhpEnabled' => true, 
+                    'isRemoteEnabled' => true,
+                    'margin_top' => 0,
+                    'margin_bottom' => 0,
+                ]);
+
+        $filename = 'RAPOR_MASSAL_' . $namaKelasFile . '_' . time() . '.pdf';
+
+        return $pdf->download($filename);
+    }
 
 }
