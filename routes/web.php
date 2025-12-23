@@ -254,7 +254,8 @@ Route::group(['prefix' => 'rapor', 'as' => 'rapornilai.'], function () {
     // 5. Rute Baru: Khusus Download (Tanpa merusak rute lama)
     Route::get('/download-satuan/{id_siswa}', [RaporController::class, 'download_satuan'])->name('download_satuan');
     Route::get('/download-massal', [RaporController::class, 'download_massal'])->name('download_massal');
-
+    // 🛑 ROUTE BARU: DOWNLOAD PDF MASSAL (SATU FILE PANJANG)
+    Route::get('/download-massal-pdf', [RaporController::class, 'download_massal_pdf'])->name('download_massal_pdf');
 });
 
 // 3. RAPOR NILAI & CATATAN WALI KELAS (master.rapornilai.*)
