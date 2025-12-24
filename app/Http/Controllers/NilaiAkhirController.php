@@ -12,6 +12,9 @@ use App\Models\Pembelajaran;
 use App\Models\Sumatif; 
 use App\Models\Project; 
 use App\Http\Controllers\RaporController;
+use App\Services\NilaiAkhirService;
+use App\Services\CapaianAkhirService;
+
 
 
 class NilaiAkhirController extends Controller
@@ -30,12 +33,35 @@ class NilaiAkhirController extends Controller
         if ($semuaNilai->count() === 0) {
             return "Data nilai intrakurikuler dan project belum tersedia.";
         }
-        
-        $terendah  = $semuaNilai->sortBy('nilai')->first();
-        $tertinggi = $semuaNilai->sortByDesc('nilai')->first();
+
+        // ===============================
+        // 🔥 BATASI MAKSIMAL 2 TP SAJA
+        // ===============================
+        if ($semuaNilai->count() > 2) {
+            $terendahTmp  = $semuaNilai->sortBy('nilai')->first();
+            $tertinggiTmp = $semuaNilai->sortByDesc('nilai')->first();
+
+            // Kalau TP terendah & tertinggi sama (edge case)
+            if ($terendahTmp['tp'] === $tertinggiTmp['tp']) {
+                $semuaNilai = collect([$terendahTmp]);
+            } else {
+                $semuaNilai = collect([$terendahTmp, $tertinggiTmp]);
+            }
+        }
+
+        $nilaiValid = $semuaNilai
+            ->filter(fn ($n) => !empty(trim((string) $n['tp'])));
+
+        if ($nilaiValid->isEmpty()) {
+            return null;
+        }
+
+        // === BARU LANJUT KE LOGIKA LAMA ===
+        $terendah  = $nilaiValid->sortBy('nilai')->first();
+        $tertinggi = $nilaiValid->sortByDesc('nilai')->first();
 
         // Kasus 1: Nilai Tunggal atau Sama Semua
-        if ($semuaNilai->count() === 1 || $terendah['nilai'] === $tertinggi['nilai']) {
+        if ($nilaiValid->count() === 1 || $terendah['nilai'] === $tertinggi['nilai']) {
             $nilaiKomparasi = $terendah['nilai']; 
             
             if ($nilaiKomparasi > 84) {
@@ -46,8 +72,20 @@ class NilaiAkhirController extends Controller
                 $narasi = "Perlu penguatan dalam hal";
             }
             
-            $allTujuan = $semuaNilai->pluck('tp')->unique()->implode(', ');
-            return $narasi . " " . $allTujuan . ".";
+            $allTujuan = $nilaiValid
+            ->pluck('tp')
+            ->filter(fn ($tp) => !empty(trim((string) $tp)))
+            ->unique()
+            ->implode(', ');
+            
+
+        // 🔥 GUARD WAJIB DI SINI
+        if ($allTujuan === '') {
+            return null;
+        }
+
+        return $narasi . " " . $allTujuan . ".";
+
 
         } 
         
@@ -55,7 +93,12 @@ class NilaiAkhirController extends Controller
         
         // A. Kualifikasi Nilai Terendah (Area Peningkatan)
         $nilaiRendah = $terendah['nilai'];
-        $tpRendah = $terendah['tp'];
+        $tpRendah = trim((string) ($terendah['tp'] ?? ''));
+
+        // if ($tpRendah === '' || strtolower($tpRendah) === 'belum ditentukan') {
+        //     $tpRendah = 'tujuan pembelajaran yang perlu ditingkatkan';
+        // }
+
 
         if ($nilaiRendah < 81) {
             $kunciRendah = "Perlu peningkatan dalam hal";
@@ -65,7 +108,12 @@ class NilaiAkhirController extends Controller
         
         // B. Kualifikasi Nilai Tertinggi (Area Penguasaan)
         $nilaiTinggi = $tertinggi['nilai'];
-        $tpTinggi = $tertinggi['tp'];
+        $tpTinggi = trim((string) ($tertinggi['tp'] ?? ''));
+
+        // if ($tpTinggi === '' || strtolower($tpTinggi) === 'belum ditentukan') {
+        //     $tpTinggi = 'tujuan pembelajaran yang telah dikuasai';
+        // }
+
 
         if ($nilaiTinggi > 89) {
             $kunciTinggi = "Mahir dalam hal";
@@ -142,7 +190,7 @@ class NilaiAkhirController extends Controller
 
             foreach ($siswa as $s) {
                 $idSiswa = $s->id_siswa;
-                
+
                 // --- 1. PROSES SUMATIF & CASTING ---
                 $sumatifCollection = $allSumatif->get($idSiswa) ?? collect();
                 
@@ -164,8 +212,10 @@ class NilaiAkhirController extends Controller
                     ]);
 
                 $nilaiSumatif = collect([$s1, $s2, $s3])
-                    ->filter(fn ($v) => $v !== null && $v > 0);
-                $rataSumatif = $nilaiSumatif->count() >= 2 ? round($nilaiSumatif->avg(), 2) : null;
+                    ->filter(fn ($v) => $v !== null);
+                $rataSumatif = $nilaiSumatif->count() >= 2
+                ? round($nilaiSumatif->sum() / $nilaiSumatif->count(), 2)
+                : null;
                 $bobotSumatif = $rataSumatif !== null ? round($rataSumatif * 0.4, 2) : null;
 
                 // --- 2. PROSES PROJECT ---
@@ -184,8 +234,9 @@ class NilaiAkhirController extends Controller
 
                 $bobotProject = optional($projectItem)->nilai_bobot;
                 if ($bobotProject === null && $rataProject !== null) {
-                    $bobotProject = round($rataProject * 0.6, 2); 
+                    $bobotProject = round($rataProject * 0.6, 2); // 0 tetap masuk
                 }
+
 
                 // --- 3. HITUNG AKHIR ---
                 $nilaiAkhir = round(($bobotSumatif ?? 0) + ($bobotProject ?? 0), 2);
@@ -194,7 +245,7 @@ class NilaiAkhirController extends Controller
                 // --- 4. GENERATE DAN SIMPAN CAPAIAN AKHIR ---
                 $semuaNilai = $tpSumatif
                     ->merge($tpProject)
-                    ->filter(fn ($n) => $n['nilai'] !== null && $n['nilai'] > 0);
+                    ->filter(fn ($n) => $n['nilai'] !== null); 
                 
                 $capaianAkhir = $this->generateCapaianAkhir($s, $semuaNilai);
 

@@ -400,7 +400,9 @@ class RaporController extends Controller
                 // 2. GENERATE CAPAIAN OTOMATIS (Jika di DB masih kosong)
                 $existing = DB::table('nilai_akhir')->where(['id_siswa' => $id_siswa, 'id_mapel' => $pb->id_mapel, 'semester' => $semesterInt, 'tahun_ajaran' => $tahun_ajaran])->first();
                 
-                $teksCapaian = $existing->capaian_akhir ?? null;
+                $teksCapaian = $existing->capaian_akhir 
+                    ?? 'Menunjukkan pemahaman yang baik terhadap kompetensi yang dipelajari.';
+
 
                 // // Jika capaian belum ada, kita bantu buatkan otomatis dari data TP
                 // if (empty($teksCapaian)) {
@@ -425,11 +427,16 @@ class RaporController extends Controller
 
                 // 3. Update atau Insert
                 DB::table('nilai_akhir')->updateOrInsert(
-                    ['id_siswa' => $id_siswa, 'id_mapel' => $pb->id_mapel, 'semester' => $semesterInt, 'tahun_ajaran' => $tahun_ajaran],
+                    [
+                        
+                    'id_siswa' => $id_siswa, 
+                    'id_mapel' => $pb->id_mapel, 
+                    'semester' => $semesterInt, 
+                    'tahun_ajaran' => $tahun_ajaran],
                     [
                         'id_kelas' => $siswa->id_kelas, 
                         'nilai_akhir' => $nilaiFinal, 
-                        'capaian_akhir' => $teksCapaian, 
+                        // 'capaian_akhir' => $teksCapaian, 
                         'updated_at' => now()
                     ]
                 );
@@ -523,7 +530,77 @@ class RaporController extends Controller
                 ->where('nilai_akhir', '>', 0)
                 ->exists();
 
-            if ($nilaiAkhir) { $mapelTuntas++; }
+           if (($sumatifCount + $projectCount) > 0) {
+
+            // =========================
+            // 1. AMBIL DATA SUMATIF
+            // =========================
+            $tpSumatif = DB::table('sumatif')
+                ->where([
+                    'id_siswa' => $id_siswa,
+                    'id_mapel' => $id_mapel,
+                    'semester' => $semesterInt,
+                    'tahun_ajaran' => $tahun_ajaran,
+                ])
+                ->where('nilai', '>', 0)
+                ->get()
+                ->map(fn ($s) => [
+                    'nilai' => (float) $s->nilai,
+                    'tp' => $s->tujuan_pembelajaran,
+                ]);
+
+            // =========================
+            // 2. AMBIL DATA PROJECT
+            // =========================
+            $project = DB::table('project')
+                ->where([
+                    'id_siswa' => $id_siswa,
+                    'id_mapel' => $id_mapel,
+                    'semester' => $semesterInt,
+                    'tahun_ajaran' => $tahun_ajaran,
+                ])
+                ->where('nilai', '>', 0)
+                ->first();
+
+            $tpProject = $project
+                ? collect([[
+                    'nilai' => (float) $project->nilai,
+                    'tp' => $project->tujuan_pembelajaran,
+                ]])
+                : collect();
+
+            // =========================
+            // 3. GABUNGKAN & GENERATE
+            // =========================
+            $semuaNilai = $tpSumatif->merge($tpProject);
+
+            // 🔥 INI KUNCI UTAMANYA
+            $capaian = app(\App\Http\Controllers\NilaiAkhirController::class)
+                ->generateCapaianAkhir(null, $semuaNilai);
+
+            // =========================
+            // 4. SIMPAN KE NILAI AKHIR
+            // =========================
+            DB::table('nilai_akhir')->updateOrInsert(
+                [
+                    'id_siswa' => $id_siswa,
+                    'id_mapel' => $id_mapel,
+                    'semester' => $semesterInt,
+                    'tahun_ajaran' => $tahun_ajaran
+                ],
+                [
+                    'id_kelas' => $siswa->id_kelas,
+                    'capaian_akhir' => $capaian,
+                    'updated_at' => now()
+                ]
+            );
+        }
+
+            if ($sumatifCount >= 1) {
+                $mapelTuntas++;}
+
+            if (($sumatifCount + $projectCount) >= 1) { 
+                $mapelTuntas++; }
         }
 
         $isCatatanReady = DB::table('catatan')
@@ -701,5 +778,47 @@ class RaporController extends Controller
 
         return $pdf->download($filename);
     }
+    private function generateCapaianDariSumatif($id_siswa, $id_mapel, $semester, $tahun_ajaran)
+    {
+        $nilaiTp = DB::table('sumatif')
+            ->where([
+                'id_siswa' => $id_siswa,
+                'id_mapel' => $id_mapel,
+                'semester' => $semester,
+                'tahun_ajaran' => $tahun_ajaran
+            ])
+            ->whereNotNull('nilai')
+            ->select('nilai', 'tujuan_pembelajaran')
+            ->orderBy('nilai', 'asc')
+            ->get();
+
+        if ($nilaiTp->isEmpty()) {
+            return 'Perlu penguatan dalam hal Belum ditentukan.';
+        }
+
+        // 🔥 Ambil 2 TP saja (terendah & tertinggi)
+        $tpRendah = $nilaiTp->first();
+        $tpTinggi = $nilaiTp->last();
+
+        // Kualifikasi rendah
+        $narasiRendah = ($tpRendah->nilai < 78)
+            ? 'Perlu peningkatan dalam hal'
+            : 'Perlu penguatan dalam hal';
+
+        // Kualifikasi tinggi
+        $narasiTinggi = ($tpTinggi->nilai >= 78)
+            ? 'Baik dalam hal'
+            : 'Cukup dalam hal';
+
+        // Jika cuma satu TP
+        if ($tpRendah->tujuan_pembelajaran === $tpTinggi->tujuan_pembelajaran) {
+            return "{$narasiRendah} {$tpRendah->tujuan_pembelajaran}.";
+        }
+
+        return "{$narasiRendah} {$tpRendah->tujuan_pembelajaran}, namun menunjukkan capaian {$narasiTinggi} {$tpTinggi->tujuan_pembelajaran}.";
+    }
+
+
+
 
 }
