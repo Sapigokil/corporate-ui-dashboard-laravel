@@ -27,6 +27,7 @@ use App\Http\Controllers\NilaiAkhirController;
 use App\Http\Controllers\CatatanController;
 use App\Http\Controllers\SetKokurikulerController;
 use App\Http\Controllers\RaporController;
+use App\Http\Controllers\DashboardController;
 
 
 /*
@@ -40,7 +41,7 @@ use App\Http\Controllers\RaporController;
 // =========================================================
 
 Route::get('/', fn () => redirect('/dashboard'))->middleware('auth');
-Route::get('/dashboard', fn () => view('dashboard'))->name('dashboard')->middleware('auth');
+Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard')->middleware('auth');
 Route::get('/tables', fn () => view('tables'))->name('tables')->middleware('auth');
 Route::get('/wallet', fn () => view('wallet'))->name('wallet')->middleware('auth');
 Route::get('/RTL', fn () => view('RTL'))->name('RTL')->middleware('auth');
