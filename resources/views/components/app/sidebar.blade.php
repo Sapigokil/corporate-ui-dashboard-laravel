@@ -317,13 +317,23 @@ linear-gradient(180deg, #0f172a, #020617);">
                 <div class="collapse {{ $isRaporActive ? 'show' : '' }}" id="dataRaporMenu">
                     <ul class="nav ms-4 ps-3">
                         
-                        {{-- Menu Monitoring (Yang sudah ada) --}}
+                        {{-- Menu Monitoring (Yang sudah ada)
                         <li class="nav-item">
                             <a class="nav-link {{ Route::is('rapornilai.index') ? 'active' : '' }}" href="{{ route('rapornilai.index') }}">
                                 <span class="sidenav-mini-icon">
                                     <i class="fas fa-desktop-invoice text-white"></i>
                                 </span>
                                 <span class="nav-link-text ms-1 text-white">Monitoring Rapor</span>
+                            </a>
+                        </li> --}}
+
+                        {{-- Menu Ledger Nilai --}}
+                        <li class="nav-item">
+                            <a class="nav-link {{ Route::is('ledger.ledger_index') ? 'active' : '' }}" href="{{ route('ledger.ledger_index') }}">
+                                <span class="sidenav-mini-icon">
+                                    <i class="fas fa-desktop-invoice text-white"></i>
+                                </span>
+                                <span class="nav-link-text ms-1 text-white">Ledger Nilai</span>
                             </a>
                         </li>
 

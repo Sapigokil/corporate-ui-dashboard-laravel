@@ -15,6 +15,8 @@ use App\Imports\SumatifImport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\NilaiAkhirController;
+
 
 
 class SumatifController extends Controller
@@ -160,9 +162,15 @@ class SumatifController extends Controller
 
             $nilai = (int) $request->nilai[$i];
             
-            $tujuanPembelajaran = $request->tujuan_pembelajaran[$i] 
-                                         ? $request->tujuan_pembelajaran[$i] 
-                                         : 'Belum ditentukan'; 
+            $tujuanPembelajaran = trim(
+                (string) ($request->tujuan_pembelajaran[$i] ?? '')
+            );
+
+            if ($tujuanPembelajaran === '') {
+                return back()->with('error', 'Tujuan Pembelajaran wajib dipilih untuk setiap nilai.');
+            }
+
+ 
 
             Sumatif::updateOrCreate(
                 [
@@ -179,6 +187,15 @@ class SumatifController extends Controller
                 ]
             );
         }
+
+        $nilaiAkhirCtrl = app(NilaiAkhirController::class);
+
+        $nilaiAkhirCtrl->index(new Request([
+            'id_kelas'     => $request->id_kelas,
+            'id_mapel'     => $request->id_mapel,
+            'semester'     => $request->semester,     // STRING (GANJIL/GENAP)
+            'tahun_ajaran' => $request->tahun_ajaran,
+        ]));
 
         return back()->with('success', 'Nilai sumatif berhasil disimpan.');
     }
