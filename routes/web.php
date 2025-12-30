@@ -29,10 +29,7 @@ use App\Http\Controllers\SetKokurikulerController;
 use App\Http\Controllers\RaporController;
 use App\Http\Controllers\BobotNilaiController;
 use App\Http\Controllers\DashboardController;
-<<<<<<< HEAD
 use App\Http\Controllers\InputController;
-=======
->>>>>>> f710046e4fe74df7efac675c78106d9272b5c361
 
 
 /*
