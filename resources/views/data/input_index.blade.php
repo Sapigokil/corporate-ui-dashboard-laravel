@@ -44,7 +44,7 @@
 
                         {{-- FORM INPUT --}}
                         <form action="{{ route('pengaturan.input.store') }}" method="POST">
-                            @csrf
+                        @csrf
 
                             <div class="row mb-4">
 
@@ -103,95 +103,13 @@
                             </div>
                         </form>
 
-                        {{-- LIST EVENT --}}
-                        @if($events->count())
-                            <hr class="horizontal dark my-4">
+                     </form>
 
-                            <h6 class="text-uppercase text-xs font-weight-bolder mb-3">
-                                Daftar Event
-                            </h6>
+{{-- HISTORY EVENT & NOTIFIKASI --}}
+@include('data.partials.history_input')
 
-                            <ul class="list-group">
-                                @foreach ($events as $event)
-                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <strong>{{ $event->deskripsi }}</strong><br>
-                                            <small class="text-muted">
-                                                {{ \Carbon\Carbon::parse($event->tanggal)->format('d M Y') }}
-                                            </small>
-                                        </div>
-
-                                        <div class="d-flex gap-4">
-                                    <!-- EDIT BUTTON -->
-                                <button
-                                    type="button"
-                                    class="btn btn-sm p-0 border-0 bg-transparent text-warning"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#editEvent{{ $event->id_event }}">
-                                    <i class="fa-solid fa-pen" style="font-size:14px;"></i>
-                                </button>
-
-                                <!-- MODAL EDIT -->
-                                <div class="modal fade" id="editEvent{{ $event->id_event }}" tabindex="-1">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content">
-
-                                            <form action="{{ route('pengaturan.input.update', $event->id_event) }}" method="POST">
-                                                @csrf
-                                                @method('PUT')
-
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title">Edit Event</h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                </div>
-
-                                                <div class="modal-body">
-                                                    <textarea name="deskripsi" class="form-control mb-2" required>{{ $event->deskripsi }}</textarea>
-
-                                                    <input type="date"
-                                                        name="tanggal"
-                                                        class="form-control"
-                                                        value="{{ $event->tanggal }}"
-                                                        required>
-                                                </div>
-
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                                        Batal
-                                                    </button>
-                                                    <button type="submit" class="btn btn-warning">
-                                                        Simpan
-                                                    </button>
-                                                </div>
-                                            </form>
-
-                                        </div>
-                                    </div>
-                                </div>
-
-                                    <!-- DELETE -->
-                                    <form action="{{ route('pengaturan.input.delete', $event->id_event) }}"
-                                        method="POST"
-                                        class="d-inline"
-                                        onsubmit="return confirm('Yakin hapus event ini?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit"
-                                            class="btn btn-sm p-0 border-0 bg-transparent text-danger"
-                                            style="line-height: 1;">
-                                            <i class="fa-solid fa-trash"
-                                            style="font-size: 14px; transition: 0.2s;"
-                                            onmouseover="this.style.transform='scale(1.1)'"
-                                            onmouseout="this.style.transform='scale(1)'">
-                                            </i>
-                                        </button>
-                                    </form>
-                                </div>
-
-                                    </li>
-                                @endforeach
-                            </ul>
-                        @endif
+</div>
+   
 
                     </div>
                 </div>

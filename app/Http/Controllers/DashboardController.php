@@ -148,7 +148,7 @@ if ($request->filled('kelas')) {
     // =====================
     // HITUNG PROGRESS PER TINGKAT
     // =====================
-    private function hitungProgressByTingkat(
+   private function hitungProgressByTingkat(
     $tingkat,
     $jurusan = null,
     $tahunAjaran,
@@ -166,35 +166,47 @@ if ($request->filled('kelas')) {
         return 0;
     }
 
-    // TOTAL SISWA
-    $totalSiswa = Siswa::whereIn('id_kelas', $kelasIds)->count();
+    // ambil semua mapel yang diajarkan di tingkat tsb
+    $mapelList = Pembelajaran::whereIn('id_kelas', $kelasIds)
+        ->select('id_mapel')
+        ->distinct()
+        ->get();
 
-    if ($totalSiswa === 0) {
-        return 0;
+    $totalMapel = $mapelList->count();
+    $mapelLengkap = 0;
+
+    foreach ($mapelList as $mapel) {
+
+        // kelas yang mengajarkan mapel ini
+        $kelasMapel = Pembelajaran::where('id_mapel', $mapel->id_mapel)
+            ->whereIn('id_kelas', $kelasIds)
+            ->pluck('id_kelas');
+
+        // total siswa target mapel ini
+        $totalTarget = Siswa::whereIn('id_kelas', $kelasMapel)
+            ->count();
+
+        if ($totalTarget === 0) continue;
+
+        // siswa yang sudah punya nilai
+        $totalSudah = NilaiAkhir::whereIn('id_kelas', $kelasMapel)
+            ->where('id_mapel', $mapel->id_mapel)
+            ->where('tahun_ajaran', $tahunAjaran)
+            ->where('semester', $semester)
+            ->where('nilai_akhir', '>', 0)
+            ->distinct('id_siswa')
+            ->count('id_siswa');
+
+        if ($totalSudah === $totalTarget) {
+            $mapelLengkap++;
+        }
     }
 
-    // MAPEL YANG DIAJARKAN
-    $totalMapel = Pembelajaran::whereIn('id_kelas', $kelasIds)
-        ->distinct('id_mapel')
-        ->count('id_mapel');
-
-    if ($totalMapel === 0) {
-        return 0;
-    }
-
-    // MAPEL YANG SUDAH LENGKAP (SEMUA SISWA ADA NILAI)
-    $mapelLengkap = NilaiAkhir::whereIn('id_kelas', $kelasIds)
-    ->where('tahun_ajaran', $tahunAjaran)
-    ->where('semester', $semester)
-    ->where('nilai_akhir', '>', 0)
-    ->select('id_mapel') // ✅ WAJIB
-    ->groupBy('id_mapel')
-    ->havingRaw('COUNT(DISTINCT id_siswa) = ?', [$totalSiswa])
-    ->get()              // ✅ ambil dulu
-    ->count();           // ✅ hitung di PHP
-
-    return round(($mapelLengkap / $totalMapel) * 100, 1);
+    return $totalMapel > 0
+        ? round(($mapelLengkap / $totalMapel) * 100, 1)
+        : 0;
 }
+
 
 // =====================
 // DETAIL MAPEL BELUM INPUT NILAI

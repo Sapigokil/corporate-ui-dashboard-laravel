@@ -9,84 +9,107 @@ use App\Models\Notifikasi;
 class InputController extends Controller
 {
     /**
-     * Menampilkan halaman input event & notifikasi
+     * HALAMAN UTAMA
      */
     public function index()
     {
         $events = Event::orderBy('tanggal', 'desc')->get();
-        $notifikasis = Notifikasi::orderBy('tanggal', 'desc')->get();
+        $notifications = Notifikasi::orderBy('tanggal', 'desc')->get();
 
-        return view('data.input_index', compact('events', 'notifikasis'));
+        return view('data.input_index', compact('events', 'notifications'));
     }
 
     /**
-     * Menyimpan event atau notifikasi
+     * SIMPAN EVENT / NOTIFIKASI (SATU FORM)
      */
-    public function storeEvent(Request $request)
+    public function store(Request $request)
     {
         $request->validate([
-            'kategori'  => 'required|in:event,notifikasi',
-            'deskripsi' => 'required|string',
-            'tanggal'   => 'required|date',
+            'kategori' => 'required|in:event,notifikasi',
+            'tanggal'  => 'required|date',
         ]);
 
         if ($request->kategori === 'event') {
+            $request->validate([
+                'deskripsi' => 'required|string',
+            ]);
+
             Event::create([
                 'deskripsi' => $request->deskripsi,
                 'tanggal'   => $request->tanggal,
             ]);
 
-            return redirect()
-                ->route('pengaturan.input.index')
-                ->with('success', 'Event berhasil ditambahkan');
+            return back()->with('success', 'Event berhasil ditambahkan');
         }
 
-        Notifikasi::create([
-            'deskripsi' => $request->deskripsi,
-            'tanggal'   => $request->tanggal,
-        ]);
-
-        return redirect()
-            ->route('pengaturan.input.index')
-            ->with('success', 'Notifikasi berhasil ditambahkan');
-    }
-
-    /**
-     * Menghapus event / notifikasi
-     */
-    public function destroy($id)
-    {
-        // cek di tabel event
-        $event = Event::find($id);
-        if ($event) {
-            $event->delete();
-            return back()->with('success', 'Event berhasil dihapus');
-        }
-
-        // cek di tabel notifikasi
-        $notifikasi = Notifikasi::find($id);
-        if ($notifikasi) {
-            $notifikasi->delete();
-            return back()->with('success', 'Notifikasi berhasil dihapus');
-        }
-
-        return back()->with('error', 'Data tidak ditemukan');
-    }
-
-    public function update(Request $request, $id)
-{
-    $request->validate([
+        // NOTIFIKASI
+        $request->validate([
         'deskripsi' => 'required|string',
         'tanggal'   => 'required|date',
     ]);
 
-    $event = Event::findOrFail($id);
-    $event->update([
+        Notifikasi::create([
         'deskripsi' => $request->deskripsi,
         'tanggal'   => $request->tanggal,
+        'kategori'  => 'notifikasi',
     ]);
 
-    return redirect()->back()->with('success', 'Event berhasil diperbarui');
-}
+        return back()->with('success', 'Notifikasi berhasil ditambahkan');
+    }
 
+    /**
+     * UPDATE EVENT
+     */
+    public function updateEvent(Request $request, $id)
+    {
+        $request->validate([
+            'deskripsi' => 'required|string',
+            'tanggal'   => 'required|date',
+        ]);
+
+        Event::findOrFail($id)->update([
+            'deskripsi' => $request->deskripsi,
+            'tanggal'   => $request->tanggal,
+        ]);
+
+        return back()->with('success', 'Event berhasil diperbarui');
+    }
+
+    /**
+     * UPDATE NOTIFIKASI
+     */
+    public function updateNotifikasi(Request $request, $id)
+    {
+        $request->validate([
+            'judul'   => 'required|string',
+            'pesan'   => 'required|string',
+            'tanggal' => 'required|date',
+        ]);
+
+        Notifikasi::findOrFail($id)->update([
+            'judul'   => $request->judul,
+            'pesan'   => $request->pesan,
+            'tanggal' => $request->tanggal,
+        ]);
+
+        return back()->with('success', 'Notifikasi berhasil diperbarui');
+    }
+
+    /**
+     * DELETE EVENT
+     */
+    public function destroyEvent($id)
+    {
+        Event::findOrFail($id)->delete();
+        return back()->with('success', 'Event berhasil dihapus');
+    }
+
+    /**
+     * DELETE NOTIFIKASI
+     */
+    public function destroyNotifikasi($id)
+    {
+        Notifikasi::findOrFail($id)->delete();
+        return back()->with('success', 'Notifikasi berhasil dihapus');
+    }
 }

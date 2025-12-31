@@ -30,6 +30,7 @@ use App\Http\Controllers\RaporController;
 use App\Http\Controllers\BobotNilaiController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InputController;
+use App\Http\Controllers\LedgerController;
 
 
 /*
@@ -248,11 +249,24 @@ Route::group(['prefix' => 'pengaturan', 'as' => 'pengaturan.'], function () {
     Route::post('/bobot-nilai', [BobotNilaiController::class, 'store'])->name('bobot.store');
     Route::put('/bobot-nilai/{id}', [BobotNilaiController::class, 'update'])->name('bobot.update');
 
-    //input event
-    Route::get('/input', [InputController::class, 'index'])->name('input.index');
-    Route::post('/input', [InputController::class, 'storeEvent'])->name('input.store');
-    Route::delete('/input/{id}', [InputController::class, 'destroy'])->name('input.delete');
-    Route::put('/input/{id}', [InputController::class, 'update'])->name('input.update');
+   Route::prefix('input')->group(function () {
+
+    // HALAMAN
+    Route::get('/', [InputController::class, 'index'])->name('input.index');
+
+    // SIMPAN (EVENT / NOTIFIKASI)
+    Route::post('/store', [InputController::class, 'store'])->name('input.store');
+
+    // UPDATE
+    Route::put('/event/{id}', [InputController::class, 'updateEvent'])->name('input.event.update');
+    Route::put('/notifikasi/{id}', [InputController::class, 'updateNotifikasi'])->name('input.notifikasi.update');
+
+    // DELETE
+    Route::delete('/event/{id}', [InputController::class, 'destroyEvent'])->name('input.event.delete');
+    Route::delete('/notifikasi/{id}', [InputController::class, 'destroyNotifikasi'])->name('input.notifikasi.delete');
+
+});
+
 
 });
 

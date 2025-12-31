@@ -179,7 +179,11 @@
             <h5 class="text-sm font-weight-bold mb-2">
         Detail Mapel Belum Input Nilai
     </h5></div>
-
+    <div style="
+        max-height: 300px;
+        overflow-y: auto;
+        padding: 12px 16px;
+    ">
     @foreach($progressDetail as $tingkat => $detail)
 <div class="mb-3">
     <strong>Kelas {{ $tingkat }} ({{ $detail['progress'] }}%)</strong>
@@ -207,7 +211,8 @@
         Semua mapel sudah menginput nilai ✔
     </p>
 @endif
-    </div>
+</div>    
+</div>
 
         </div>
 
