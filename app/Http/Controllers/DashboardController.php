@@ -19,6 +19,7 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+        $rentangNilai = $request->rentang_nilai ?? 'lt78';
 
         // =====================
         // LOGIKA DEFAULT TAHUN AJARAN & SEMESTER
@@ -140,9 +141,27 @@ if ($request->filled('kelas')) {
         // DETAIL SISWA NILAI MERAH (<78) + MAPEL
         // =====================
         $detailNilaiMerahQuery = NilaiAkhir::with(['siswa', 'mapel'])
-            ->where('tahun_ajaran', $tahunAjaranAktif)
-            ->where('semester', $semesterAktif)
-            ->where('nilai_akhir', '<', 78);
+    ->where('tahun_ajaran', $tahunAjaranAktif)
+    ->where('semester', $semesterAktif)
+    ->where('nilai_akhir', '>', 0);
+
+switch ($rentangNilai) {
+    case '78_85':
+        $detailNilaiMerahQuery->whereBetween('nilai_akhir', [78, 85]);
+        break;
+
+    case '86_92':
+        $detailNilaiMerahQuery->whereBetween('nilai_akhir', [86, 92]);
+        break;
+
+    case 'gte93':
+        $detailNilaiMerahQuery->where('nilai_akhir', '>=', 93);
+        break;
+
+    default: // lt78
+        $detailNilaiMerahQuery->where('nilai_akhir', '<', 78);
+        break;
+}
 
         if ($request->filled('kelas')) {
             $detailNilaiMerahQuery->where('id_kelas', $request->kelas);
@@ -152,6 +171,13 @@ if ($request->filled('kelas')) {
             ->orderBy('id_siswa')
             ->orderBy('nilai_akhir')
             ->get();
+
+        $judulDetailNilai = match ($rentangNilai) {
+    '78_85' => 'Nilai 78 – 85',
+    '86_92' => 'Nilai 86 – 92',
+    'gte93' => 'Nilai ≥ 93',
+    default => 'Nilai di Bawah 78'
+};
 
         // =====================
         // STATUS RAPOR
@@ -202,7 +228,8 @@ if ($request->filled('kelas')) {
             'semesterAktif',
             'tahunAjaran',
             'defaultSemester',
-            'defaultTahunAjaran'
+            'defaultTahunAjaran',
+            'judulDetailNilai'
         ));
     }
 
