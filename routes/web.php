@@ -28,6 +28,8 @@ use App\Http\Controllers\CatatanController;
 use App\Http\Controllers\SetKokurikulerController;
 use App\Http\Controllers\RaporController;
 use App\Http\Controllers\BobotNilaiController;
+use App\Http\Controllers\LedgerController;
+use App\Http\Controllers\DashboardController;
 
 
 /*
