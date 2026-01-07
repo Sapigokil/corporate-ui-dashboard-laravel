@@ -89,11 +89,17 @@
                                 <div class="row">
                                     <div class="col-md-4 mb-3">
                                         <label for="jenis_kelamin" class="form-label">Jenis Kelamin</label>
-                                        <select name="jenis_kelamin" class="form-select rounded-pill py-2 @error('jenis_kelamin') is-invalid @enderror" required>
-                                            @php $jk = $getValue('jenis_kelamin'); @endphp
-                                            <option value="Laki-laki" {{ $jk == 'Laki-laki' ? 'selected' : '' }}>Laki-laki</option>
-                                            <option value="Perempuan" {{ $jk == 'Perempuan' ? 'selected' : '' }}>Perempuan</option>
-                                        </select>
+                                        <select name="jenis_kelamin" id="jenis_kelamin" class="form-control @error('jenis_kelamin') is-invalid @enderror" required>
+                                        <option value="">-- Pilih Jenis Kelamin --</option>
+                                        
+                                        <option value="L" {{ (old('jenis_kelamin', $siswa->jenis_kelamin) == 'L') ? 'selected' : '' }}>
+                                            Laki-laki
+                                        </option>
+                                        
+                                        <option value="P" {{ (old('jenis_kelamin', $siswa->jenis_kelamin) == 'P') ? 'selected' : '' }}>
+                                            Perempuan
+                                        </option>
+                                    </select>
                                         @error('jenis_kelamin') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-md-4 mb-3">
