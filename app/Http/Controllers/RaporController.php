@@ -38,6 +38,9 @@ class RaporController extends Controller
                 'mata_pelajaran.nama_mapel', 
                 'mata_pelajaran.kategori'
             )
+            // UPDATE: Urutkan berdasarkan Kategori lalu Urutan Mapel
+            ->orderBy('mata_pelajaran.kategori', 'asc')
+            ->orderBy('mata_pelajaran.urutan', 'asc')
             ->get();
 
         // 3. Loop dan ambil nilai_akhir secara langsung per mapel
@@ -65,7 +68,6 @@ class RaporController extends Controller
                 'is_lengkap' => $hasNilai,
                 'nilai_akhir' => $hasNilai ? (int)$nilai->nilai_akhir : '-'
             ];
-            // FIX: dd($data) DIHAPUS AGAR TIDAK ERROR AJAX
         });
 
         return response()->json(['data' => $data]);
@@ -195,7 +197,7 @@ class RaporController extends Controller
             }
         }
 
-        // --- 2. MAPEL GROUPING ---
+        // --- 2. MAPEL GROUPING (Dengan Sorting kolom urutan) ---
         $mapelFinal = [];
         $daftarUrutan = [1 => 'MATA PELAJARAN UMUM', 2 => 'MATA PELAJARAN KEJURUAN', 3 => 'MATA PELAJARAN PILIHAN', 4 => 'MUATAN LOKAL'];
         foreach ($daftarUrutan as $key => $headerLabel) {
@@ -204,6 +206,7 @@ class RaporController extends Controller
                 ->where('pembelajaran.id_kelas', $siswa->id_kelas)
                 ->where('mata_pelajaran.kategori', $key)
                 ->select('mata_pelajaran.id_mapel', 'mata_pelajaran.nama_mapel')
+                ->orderBy('mata_pelajaran.urutan', 'asc') // UPDATE: Sorting kolom urutan
                 ->get();
 
             if ($kelompok->isNotEmpty()) {
@@ -308,7 +311,7 @@ class RaporController extends Controller
             }
         }
 
-        // --- MAPEL GROUPING (1-4) ---
+        // --- MAPEL GROUPING (1-4) (Dengan Sorting kolom urutan) ---
         $mapelFinal = [];
         $daftarUrutan = [1 => 'MATA PELAJARAN UMUM', 2 => 'MATA PELAJARAN KEJURUAN', 3 => 'MATA PELAJARAN PILIHAN', 4 => 'MUATAN LOKAL'];
         foreach ($daftarUrutan as $key => $headerLabel) {
@@ -317,6 +320,7 @@ class RaporController extends Controller
                 ->where('pembelajaran.id_kelas', $siswa->id_kelas)
                 ->where('mata_pelajaran.kategori', $key)
                 ->select('mata_pelajaran.id_mapel', 'mata_pelajaran.nama_mapel')
+                ->orderBy('mata_pelajaran.urutan', 'asc') // UPDATE: Sorting kolom urutan
                 ->get();
 
             if ($kelompok->isNotEmpty()) {
@@ -401,29 +405,13 @@ class RaporController extends Controller
         // 3. Cek Kelengkapan Nilai Akhir per Mapel
         // Kita cek ke tabel nilai_akhir karena fungsi sinkronkanKelas sudah mengisi tabel tersebut
         foreach ($daftarMapel as $id_mapel) {
-            //tambahan
-            $sumatifCount = DB::table('sumatif')
+            $adaNilai = DB::table('nilai_akhir')
                 ->where([
                     'id_siswa' => $id_siswa,
                     'id_mapel' => $id_mapel,
                     'semester' => $semesterInt,
-                    'tahun_ajaran' => $tahun_ajaran,
+                    'tahun_ajaran' => (string)$tahun_ajaran
                 ])
-                ->where('nilai', '>', 0)
-                ->count();
-
-            $projectCount = DB::table('project')
-                ->where([
-                    'id_siswa' => $id_siswa,
-                    'id_mapel' => $id_mapel,
-                    'semester' => $semesterInt,
-                    'tahun_ajaran' => $tahun_ajaran,
-                ])
-                ->where('nilai', '>', 0)
-                ->count();
-
-            $nilaiAkhir = DB::table('nilai_akhir')
-                ->where(['id_siswa' => $id_siswa, 'id_mapel' => $id_mapel, 'semester' => $semesterInt, 'tahun_ajaran' => $tahun_ajaran])
                 ->where('nilai_akhir', '>', 0)
                 ->exists();
 
@@ -497,7 +485,7 @@ class RaporController extends Controller
                 if ($avgSumatif > 0) {
                     DB::table('nilai_akhir')->updateOrInsert(
                         [
-                            'id_siswa' => $id_siswa, 
+                            'id_siswa' => $siswa->id_siswa, 
                             'id_mapel' => $mapel->id_mapel, 
                             'semester' => $semesterInt, 
                             'tahun_ajaran' => $tahun_ajaran
