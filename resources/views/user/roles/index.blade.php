@@ -19,8 +19,8 @@
                             <div class="bg-gradient-primary shadow-primary border-radius-lg pt-4 pb-3 d-flex justify-content-between align-items-center">
                                 <h6 class="text-white text-capitalize ps-3">Daftar Role Pengguna E-Rapor</h6>
                                 {{-- Hanya Admin yang berhak menambah role --}}
-                                @can('pengaturan-manage-roles')
-                                <a href="{{ route('master.roles.create') }}" class="btn btn-white me-3 mb-0">
+                                @can('roles.create')
+                                <a href="{{ route('settings.system.roles.create') }}" class="btn btn-white me-3 mb-0">
                                     <i class="fas fa-plus me-1"></i> Tambah Role Baru
                                 </a>
                                 @endcan
@@ -60,15 +60,16 @@
                                             </td>
                                             <td class="align-middle">
                                                 {{-- Aksi Edit Izin --}}
-                                                {{-- @can('pengaturan-manage-roles') --}}
-                                                <a href="{{ route('master.roles.edit', $role->id) }}" class="text-primary font-weight-bold text-xs" data-toggle="tooltip">
+                                                @can('roles.update')
+                                                <a href="{{ route('settings.system.roles.edit', $role->id) }}" class="text-primary font-weight-bold text-xs" data-toggle="tooltip">
                                                     <i class="fas fa-pencil-alt me-2"></i> Edit Izin
                                                 </a>
+                                                @endcan
                                                 
                                                 {{-- Aksi Delete --}}
-                                                {{-- Aksi Delete (Tombol Hapus) --}}
+                                                @can('roles.delete')
                                                 @if (!in_array(strtolower($role->name), ['admin', 'guru', 'wali murid'])) {{-- Lindungi role krusial --}}
-                                                    <form action="{{ route('master.roles.destroy', $role->id) }}" method="POST" class="d-inline">
+                                                    <form action="{{ route('settings.system.roles.destroy', $role->id) }}" method="POST" class="d-inline">
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit" class="btn btn-link text-danger p-0 m-0 ms-3 text-xs" 
@@ -77,7 +78,7 @@
                                                         </button>
                                                     </form>
                                                 @endif
-                                                {{-- @endcan --}}
+                                                @endcan
                                             </td>
                                         </tr>
                                         @empty

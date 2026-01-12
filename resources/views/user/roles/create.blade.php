@@ -24,7 +24,7 @@
                         <div class="card-body pb-2 px-4">
                             
                             {{-- Form menargetkan route roles.store dengan metode POST --}}
-                            <form method="POST" action="{{ route('master.roles.store') }}">
+                            <form method="POST" action="{{ route('settings.system.roles.store') }}">
                                 @csrf
                                 
                                 <h6 class="text-sm font-weight-bolder mb-3 text-info">Detail Role</h6>
@@ -65,7 +65,7 @@
                                 </div>
                                 
                                 <div class="text-end mt-4">
-                                    <a href="{{ route('master.roles.index') }}" class="btn btn-outline-secondary me-2">Batal</a>
+                                    <a href="{{ route('settings.system.roles.index') }}" class="btn btn-outline-secondary me-2">Batal</a>
                                     <button type="submit" class="btn bg-gradient-primary">Simpan Role Baru</button>
                                 </div>
                             </form>

@@ -22,6 +22,7 @@ class User extends Authenticatable
         'username', // BARU: NIP atau NISN
         'email',
         'password',
+        'role',      // BARU: Field role dari migration terbaru
         'id_guru',  // BARU: Link ke tabel guru
         'id_siswa', // BARU: Link ke tabel siswa
         'phone',    // Sisa dari migrate lama (tetap dipertahankan)

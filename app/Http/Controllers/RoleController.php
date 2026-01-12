@@ -83,7 +83,7 @@ class RoleController extends Controller
             $role->syncPermissions($request->permissions);
         }
         
-        return redirect()->route('roles.index')
+        return redirect()->route('settings.system.roles.index')
                          ->with('success', 'Role ' . Str::title($role->name) . ' berhasil dibuat dengan izin yang dipilih.');
     }// ... (Fungsi destroy, create, store)
 
@@ -94,13 +94,13 @@ class RoleController extends Controller
 
         // 2. Cek apakah Role termasuk yang krusial
         if (in_array(strtolower($role->name), $protectedRoles)) {
-            return redirect()->route('roles.index')
+            return redirect()->route('settings.system.roles.index')
                              ->with('error', 'Role ' . Str::title($role->name) . ' adalah Role krusial dan tidak dapat dihapus.');
         }
 
         // 3. Cek apakah Role masih memiliki pengguna yang terhubung
         if ($role->users()->count() > 0) {
-            return redirect()->route('roles.index')
+            return redirect()->route('settings.system.roles.index')
                              ->with('error', 'Role ' . Str::title($role->name) . ' tidak dapat dihapus karena masih terhubung dengan ' . $role->users()->count() . ' pengguna.');
         }
 
@@ -108,7 +108,7 @@ class RoleController extends Controller
         $roleName = Str::title($role->name);
         $role->delete();
 
-        return redirect()->route('roles.index')
+        return redirect()->route('settings.system.roles.index')
                          ->with('success', 'Role ' . $roleName . ' berhasil dihapus.');
     }
 }

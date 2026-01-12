@@ -55,7 +55,7 @@ class UserController extends Controller
         $user->syncRoles([]); 
         $user->assignRole($request->role_name);
         
-        return redirect()->route('master.users.index')
+        return redirect()->route('settings.system.users.index')
                          ->with('success', 'Data pengguna dan role berhasil diperbarui.');
     }
 
@@ -87,7 +87,7 @@ class UserController extends Controller
         // 2. Assign Role (Sangat Penting)
         $user->assignRole($request->role_name);
         
-        return redirect()->route('master.users.index')
+        return redirect()->route('settings.system.users.index')
                          ->with('success', 'Akun pengguna baru berhasil dibuat dan di-assign ke Role ' . $request->role_name . '.');
     }
 
@@ -107,7 +107,7 @@ class UserController extends Controller
         $user->delete();
 
         // 4. Redirect
-        return redirect()->route('master.users.index')
+        return redirect()->route('settings.system.users.index')
                          ->with('success', 'Pengguna berhasil dihapus.');
     }
 }

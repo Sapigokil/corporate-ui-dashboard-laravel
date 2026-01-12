@@ -65,7 +65,7 @@
                                                 </p>
                                             </td>
                                             <td class="align-middle text-center text-sm">
-                                                <form action="{{ route('pengaturan.kok.toggle', $item->id_kok) }}" method="POST">
+                                                <form action="{{ route('settings.erapor.kok.toggle', $item->id_kok) }}" method="POST">
                                                     @csrf
                                                     @method('PATCH')
                                                     <button type="submit" class="border-0 bg-transparent p-0">
@@ -82,7 +82,7 @@
                                                     <i class="fas fa-edit me-1"></i> Edit
                                                 </button>
                                                 
-                                                <form action="{{ route('pengaturan.kok.destroy', $item->id_kok) }}" method="POST" class="d-inline">
+                                                <form action="{{ route('settings.erapor.kok.destroy', $item->id_kok) }}" method="POST" class="d-inline">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="btn btn-link text-danger p-0 m-0 ms-3 text-xs" 
@@ -103,7 +103,7 @@
                                                         </h6>
                                                         <button type="button" class="btn-close text-dark" data-bs-dismiss="modal" aria-label="Close"></button>
                                                     </div>
-                                                    <form action="{{ route('pengaturan.kok.update', $item->id_kok) }}" method="POST">
+                                                    <form action="{{ route('settings.erapor.kok.update', $item->id_kok) }}" method="POST">
                                                         @csrf
                                                         @method('PUT')
                                                         <div class="modal-body py-4 text-start">
@@ -170,7 +170,7 @@
                     </h6>
                     <button type="button" class="btn-close text-dark" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form action="{{ route('pengaturan.kok.store') }}" method="POST">
+                <form action="{{ route('settings.erapor.kok.store') }}" method="POST">
                     @csrf
                     <div class="modal-body py-4">
                         <label class="form-label text-xs font-weight-bolder text-uppercase">Tingkat Kelas</label>

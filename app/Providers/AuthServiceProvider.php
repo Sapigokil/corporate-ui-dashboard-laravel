@@ -26,7 +26,7 @@ class AuthServiceProvider extends ServiceProvider
         // LOGIKA SUPER ADMIN (Bypass Semua Permission)
         // Jika user punya role 'admin', dia otomatis lolos semua pengecekan @can atau $user->can()
         Gate::before(function ($user, $ability) {
-            return $user->hasRole('admin') ? true : null;
+            return $user->hasRole('admin_erapor') ? true : null;
         });
     }
 }
