@@ -69,7 +69,7 @@
                                                 {{ $user->last_login_at ? $user->last_login_at->diffForHumans() : 'Belum Pernah' }}
                                             </td>
                                             <td class="align-middle">
-                                                @can('users.edit')
+                                                @can('users.update')
                                                 
                                                 {{-- Aksi Edit --}}
                                                 <a href="{{ route('settings.system.users.edit', $user->id) }}" class="text-primary font-weight-bold text-xs" data-toggle="tooltip">
