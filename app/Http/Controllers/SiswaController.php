@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon; // Digunakan untuk format tanggal
 use Illuminate\Support\Arr;
 use Maatwebsite\Excel\Facades\Excel; // BARU: Facade Maatwebsite/Excel
+use Barryvdh\DomPDF\Facade\Pdf;
+
 
 class SiswaController extends Controller
 {
@@ -66,6 +68,19 @@ class SiswaController extends Controller
      */
     public function store(Request $request)
     {
+            $jkMap = [
+            'laki-laki' => 'L',
+            'laki laki' => 'L',
+            'l'         => 'L',
+            'perempuan' => 'P',
+            'p'         => 'P',
+        ];
+
+        $jkInput = strtolower(trim($request->jenis_kelamin));
+
+        $request->merge([
+            'jenis_kelamin' => $jkMap[$jkInput] ?? null
+        ]);
         // 1. Validasi Data
         $request->validate([
             // Siswa (Wajib)
@@ -73,7 +88,7 @@ class SiswaController extends Controller
             'nisn' => 'required|string|max:10|unique:siswa,nisn',
             'nama_siswa' => 'required|string|max:255',
             'jenis_kelamin' => 'required|in:L,P',
-            'tingkat' => 'required|string|max:10',
+            // 'tingkat' => 'required|string|max:10',
             'id_kelas' => 'required|integer|exists:kelas,id_kelas',
             'id_ekskul' => 'nullable|integer|exists:ekskul,id_ekskul',
 
@@ -85,6 +100,13 @@ class SiswaController extends Controller
             'nama_ayah' => 'nullable|string|max:255',
             'nama_ibu' => 'nullable|string|max:255',
             // ... (Tambahkan validasi untuk field DetailSiswa lainnya)
+        ]);
+
+        //Tambahan untul validasi tingkat
+        $kelas = Kelas::findOrFail($request->id_kelas);
+
+        $request->merge([
+            'tingkat' => $kelas->tingkat
         ]);
 
         DB::beginTransaction();
@@ -142,6 +164,19 @@ class SiswaController extends Controller
     public function update(Request $request, $id)
     {
         $siswa = Siswa::findOrFail($id);
+            $jkMap = [
+            'laki-laki' => 'L',
+            'laki laki' => 'L',
+            'l'         => 'L',
+            'perempuan' => 'P',
+            'p'         => 'P',
+        ];
+
+        $jkInput = strtolower(trim($request->jenis_kelamin));
+
+        $request->merge([
+            'jenis_kelamin' => $jkMap[$jkInput] ?? null
+        ]);
         
         // 1. Validasi Data
         $request->validate([
@@ -197,7 +232,7 @@ class SiswaController extends Controller
             
             // 1. Hapus data UlanganHarian terkait (hasMany)
             //    Panggil delete() pada query builder relasi
-            $siswa->ulangan()->delete(); 
+            // $siswa->ulangan()->delete(); (karena tidak dapat delete siswa)
             
             // 2. Hapus data DetailSiswa terkait (hasOne)
             //    Panggil delete() pada query builder relasi, lebih aman daripada menghapus instance.
@@ -774,4 +809,74 @@ class SiswaController extends Controller
             return redirect()->back()->with('error', $errorMessage);
         }
     }
+
+
+        // =========================================================================
+    // EXPORT PDF & CSV SISWA
+    // =========================================================================
+
+    public function exportPdf()
+{
+    $siswas = Siswa::with('kelas')
+        ->get()
+        ->map(function ($s) {
+            return [
+                'nama'   => htmlspecialchars((string) $s->nama_siswa),
+                'nisn'   => htmlspecialchars((string) $s->nisn),
+                'nipd'   => htmlspecialchars((string) $s->nipd),
+                'kelas'  => htmlspecialchars((string) optional($s->kelas)->nama_kelas),
+                'tingkat'=> htmlspecialchars((string) $s->tingkat),
+            ];
+        });
+
+    $pdf = Pdf::loadView('siswa.exports.data_siswa_pdf', compact('siswas'));
+
+    return $pdf->download('data-siswa.pdf');
+}
+
+
+
+
+    public function exportCsv()
+    {
+        $siswas = Siswa::with('kelas', 'ekskul')->get();
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="data-siswa.csv"',
+        ];
+
+        $callback = function () use ($siswas) {
+            $file = fopen('php://output', 'w');
+
+            fputcsv($file, [
+                'NIPD',
+                'NISN',
+                'Nama Siswa',
+                'Jenis Kelamin',
+                'Tingkat',
+                'Kelas',
+                'Ekskul'
+            ]);
+
+            foreach ($siswas as $s) {
+                fputcsv($file, [
+                    $s->nipd,
+                    $s->nisn,
+                    $s->nama_siswa,
+                    $s->jenis_kelamin,
+                    $s->tingkat,
+                    optional($s->kelas)->nama_kelas,
+                    optional($s->ekskul)->nama_ekskul,
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+
+
 }

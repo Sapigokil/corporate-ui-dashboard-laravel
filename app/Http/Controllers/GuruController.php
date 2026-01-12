@@ -230,7 +230,7 @@ class GuruController extends Controller
     {
         $guru = Guru::all();
 
-        $pdf = Pdf::loadView('exports.data_guru_pdf', [
+        $pdf = Pdf::loadView('guru.exports.data_guru_pdf', [
             'guru' => $guru
         ]);
 

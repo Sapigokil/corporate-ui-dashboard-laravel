@@ -169,14 +169,19 @@ class KelasController extends Controller
      * 🔹 Export semua data kelas ke PDF
      */
     public function exportPdf()
-    {
-        $kelas = Kelas::orderBy('tingkat')->orderBy('nama_kelas')->get();
+{
+    $kelas = Kelas::orderBy('tingkat')
+        ->orderBy('nama_kelas')
+        ->withCount('siswas')
+        ->get();
 
-        $pdf = Pdf::loadView('exports.data_kelas_pdf', compact('kelas'))
-            ->setPaper('a4', 'landscape');
+    $pdf = Pdf::loadView(
+        'kelas.exports.data_kelas_pdf',
+        compact('kelas')
+    )->setPaper('a4', 'landscape');
 
-        return $pdf->download('data_kelas.pdf');
-    }
+    return $pdf->download('data_kelas.pdf');
+}
 
     /**
      * 🔹 Export semua data kelas ke CSV
@@ -212,9 +217,9 @@ class KelasController extends Controller
      */
     public function exportKelas($id)
     {
-        $kelas = Kelas::with('anggotaKelas')->findOrFail($id);
+        $kelas = Kelas::with('siswas')->findOrFail($id);
 
-        $pdf = Pdf::loadView('exports.kelas_single_pdf', compact('kelas'))
+        $pdf = Pdf::loadView('kelas.exports.kelas_single_pdf', compact('kelas'))
             ->setPaper('a4', 'portrait');
 
         $filename = 'data_kelas_' . str_replace(' ', '_', strtolower($kelas->nama_kelas)) . '.pdf';
