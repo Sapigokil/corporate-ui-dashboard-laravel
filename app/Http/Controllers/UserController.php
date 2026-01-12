@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
@@ -54,7 +55,7 @@ class UserController extends Controller
         $user->syncRoles([]); 
         $user->assignRole($request->role_name);
         
-        return redirect()->route('users.index')
+        return redirect()->route('master.users.index')
                          ->with('success', 'Data pengguna dan role berhasil diperbarui.');
     }
 
@@ -86,8 +87,9 @@ class UserController extends Controller
         // 2. Assign Role (Sangat Penting)
         $user->assignRole($request->role_name);
         
-        return redirect()->route('users.index')
-                         ->with('success', 'Akun pengguna baru berhasil dibuat dan di-assign ke Role ' . $request->role_name . '.');
+        return redirect()->route('master.users.index')
+    ->with('success', 'Akun pengguna baru berhasil dibuat...');
+
     }
 
     public function destroy(User $user)
@@ -96,18 +98,18 @@ class UserController extends Controller
 
         // Cek Ganda 1: Mencegah user menghapus akunnya sendiri
         if (Auth::id() === $user->id) {
-            return redirect()->route('users.index')->with('error', 'Anda tidak dapat menghapus akun yang sedang Anda gunakan.');
+            return redirect()->route('master.users.index')->with('error', 'Anda tidak dapat menghapus akun yang sedang Anda gunakan.');
         }
 
         // Cek Ganda 2: Mencegah penghapusan Role Admin
         if ($user->hasRole('admin')) {
-            return redirect()->route('users.index')->with('error', 'Pengguna dengan Role Admin tidak dapat dihapus.');
+            return redirect()->route('master.users.index')->with('error', 'Pengguna dengan Role Admin tidak dapat dihapus.');
         }
 
         // ... Proses Penghapusan ...
         $userName = $user->name;
         $user->delete();
 
-        return redirect()->route('users.index')->with('success', 'Pengguna ' . $userName . ' berhasil dihapus.');
+        return redirect()->route('master.users.index')->with('success', 'Pengguna ' . $userName . ' berhasil dihapus.');
     }
 }
