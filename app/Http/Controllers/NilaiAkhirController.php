@@ -29,7 +29,7 @@ class NilaiAkhirController extends Controller
         return $map[strtoupper(trim($semester))] ?? null;
     }
 
-    private function generateCapaianAkhir($siswa, $semuaNilai): ?string
+    public function generateCapaianAkhir($siswa, $semuaNilai): ?string
     {
         if ($semuaNilai->count() === 0) {
             return "Data nilai intrakurikuler dan project belum tersedia.";
