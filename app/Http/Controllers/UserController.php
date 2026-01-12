@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\Password;
 
 class UserController extends Controller
@@ -54,7 +55,7 @@ class UserController extends Controller
         $user->syncRoles([]); 
         $user->assignRole($request->role_name);
         
-        return redirect()->route('users.index')
+        return redirect()->route('master.users.index')
                          ->with('success', 'Data pengguna dan role berhasil diperbarui.');
     }
 
@@ -86,28 +87,27 @@ class UserController extends Controller
         // 2. Assign Role (Sangat Penting)
         $user->assignRole($request->role_name);
         
-        return redirect()->route('users.index')
+        return redirect()->route('master.users.index')
                          ->with('success', 'Akun pengguna baru berhasil dibuat dan di-assign ke Role ' . $request->role_name . '.');
     }
 
     public function destroy(User $user)
     {
-        // ... Otorisasi ...
-
-        // Cek Ganda 1: Mencegah user menghapus akunnya sendiri
+        // 1. Cek: Jangan biarkan user menghapus akunnya sendiri yang sedang login
         if (Auth::id() === $user->id) {
-            return redirect()->route('users.index')->with('error', 'Anda tidak dapat menghapus akun yang sedang Anda gunakan.');
+            return back()->with('error', 'Anda tidak dapat menghapus akun Anda sendiri saat sedang login.');
         }
 
-        // Cek Ganda 2: Mencegah penghapusan Role Admin
-        if ($user->hasRole('admin')) {
-            return redirect()->route('users.index')->with('error', 'Pengguna dengan Role Admin tidak dapat dihapus.');
+        // 2. (Opsional) Cek: Jangan hapus Super Admin utama jika diperlukan
+        if ($user->hasRole('admin') && $user->id == 1) { // Asumsi ID 1 adalah super admin
+             return back()->with('error', 'Akun Super Admin utama tidak boleh dihapus.');
         }
 
-        // ... Proses Penghapusan ...
-        $userName = $user->name;
+        // 3. Hapus User
         $user->delete();
 
-        return redirect()->route('users.index')->with('success', 'Pengguna ' . $userName . ' berhasil dihapus.');
+        // 4. Redirect
+        return redirect()->route('master.users.index')
+                         ->with('success', 'Pengguna berhasil dihapus.');
     }
 }

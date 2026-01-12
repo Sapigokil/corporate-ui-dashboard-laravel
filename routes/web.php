@@ -64,8 +64,11 @@ Route::group(['middleware' => 'guest'], function () {
     Route::get('/signup', fn () => view('account-pages.signup'))->name('signup');
     
     Route::get('/sign-up', [RegisterController::class, 'create'])->name('sign-up');
-    Route::post('/sign-up', [RegisterController::class, 'store']);
-    
+    Route::get('/sign-up/check', [RegisterController::class, 'create']);
+    Route::post('/sign-up/check', [RegisterController::class, 'checkUser'])->name('sign-up.check');
+    Route::post('/sign-up', [RegisterController::class, 'store'])->name('sign-up.store');
+    Route::put('/sign-up/update', [RegisterController::class, 'updateAccount'])->name('sign-up.update');
+
     Route::get('/sign-in', [LoginController::class, 'create'])->name('sign-in');
     Route::post('/sign-in', [LoginController::class, 'store']);
 
