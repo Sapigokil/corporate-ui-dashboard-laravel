@@ -1,114 +1,143 @@
 <?php
 
-// app/Http/Controllers/RoleController.php
-
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Spatie\Permission\Models\Role; // Penting: Menggunakan Model Role dari Spatie
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class RoleController extends Controller
 {
-    // Fungsi untuk menampilkan daftar Role
+    /**
+     * Menampilkan daftar Role.
+     */
     public function index()
     {
-        // Ambil semua Role, dan muat relasi permissions dan users
-        $roles = Role::with('permissions', 'users')->get(); 
-        
-        return view('user.roles.index', compact('roles'));
-    }
+        $user = Auth::user();
 
-    // ... fungsi create, store, edit, update lainnya
-    
-    // Fungsi Edit akan digunakan untuk mengatur Izin/Permissions
-    public function edit(Role $role)
-    {
-        // Ambil semua permission yang tersedia
+        // LOGIKA STEALTH MODE
+        // Developer melihat semua. User lain tidak melihat role 'developer'.
+        if ($user->hasRole('developer')) {
+            $roles = Role::orderBy('id', 'DESC')->get();
+        } else {
+            $roles = Role::where('name', '!=', 'developer')
+                         ->orderBy('id', 'DESC')
+                         ->get();
+        }
+
         $permissions = Permission::all();
-    
-    // Kirim objek role dan semua permissions ke view
-    return view('user.roles.edit', compact('role', 'permissions'));
+
+        return view('user.roles.index', compact('roles', 'permissions'));
     }
 
-    public function update(Request $request, Role $role)
-    {
-        // 1. Validasi Input
-        $request->validate([
-            'role_name' => 'required|string|max:255|unique:roles,name,' . $role->id, // Name unik, kecuali diri sendiri
-            'permissions' => 'nullable|array',
-            'permissions.*' => 'exists:permissions,name', // Pastikan semua permission yang dikirim valid
-        ]);
-
-        // 2. Update Nama Role (jika diizinkan)
-        // Jika Anda membiarkan nama role bisa diedit di view roles.edit
-        // $role->update(['name' => $request->role_name]);
-
-        // 3. Sinkronisasi Permissions (Penting!)
-        
-        // Ambil permissions yang dikirim dari form (array of permission names)
-        $newPermissions = $request->input('permissions', []);
-
-        // Gunakan syncPermissions dari Spatie untuk mengganti semua permission lama
-        // dengan list yang baru.
-        $role->syncPermissions($newPermissions); 
-        
-        // 4. Redirect dengan Pesan Sukses
-        return redirect()->route('roles.index')
-                         ->with('success', 'Role "' . $role->name . '" dan Izin berhasil diperbarui.');
-    }
-    
+    /**
+     * Menampilkan form Create.
+     */
     public function create()
     {
-        // Ambil semua permission yang tersedia
         $permissions = Permission::all();
-
         return view('user.roles.create', compact('permissions'));
     }
-    
-    // FUNGSI STORE: Menyimpan Role baru
+
+    /**
+     * Menyimpan Role baru.
+     */
     public function store(Request $request)
     {
-        $request->validate([
+        $this->validate($request, [
             'name' => 'required|unique:roles,name',
-            'permissions' => 'nullable|array',
+            'permission' => 'required',
         ]);
-        
-        // 1. Buat Role Baru
-        $role = Role::create(['name' => strtolower($request->name)]); // Simpan nama role dalam huruf kecil (best practice Spatie)
-        
-        // 2. Sinkronisasi Izin (Permissions)
-        if ($request->has('permissions')) {
-            $role->syncPermissions($request->permissions);
-        }
-        
-        return redirect()->route('settings.system.roles.index')
-                         ->with('success', 'Role ' . Str::title($role->name) . ' berhasil dibuat dengan izin yang dipilih.');
-    }// ... (Fungsi destroy, create, store)
 
+        // PROTEKSI: Mencegah user non-developer membuat role bernama 'developer'
+        if (!Auth::user()->hasRole('developer') && strtolower($request->name) == 'developer') {
+             return redirect()->back()->with('error', 'Anda tidak memiliki akses untuk membuat role Developer.');
+        }
+
+        $role = Role::create(['name' => $request->input('name')]);
+        $role->syncPermissions($request->input('permission'));
+
+        return redirect()->route('user.roles.index')
+                        ->with('success', 'Role berhasil dibuat');
+    }
+
+    /**
+     * Menampilkan form Edit.
+     */
+    public function edit(Role $role)
+    {
+        // PROTEKSI: Non-developer tidak boleh akses halaman edit milik role Developer
+        if (!Auth::user()->hasRole('developer') && $role->name == 'developer') {
+            abort(403, 'Akses Ditolak: Restricted Role');
+        }
+
+        $permissions = Permission::all();
+    
+        return view('user.roles.edit', compact('role', 'permissions'));
+    }
+
+    /**
+     * Memperbarui Role.
+     */
+    public function update(Request $request, Role $role)
+    {
+        // PROTEKSI: Non-developer tidak boleh mengupdate role Developer
+        if (!Auth::user()->hasRole('developer') && $role->name == 'developer') {
+            return redirect()->back()->with('error', 'Anda tidak memiliki akses untuk mengubah role Developer.');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255|unique:roles,name,' . $role->id,
+            'permissions' => 'nullable|array',
+            'permissions.*' => 'exists:permissions,name',
+        ]);
+
+        // PROTEKSI NAMA: Jangan biarkan nama role diubah jadi 'developer' oleh non-dev
+        if (!Auth::user()->hasRole('developer') && strtolower($request->name) == 'developer') {
+             return redirect()->back()->with('error', 'Anda tidak boleh menamai role ini sebagai Developer.');
+        }
+
+        $role->update(['name' => $request->name]);
+
+        $newPermissions = $request->input('permissions', []);
+        $role->syncPermissions($newPermissions); 
+        
+        return redirect()->route('user.roles.index')
+                         ->with('success', 'Role "' . $role->name . '" dan Izin berhasil diperbarui.');
+    }
+
+    /**
+     * Menghapus Role.
+     */
     public function destroy(Role $role)
     {
-        // 1. Tentukan Role yang Krusial
-        $protectedRoles = ['admin', 'guru', 'wali murid'];
+        $currentUser = Auth::user();
 
-        // 2. Cek apakah Role termasuk yang krusial
-        if (in_array(strtolower($role->name), $protectedRoles)) {
-            return redirect()->route('settings.system.roles.index')
-                             ->with('error', 'Role ' . Str::title($role->name) . ' adalah Role krusial dan tidak dapat dihapus.');
+        // 1. PROTEKSI STEALTH (Developer asli tidak boleh disentuh)
+        if (!$currentUser->hasRole('developer') && $role->name == 'developer') {
+             return redirect()->back()->with('error', 'Akses ditolak.');
         }
 
-        // 3. Cek apakah Role masih memiliki pengguna yang terhubung
+        // 2. PROTEKSI SYSTEM ROLES (REVISI: Tambah 'guru' dan 'siswa')
+        // Role-role ini haram dihapus karena digunakan oleh sistem core / default register
+        $systemRoles = ['developer', 'admin_erapor', 'guru_erapor', 'guru', 'siswa'];
+
+        if (in_array(strtolower($role->name), $systemRoles)) {
+            return redirect()->route('settings.system.roles.index') 
+                             ->with('error', 'Role Sistem/Default (' . Str::title($role->name) . ') dilindungi dan tidak boleh dihapus.');
+        }
+
+        // 3. Cek User Terhubung
         if ($role->users()->count() > 0) {
             return redirect()->route('settings.system.roles.index')
-                             ->with('error', 'Role ' . Str::title($role->name) . ' tidak dapat dihapus karena masih terhubung dengan ' . $role->users()->count() . ' pengguna.');
+                             ->with('error', 'Role ' . Str::title($role->name) . ' tidak dapat dihapus karena masih digunakan oleh user.');
         }
 
-        // 4. Proses Penghapusan
-        $roleName = Str::title($role->name);
         $role->delete();
 
         return redirect()->route('settings.system.roles.index')
-                         ->with('success', 'Role ' . $roleName . ' berhasil dihapus.');
+                        ->with('success', 'Role berhasil dihapus.');
     }
 }
