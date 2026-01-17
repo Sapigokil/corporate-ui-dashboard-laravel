@@ -157,7 +157,7 @@ Route::middleware(['auth'])->group(function () {
     // MODULE: PENILAIAN / INPUT NILAI
     // Permission: nilai.view (Guru & Admin Erapor)
     // ==========================================================================
-    Route::group(['prefix' => 'master/nilai', 'as' => 'master.', 'middleware' => ['can:nilai.view']], function () {
+    Route::group(['prefix' => 'master/nilai', 'as' => 'master.', 'middleware' => ['can:nilai-view']], function () {
         
         // 1. Sumatif
         Route::group(['prefix' => 'sumatif', 'as' => 'sumatif.', 'controller' => SumatifController::class], function () {
@@ -168,7 +168,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('download-template', 'downloadTemplate')->name('download');
             
             // Aksi Simpan butuh permission 'nilai.input'
-            Route::middleware('can:nilai.input')->group(function() {
+            Route::middleware('can:nilai-input')->group(function() {
                 Route::post('simpan', 'simpan')->name('store');
                 Route::post('import', 'import')->name('import'); 
             });
@@ -235,7 +235,7 @@ Route::middleware(['auth'])->group(function () {
     Route::group(['prefix' => 'ledger', 'as' => 'ledger.', 'middleware' => ['can:ledger.view']], function () {
         Route::get('/data-nilai', [LedgerController::class, 'index'])->name('ledger_index');
         
-        Route::middleware('can:ledger.cetak')->group(function() {
+        Route::middleware('can:cetak-print-ledger')->group(function() {
             Route::get('/export/excel', [LedgerController::class, 'exportExcel'])->name('export.excel');
             Route::get('/export/pdf', [LedgerController::class, 'exportPdf'])->name('export.pdf');
         });
