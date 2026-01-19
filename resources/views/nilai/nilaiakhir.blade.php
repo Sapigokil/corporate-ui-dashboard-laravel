@@ -164,7 +164,7 @@
                                 
                                 @else
                                     <div style="background-color: #ff7b00 !important;" class="alert text-white text-sm">
-                                        **Catatan:** Wajib memasukan minimal 2 Nilai Sumatif, bila tidak Bobot tidak dapat dihitung.
+                                        **Catatan:** Wajib memasukan minimal 3 Nilai Sumatif, bila tidak Bobot tidak dapat dihitung.
                                     </div>
                                     
                                     <div class="table-responsive p-0">
@@ -179,6 +179,8 @@
                                                     <th class="text-uppercase text-white text-xxs font-weight-bolder opacity-9 text-center bg-primary">Sumatif 1</th>
                                                     <th class="text-uppercase text-white text-xxs font-weight-bolder opacity-9 text-center bg-primary">Sumatif 2</th>
                                                     <th class="text-uppercase text-white text-xxs font-weight-bolder opacity-9 text-center bg-primary">Sumatif 3</th>
+                                                    <th class="text-uppercase text-white text-xxs font-weight-bolder opacity-9 text-center bg-primary">Sumatif 4</th>
+                                                    <th class="text-uppercase text-white text-xxs font-weight-bolder opacity-9 text-center bg-primary">Sumatif 5</th>
                                                     <th class="text-uppercase text-white text-xxs font-weight-bolder opacity-9 text-center bg-primary">Rata-rata</th>
                                                     <th class="text-uppercase text-white text-xxs font-weight-bolder opacity-9 text-center bg-primary">Bobot Sumatif</th>
 
@@ -208,6 +210,8 @@
                                                     <td class="px-3 py-2 text-sm text-center">{{ $rekapSiswa['s1'] ?? '-' }}</td>
                                                     <td class="px-3 py-2 text-sm text-center">{{ $rekapSiswa['s2'] ?? '-' }}</td>
                                                     <td class="px-3 py-2 text-sm text-center">{{ $rekapSiswa['s3'] ?? '-' }}</td>
+                                                    <td class="px-3 py-2 text-sm text-center">{{ $rekapSiswa['s4'] ?? '-' }}</td>
+                                                    <td class="px-3 py-2 text-sm text-center">{{ $rekapSiswa['s5'] ?? '-' }}</td>
                                                     
                                                     {{-- Rata & Bobot Sumatif --}}
                                                     <td class="px-3 py-2 text-sm text-center font-weight-bold">{{ $rekapSiswa['rata_sumatif'] ?? '-' }}</td>

@@ -69,7 +69,27 @@
                                     <button type="button" class="btn-close text-lg py-3 opacity-10" data-bs-dismiss="alert" aria-label="Close">&times;</button>
                                 </div>
                             @endif
-                            
+                            {{-- Notifikasi untuk karakter TP --}}
+                            @if ($errors->any())
+                                <div class="alert bg-gradient-danger mx-4 alert-dismissible text-white fade show">
+                                    <strong>Gagal!</strong>
+                                    <ul class="mb-0">
+                                        @foreach ($errors->messages() as $field => $messages)
+                                            @foreach ($messages as $message)
+                                                @if (str_contains($field, 'tujuan_pembelajaran'))
+                                                    <li class="text-sm">
+                                                        Tujuan Pembelajaran mengandung karakter tidak valid.
+                                                    </li>
+                                                @else
+                                                    <li class="text-sm">{{ $message }}</li>
+                                                @endif
+                                            @endforeach
+                                        @endforeach
+                                    </ul>
+                                    <button type="button" class="btn-close text-lg py-3 opacity-10" data-bs-dismiss="alert">&times;</button>
+                                </div>
+                            @endif
+
                             {{-- FORM FILTER --}}
                             <div class="p-4 border-bottom">
                                 <form action="{{ route('master.sumatif.s3') }}" method="GET" class="row align-items-end">

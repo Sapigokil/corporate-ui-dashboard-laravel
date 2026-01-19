@@ -1,4 +1,4 @@
-{{-- File: resources/views/nilai/sum2_index.blade.php --}}
+{{-- File: resources/views/nilai/sum3_index.blade.php --}}
 
 @extends('layouts.app') 
 
@@ -56,6 +56,7 @@
                         </div>
 
                         <div class="card-body px-0 pb-2">
+                            {{-- Notifikasi --}}
                             @if (session('success'))
                                 <div class="alert bg-gradient-success mx-4 alert-dismissible text-white fade show" role="alert">
                                     <span class="text-sm"><strong>Sukses!</strong> {!! session('success') !!}</span>
@@ -91,7 +92,7 @@
                             
                             {{-- FORM FILTER --}}
                             <div class="p-4 border-bottom">
-                                <form action="{{ route('master.sumatif.s2') }}" method="GET" class="row align-items-end">
+                                <form action="{{ route('master.sumatif.s5') }}" method="GET" class="row align-items-end">
                                     <div class="col-md-2 mb-3">
                                         <label class="form-label">Sumatif:</label>
                                         <select name="sumatif" required class="form-select" disabled>
@@ -101,7 +102,7 @@
                                     </div>
 
                                     <div class="col-md-3 mb-3">
-                                        <label class="form-label">Kelas:</label>
+                                        <label for="id_kelas" class="form-label">Kelas:</label>
                                         <select name="id_kelas" id="id_kelas" required class="form-select" onchange="this.form.submit()">
                                             <option value="">Pilih Kelas</option>
                                             @foreach(\App\Models\Kelas::orderBy('nama_kelas')->get() as $k)
@@ -111,7 +112,7 @@
                                     </div>
                                     
                                     <div class="col-md-3 mb-3">
-                                        <label class="form-label">Mata Pelajaran:</label>
+                                        <label for="id_mapel" class="form-label">Mata Pelajaran:</label>
                                         <select name="id_mapel" id="id_mapel" required class="form-select" {{ !request('id_kelas') ? 'disabled' : '' }} onchange="this.form.submit()">
                                             <option value="">Pilih Mapel</option>
                                             @foreach ($mapel as $m)
@@ -146,9 +147,9 @@
 
                             <div class="p-4">
                                 @if(!request('id_kelas') || !request('id_mapel'))
-                                    <p class="text-secondary mt-3 p-3 text-center border rounded">Pilih filter untuk menginput nilai.</p>
+                                    <p class="text-secondary mt-3 p-3 text-center border rounded">Pilih filter untuk menginput nilai Sumatif 5.</p>
                                 @elseif($siswa->isEmpty())
-                                    <p class="text-danger mt-3 p-3 text-center border rounded">Siswa tidak ditemukan.</p>
+                                    <p class="text-danger mt-3 p-3 text-center border rounded">Data siswa tidak ditemukan.</p>
                                 @else
                                     <form action="{{ route('master.sumatif.store') }}" method="POST">
                                         @csrf
@@ -221,7 +222,7 @@
                     <div class="modal-body">
                         <div class="mb-3">
                             <label class="form-label">Kelas:</label>
-                            <select name="id_kelas" required class="form-select ajax-select-kelas" data-target="#mapel_download_sum2">
+                            <select name="id_kelas" required class="form-select ajax-select-kelas" data-target="#mapel_download_sum5">
                                 <option value="">Pilih Kelas</option>
                                 @foreach(\App\Models\Kelas::orderBy('nama_kelas')->get() as $k)
                                     <option value="{{ $k->id_kelas }}">{{ $k->nama_kelas }}</option>
@@ -230,11 +231,10 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Mata Pelajaran:</label>
-                            <select name="id_mapel" id="mapel_download_sum2" required class="form-select">
+                            <select name="id_mapel" id="mapel_download_sum5" required class="form-select">
                                 <option value="">Pilih Kelas Terlebih Dahulu</option>
                             </select>
                         </div>
-                        {{-- Semester & TA tetap --}}
                         <div class="mb-3">
                             <label class="form-label">Semester:</label>
                             <select name="semester" required class="form-select">
@@ -272,9 +272,12 @@
                     @csrf
                     <input type="hidden" name="sumatif" value="{{ $sumatifId }}">
                     <div class="modal-body">
+                        <div class="mb-3 text-center">
+                            <p class="text-secondary font-weight-bold">Pastikan data Excel sesuai dengan template.</p>
+                        </div>
                         <div class="mb-3">
                             <label class="form-label">Kelas:</label>
-                            <select name="id_kelas" required class="form-select ajax-select-kelas" data-target="#mapel_import_sum2">
+                            <select name="id_kelas" required class="form-select ajax-select-kelas" data-target="#mapel_import_sum5">
                                 <option value="">Pilih Kelas</option>
                                 @foreach(\App\Models\Kelas::orderBy('nama_kelas')->get() as $k)
                                     <option value="{{ $k->id_kelas }}">{{ $k->nama_kelas }}</option>
@@ -283,11 +286,10 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Mata Pelajaran:</label>
-                            <select name="id_mapel" id="mapel_import_sum2" required class="form-select">
+                            <select name="id_mapel" id="mapel_import_sum5" required class="form-select">
                                 <option value="">Pilih Kelas Terlebih Dahulu</option>
                             </select>
                         </div>
-                        {{-- Semester, TA, File tetap --}}
                         <div class="mb-3">
                             <label class="form-label">Semester:</label>
                             <select name="semester" required class="form-select">
@@ -317,10 +319,12 @@
         </div>
     </div>
 
+    {{-- Overlay Loading --}}
     <div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); justify-content: center; align-items: center; color: white; font-size: 1.5rem; z-index: 9999;">
         <div class="spinner-border text-light me-3" role="status"></div> Sedang memproses...
     </div>
 
+    {{-- JAVASCRIPT --}}
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
@@ -352,9 +356,9 @@
                 }
             });
 
-            // Loading Overlay
+            // Overlay Loading saat submit
             $('form').on('submit', function() {
-                if($(this).attr('method') === 'POST' && !$(this).hasClass('no-loading')){
+                if($(this).attr('method') === 'POST'){
                     $('#loadingOverlay').css('display', 'flex');
                 }
             });

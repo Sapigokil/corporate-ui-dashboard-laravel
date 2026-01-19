@@ -23,13 +23,17 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        // LOGIKA SUPER ADMIN (Bypass Semua Permission)
-        // Jika user punya role 'admin', dia otomatis lolos semua pengecekan @can atau $user->can()
-        Gate::before(function ($user, $ability) {
-            // Izinkan jika role 'admin_erapor' ATAU 'developer'
-            if ($user->hasRole('admin_erapor') || $user->hasRole('developer')) {
-                return true;
-            }
-        });
+        Gate::define('rapor.cetak', fn ($user) => true);
+        Gate::define('ledger.view', fn ($user) => true);
+        Gate::define('cetak-print-ledger', fn ($user) => true);
+
+        // // LOGIKA SUPER ADMIN (Bypass Semua Permission)
+        // // Jika user punya role 'admin', dia otomatis lolos semua pengecekan @can atau $user->can()
+        // Gate::before(function ($user, $ability) {
+        //     // Izinkan jika role 'admin_erapor' ATAU 'developer'
+        //     if ($user->hasRole('admin_erapor') || $user->hasRole('developer')) {
+        //         return true;
+        //     }
+        // });
     }
 }

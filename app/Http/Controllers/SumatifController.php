@@ -128,6 +128,22 @@ class SumatifController extends Controller
         return view('nilai.sum3_index', $data); 
     }
 
+    public function sumatif4(Request $request)
+    {
+        // Parameter Sumatif ID = 4
+        $data = $this->loadSumatifData($request, 4);
+        $data['sumatifId'] = 4;
+        return view('nilai.sum4_index', $data); 
+    }
+
+    public function sumatif5(Request $request)
+    {
+        // Parameter Sumatif ID = 5
+        $data = $this->loadSumatifData($request, 5);
+        $data['sumatifId'] = 5;
+        return view('nilai.sum5_index', $data); 
+    }
+
     public function project(Request $request)
     {
         // Parameter Sumatif ID = 4 (asumsi Project)
@@ -142,13 +158,34 @@ class SumatifController extends Controller
         $request->validate([
             'id_kelas'              => 'required',
             'id_mapel'              => 'required',
-            'sumatif'               => 'required|in:1,2,3',
+            'sumatif'               => 'required|in:1,2,3,4,5',
             'semester'              => 'required',
             'tahun_ajaran'          => 'required',
             'id_siswa'              => 'required|array',
             'nilai'                 => 'required|array',
-            'tujuan_pembelajaran'   => 'nullable|array',
+            'tujuan_pembelajaran'   => 'required|array',
+            'tujuan_pembelajaran.*' => ['required'],
+
+            [
+                'tujuan_pembelajaran.*.required' =>
+                    'Tujuan Pembelajaran wajib diisi dan tidak boleh kosong.',
+                'tujuan_pembelajaran.*.regex' =>
+                    'Tujuan Pembelajaran hanya boleh berisi huruf dan spasi. Tidak boleh angka atau tanda baca.',
+            ]
         ]);
+
+        foreach ($request->tujuan_pembelajaran as $tp) {
+        $tp = trim($tp);
+
+        // Tolak jika karakter TERAKHIR adalah tanda baca
+        if (preg_match('/[[:punct:]]$/', $tp)) {
+            return back()->withInput()->with(
+                'error',
+                'Tujuan Pembelajaran tidak boleh diakhiri tanda baca (.,!?:; dan sejenisnya).'
+            );
+        }
+    }
+
         
         // 🛑 MAPPING SEMESTER STRING KE INTEGER UNTUK PENYIMPANAN 🛑
         $semesterDB = $this->mapSemesterToInt($request->semester);
@@ -158,6 +195,32 @@ class SumatifController extends Controller
         }
 
         foreach ($request->id_siswa as $i => $id_siswa) {
+
+        //Tambahan untuk aturan peraturan input nilai urut
+        $sumatifSekarang = (int) $request->sumatif;
+
+        // Abaikan pengecekan jika Sumatif 1
+        if ($sumatifSekarang > 1) {
+
+            $sumatifSebelumnya = $sumatifSekarang - 1;
+
+            $cekSumatifSebelumnya = Sumatif::where([
+                'id_kelas'     => $request->id_kelas,
+                'id_siswa'     => $id_siswa,
+                'id_mapel'     => $request->id_mapel,
+                'sumatif'      => $sumatifSebelumnya,
+                'semester'     => $semesterDB,
+                'tahun_ajaran' => $request->tahun_ajaran,
+            ])->exists();
+
+            if (!$cekSumatifSebelumnya) {
+                return back()->with(
+                    'error',
+                    "Sumatif {$sumatifSekarang} tidak bisa diinput sebelum Sumatif {$sumatifSebelumnya} diisi."
+                );
+            }
+        }
+
 
             $nilai = (int) $request->nilai[$i];
             
@@ -208,22 +271,31 @@ class SumatifController extends Controller
             'id_mapel' => 'required|exists:mata_pelajaran,id_mapel',
             'semester' => 'required',
             'tahun_ajaran' => 'required',
-            'sumatif' => 'required|in:1,2,3,4'
+            'sumatif' => 'required|in:1,2,3,4,5'
         ]);
 
         // 2. Ambil data Kelas, Mapel, Siswa untuk template
         $kelas = Kelas::find($request->id_kelas);
         $mapel = MataPelajaran::find($request->id_mapel);
-        $siswa = Siswa::where('id_kelas', $request->id_kelas)
-            ->orderBy('nama_siswa')
-            ->get();
-        
-        // 3. Cek Agama Khusus (jika ada di Mapel, filter siswa)
+        // $siswa = Siswa::where('id_kelas', $request->id_kelas)
+        //     ->orderBy('nama_siswa')
+        //     ->get();
+
+        $siswaQuery = Siswa::with('detail')
+            ->where('id_kelas', $request->id_kelas);
+
         if ($mapel && $mapel->agama_khusus) {
-            $siswa = $siswa->filter(function($s) use ($mapel) {
-                return optional($s->detail)->agama == $mapel->agama_khusus;
+            $agama = trim(strtolower($mapel->agama_khusus));
+
+            $siswaQuery->whereHas('detail', function ($q) use ($agama) {
+                $q->whereRaw('LOWER(TRIM(agama)) = ?', [$agama]);
             });
         }
+
+        $siswa = $siswaQuery
+            ->orderBy('nama_siswa')
+            ->get();
+
 
         if ($siswa->isEmpty()) {
             return back()->with('error', 'Tidak ada siswa yang ditemukan untuk filter ini. Template tidak dapat dibuat.');
@@ -245,7 +317,7 @@ class SumatifController extends Controller
     {
         $request->validate([
             'file_excel' => 'required|file|mimes:xlsx,xls',
-            'sumatif' => 'required|in:1,2,3',
+            'sumatif' => 'required|in:1,2,3,4,5',
             'id_kelas' => 'required|exists:kelas,id_kelas',
             'id_mapel' => 'required|exists:mata_pelajaran,id_mapel',
             'semester' => 'required',

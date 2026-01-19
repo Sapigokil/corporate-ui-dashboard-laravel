@@ -29,19 +29,33 @@ class RaporController extends Controller
         $semesterRaw = $request->semester ?? 'Ganjil';
         $semesterEnum = (strtoupper($semesterRaw) == 'GANJIL' || $semesterRaw == '1') ? 1 : 2;
 
+        $agamaSiswa = DB::table('detail_siswa')
+            ->where('id_siswa', $id_siswa)
+            ->value('agama');
+
+        $agamaSiswa = strtolower(trim($agamaSiswa));
+
+
         // 2. Ambil daftar mata pelajaran di kelas tersebut
         $pembelajaran = DB::table('pembelajaran')
-            ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
-            ->where('pembelajaran.id_kelas', $id_kelas)
-            ->select(
-                'mata_pelajaran.id_mapel', 
-                'mata_pelajaran.nama_mapel', 
-                'mata_pelajaran.kategori'
-            )
-            // UPDATE: Urutkan berdasarkan Kategori lalu Urutan Mapel
-            ->orderBy('mata_pelajaran.kategori', 'asc')
-            ->orderBy('mata_pelajaran.urutan', 'asc')
-            ->get();
+        ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
+        ->where('pembelajaran.id_kelas', $id_kelas)
+        ->where(function ($q) use ($agamaSiswa) {
+            $q->whereNull('mata_pelajaran.agama_khusus')
+            ->orWhereRaw(
+                'LOWER(TRIM(mata_pelajaran.agama_khusus)) = ?',
+                [$agamaSiswa]
+            );
+        })
+        ->select(
+            'mata_pelajaran.id_mapel',
+            'mata_pelajaran.nama_mapel',
+            'mata_pelajaran.kategori'
+        )
+        ->orderBy('mata_pelajaran.kategori', 'asc')
+        ->orderBy('mata_pelajaran.urutan', 'asc')
+        ->get();
+
 
         // 3. Loop dan ambil nilai_akhir secara langsung per mapel
         $data = $pembelajaran->map(function($mp) use ($id_siswa, $semesterEnum, $tahun_ajaran) {
@@ -170,6 +184,12 @@ class RaporController extends Controller
     {
         $semesterInt = (strtoupper($semesterRaw) == 'GANJIL' || $semesterRaw == '1') ? 1 : 2;
         $siswa = Siswa::with('kelas')->findOrFail($id_siswa);
+        $agamaSiswa = DB::table('detail_siswa')
+            ->where('id_siswa', $id_siswa)
+            ->value('agama');
+
+        $agamaSiswa = ucfirst(strtolower(trim($agamaSiswa)));
+
         $getSekolah = InfoSekolah::first();
 
         // --- 1. ALWAYS AUTO-SYNC NILAI ---
@@ -205,9 +225,16 @@ class RaporController extends Controller
                 ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
                 ->where('pembelajaran.id_kelas', $siswa->id_kelas)
                 ->where('mata_pelajaran.kategori', $key)
-                ->select('mata_pelajaran.id_mapel', 'mata_pelajaran.nama_mapel')
-                ->orderBy('mata_pelajaran.urutan', 'asc') // UPDATE: Sorting kolom urutan
-                ->get();
+                ->where(function ($q) use ($agamaSiswa) {
+                    $q->whereNull('mata_pelajaran.agama_khusus')
+                    ->orWhereRaw('LOWER(TRIM(mata_pelajaran.agama_khusus)) = ?', [$agamaSiswa]);
+                })
+            ->select(
+                'mata_pelajaran.id_mapel',
+                'mata_pelajaran.nama_mapel'
+            )
+            ->orderBy('mata_pelajaran.urutan', 'asc')
+            ->get();
 
             if ($kelompok->isNotEmpty()) {
                 foreach ($kelompok as $mp) {
@@ -275,6 +302,11 @@ class RaporController extends Controller
     {
         $semesterInt = (strtoupper($semesterRaw) == 'GANJIL' || $semesterRaw == '1') ? 1 : 2;
         $siswa = Siswa::with('kelas')->findOrFail($id_siswa);
+        $agamaSiswa = DB::table('detail_siswa')
+            ->where('id_siswa', $id_siswa)
+            ->value('agama');
+
+        $agamaSiswa = ucfirst(strtolower(trim($agamaSiswa)));
         $getSekolah = InfoSekolah::first();
 
         // --- LOGIKA ALWAYS AUTO-SYNC (NILAI & CAPAIAN) ---
@@ -319,9 +351,16 @@ class RaporController extends Controller
                 ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
                 ->where('pembelajaran.id_kelas', $siswa->id_kelas)
                 ->where('mata_pelajaran.kategori', $key)
-                ->select('mata_pelajaran.id_mapel', 'mata_pelajaran.nama_mapel')
-                ->orderBy('mata_pelajaran.urutan', 'asc') // UPDATE: Sorting kolom urutan
-                ->get();
+                ->where(function ($q) use ($agamaSiswa) {
+                    $q->whereNull('mata_pelajaran.agama_khusus')
+                    ->orWhereRaw('LOWER(TRIM(mata_pelajaran.agama_khusus)) = ?', [$agamaSiswa]);
+                })
+            ->select(
+                'mata_pelajaran.id_mapel',
+                'mata_pelajaran.nama_mapel'
+            )
+            ->orderBy('mata_pelajaran.urutan', 'asc')
+            ->get();
 
             if ($kelompok->isNotEmpty()) {
                 foreach ($kelompok as $mp) {
@@ -395,9 +434,24 @@ class RaporController extends Controller
 
         // 2. Ambil data siswa dan daftar mapel di kelasnya
         $siswa = Siswa::findOrFail($id_siswa);
+        $agamaSiswa = DB::table('detail_siswa')
+            ->where('id_siswa', $id_siswa)
+            ->value('agama');
+
+        $agamaSiswa = strtolower(trim($agamaSiswa));
+
         $daftarMapel = DB::table('pembelajaran')
-            ->where('id_kelas', $siswa->id_kelas)
-            ->pluck('id_mapel');
+            ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
+            ->where('pembelajaran.id_kelas', $siswa->id_kelas)
+            ->where(function ($q) use ($agamaSiswa) {
+                $q->whereNull('mata_pelajaran.agama_khusus')
+                ->orWhereRaw(
+                    'LOWER(TRIM(mata_pelajaran.agama_khusus)) = ?',
+                    [$agamaSiswa]
+                );
+            })
+            ->pluck('mata_pelajaran.id_mapel');
+
 
         $totalMapelSeharusnya = $daftarMapel->count();
         $mapelTuntas = 0;
