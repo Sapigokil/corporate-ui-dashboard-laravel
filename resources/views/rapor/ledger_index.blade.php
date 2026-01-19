@@ -238,23 +238,57 @@
     <x-app.navbar />
     
     <div class="container-fluid py-4 px-5">
-        <div class="card shadow-xs border mb-4">
+        <div class="card shadow-xs border mb-5">
             <div class="card-header bg-gradient-primary py-3">
                 <h6 class="text-white mb-0"><i class="fas fa-table me-2"></i> Ledger Nilai Siswa</h6>
             </div>
             <div class="card-body">
                 {{-- Form Filter (Tetap Sama) --}}
                 <form action="{{ route('ledger.ledger_index') }}" method="GET" class="row align-items-end mb-4">
-                   <div class="col-md-3">
+                {{-- MODE LEDGER --}}
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Mode Ledger</label>
+                    <select name="mode" class="form-select" onchange="this.form.submit()">
+                        <option value="kelas" {{ request('mode','kelas') == 'kelas' ? 'selected' : '' }}>
+                            Per Kelas
+                        </option>
+                        <option value="jurusan" {{ request('mode') == 'jurusan' ? 'selected' : '' }}>
+                            Per Jurusan
+                        </option>
+                    </select>
+                </div>
+                {{-- FILTER KELAS --}}
+                   <div class="col-md-2">
                         <label class="form-label font-weight-bold">Kelas</label>
-                        <select name="id_kelas" class="form-select" required onchange="this.form.submit()">
+                        <select name="id_kelas" class="form-select" {{ request('mode','kelas') == 'jurusan' ? 'disabled' : '' }}
+                        onchange="this.form.submit()">
                             <option value="">-- Pilih Kelas --</option>
                             @foreach($kelas as $k)
-                                <option value="{{ $k->id_kelas }}" {{ $id_kelas == $k->id_kelas ? 'selected' : '' }}>{{ $k->nama_kelas }}</option>
+                                <option value="{{ $k->id_kelas }}"
+                                {{ request('id_kelas') == $k->id_kelas ? 'selected' : '' }}>
+                                {{ $k->nama_kelas }}
+                                </option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    {{-- FILTER JURUSAN --}}
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold">Jurusan</label>
+                        <select name="jurusan"
+                            class="form-select"
+                            {{ request('mode','kelas') == 'kelas' ? 'disabled' : '' }}
+                            onchange="this.form.submit()">
+                            <option value="">-- Pilih Jurusan --</option>
+                            @foreach($jurusanList as $j)
+                                <option value="{{ $j }}"
+                                    {{ request('jurusan') == $j ? 'selected' : '' }}>
+                                    {{ $j }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    {{-- SEMESTER --}}
+                    <div class="col-md-2">
                         <label class="form-label font-weight-bold">Semester</label>
                         <select name="semester" class="form-select" onchange="this.form.submit()">
                             @foreach($semesterList as $sem)
@@ -265,7 +299,8 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    {{-- TAHUN AJARAN --}}
+                    <div class="col-md-2">
                         <label class="form-label font-weight-bold">Tahun Ajaran</label>
                         <select name="tahun_ajaran" class="form-select" onchange="this.form.submit()">
                             @foreach($tahunAjaranList as $ta)
@@ -276,12 +311,15 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-3 text-end">
+                    <div class="col-md-2 text-end">
                         <button type="submit" class="btn btn-dark mb-0">Tampilkan Ledger</button>
                     </div>
                 </form>
 
-                @if($id_kelas)
+                @if(
+                    (request('mode','kelas') == 'kelas' && request('id_kelas')) ||
+                    (request('mode') == 'jurusan' && request('jurusan'))
+                )
                 @php
                     $catLabels = [1 => 'Umum', 2 => 'Kejuruan', 3 => 'Pilihan', 4 => 'Mulok'];
                     $groupedMapel = $daftarMapel->groupBy('kategori');
@@ -291,10 +329,11 @@
                     <table id="ledgerTable" class="table table-ledger align-items-center mb-0">
                         <thead>
                             <tr>
+                                <th rowspan="2" class="sticky-col-header">Rank</th>
                                 <th rowspan="2" class="sticky-col-header" style="width: 45px;">No</th>
                                 {{-- SORTING NAMA --}}
-                                <th rowspan="2" class="sticky-col-header col-nama sortable" onclick="sortByName()">
-                                    Nama Siswa <i class="fas fa-sort sort-icon"></i>
+                                <th rowspan="2" class="sticky-col-header col-nama">
+                                    Nama Siswa
                                 </th>
                                 
                                 @foreach($groupedMapel as $catId => $mapels)
@@ -319,8 +358,8 @@
 
                                 <th class="kategori-sub kategori-5">JML</th>
                                 {{-- SORTING AVG --}}
-                                <th class="kategori-sub kategori-5" onclick="sortByAvg()">
-                                    AVG <i class="fas fa-sort sort-icon"></i>
+                                <th class="kategori-sub kategori-5">
+                                    AVG
                                 </th>
                                 <th class="kategori-sub kategori-6">S</th>
                                 <th class="kategori-sub kategori-6">I</th>
@@ -329,28 +368,46 @@
                         <tbody id="ledgerBody">
                             @forelse($dataLedger as $idx => $row)
                             <tr>
-                                <td class="text-center text-sm sticky-col row-number">{{ $idx + 1 }}</td>
-                                <td class="text-sm sticky-col col-nama font-weight-bold text-dark" 
-                                    data-bs-toggle="tooltip" title="{{ $row->nama_siswa }}">
-                                    {{ $row->nama_siswa }}
-                                </td>
+                            {{-- RANK (sementARA) --}}
+                            <td class="text-center text-sm sticky-col row-number">
+                                {{ $idx + 1 }}
+                            </td>
 
-                                @foreach($groupedMapel as $catId => $mapels)
-                                    @foreach($mapels as $mp)
-                                        @php $val = $row->scores[$mp->id_mapel] ?? 0; @endphp
-                                        <td class="col-nilai text-sm {{ $val <= 0 ? 'bg-light-danger' : '' }}">
-                                            {{ $val > 0 ? (int)$val : '-' }}
-                                        </td>
-                                    @endforeach
+                            {{-- NO --}}
+                            <td class="text-center text-sm sticky-col">
+                                {{ $loop->iteration }}
+                            </td>
+
+                            {{-- NAMA SISWA --}}
+                            <td class="text-sm sticky-col col-nama font-weight-bold text-dark"
+                                data-bs-toggle="tooltip" title="{{ $row->nama_siswa }}">
+                                {{ $row->nama_siswa }}
+                            </td>
+
+                            {{-- NILAI MAPEL --}}
+                            @foreach($groupedMapel as $catId => $mapels)
+                                @foreach($mapels as $mp)
+                                    @php $val = $row->scores[$mp->id_mapel] ?? 0; @endphp
+                                    <td class="col-nilai text-sm {{ $val <= 0 ? 'bg-light-danger' : '' }}">
+                                        {{ $val > 0 ? (int)$val : '-' }}
+                                    </td>
                                 @endforeach
+                            @endforeach
 
-                                <td class="col-nilai text-sm font-weight-bold bg-rekap">{{ (int)$row->total }}</td>
-                                <td class="col-nilai text-sm font-weight-bold text-primary bg-rekap avg-cell">{{ number_format($row->rata_rata, 1) }}</td>
-                                
-                                <td class="col-nilai text-sm text-secondary bg-absen">{{ $row->absensi->sakit }}</td>
-                                <td class="col-nilai text-sm text-secondary bg-absen">{{ $row->absensi->izin }}</td>
-                                <td class="col-nilai text-sm text-secondary bg-absen">{{ $row->absensi->alpha }}</td>
-                            </tr>
+                            {{-- REKAP --}}
+                            <td class="col-nilai text-sm font-weight-bold bg-rekap">
+                                {{ (int)$row->total }}
+                            </td>
+
+                            <td class="col-nilai text-sm font-weight-bold text-primary bg-rekap avg-cell">
+                                {{ number_format($row->rata_rata, 1) }}
+                            </td>
+
+                            {{-- ABSEN --}}
+                            <td class="col-nilai text-sm text-secondary bg-absen">{{ $row->absensi->sakit }}</td>
+                            <td class="col-nilai text-sm text-secondary bg-absen">{{ $row->absensi->izin }}</td>
+                            <td class="col-nilai text-sm text-secondary bg-absen">{{ $row->absensi->alpha }}</td>
+                        </tr>
                             @empty
                             <tr><td colspan="100%" class="text-center py-4">Data tidak ditemukan.</td></tr>
                             @endforelse
@@ -378,60 +435,5 @@
 </main>
 
 {{-- SCRIPT SORTING --}}
-<script>
-    let sortDirName = 'asc';
-    let sortDirAvg = 'desc';
 
-    function sortByName() {
-        const table = document.getElementById("ledgerTable");
-        const tbody = document.getElementById("ledgerBody");
-        const rows = Array.from(tbody.querySelectorAll("tr"));
-
-        // Toggle Sort Direction
-        sortDirName = (sortDirName === 'asc') ? 'desc' : 'asc';
-
-        rows.sort((a, b) => {
-            const nameA = a.cells[1].innerText.toLowerCase(); // Kolom Nama index 1
-            const nameB = b.cells[1].innerText.toLowerCase();
-
-            if (nameA < nameB) return sortDirName === 'asc' ? -1 : 1;
-            if (nameA > nameB) return sortDirName === 'asc' ? 1 : -1;
-            return 0;
-        });
-
-        rebuildTable(tbody, rows);
-    }
-
-    function sortByAvg() {
-        const tbody = document.getElementById("ledgerBody");
-        const rows = Array.from(tbody.querySelectorAll("tr"));
-
-        // Toggle Sort Direction
-        sortDirAvg = (sortDirAvg === 'desc') ? 'asc' : 'desc';
-
-        rows.sort((a, b) => {
-            // Mengambil kolom AVG. Karena kolom dinamis, kita ambil dari class 'avg-cell' atau posisi dari belakang
-            // Kolom AVG adalah ke-4 dari belakang (A, I, S, AVG)
-            const avgA = parseFloat(a.cells[a.cells.length - 4].innerText) || 0;
-            const avgB = parseFloat(b.cells[b.cells.length - 4].innerText) || 0;
-
-            return sortDirAvg === 'asc' ? avgA - avgB : avgB - avgA;
-        });
-
-        rebuildTable(tbody, rows);
-    }
-
-    function rebuildTable(tbody, rows) {
-        // Hapus body lama
-        while (tbody.firstChild) {
-            tbody.removeChild(tbody.firstChild);
-        }
-
-        // Masukkan row yang sudah diurutkan & Update Nomor Urut
-        rows.forEach((row, index) => {
-            row.cells[0].innerText = index + 1; // Update Kolom No (Index 0)
-            tbody.appendChild(row);
-        });
-    }
-</script>
 @endsection

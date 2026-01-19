@@ -13,10 +13,37 @@ use Illuminate\Support\Facades\DB;
 
 class LedgerController extends Controller
 {
+private function sortLedger($dataLedger)
+{
+    return collect($dataLedger)
+        ->sort(function ($a, $b) {
+
+            // 1️⃣ rata-rata DESC
+            $cmp = $b->rata_rata <=> $a->rata_rata;
+            if ($cmp !== 0) {
+                return $cmp;
+            }
+
+            // 2️⃣ kalau sama → nama A-Z
+            return strcmp($a->nama_siswa, $b->nama_siswa);
+        })
+        ->values()
+        ->all();
+}
+  
     public function index(Request $request)
     {
         $kelas = Kelas::orderBy('nama_kelas', 'asc')->get();
+        // 🔥 TAMBAHKAN DI SINI
+        $jurusanList = Kelas::select('jurusan')
+        ->whereNotNull('jurusan')
+        ->distinct()
+        ->orderBy('jurusan')
+        ->pluck('jurusan');
+
+        $mode = $request->mode ?? 'kelas';
         $id_kelas = $request->id_kelas;
+        $jurusan  = $request->jurusan;
         $semesterRaw = $request->semester ?? 'Ganjil';
         $tahun_ajaran = $request->tahun_ajaran ?? '2025/2026';
         $semesterInt = (strtoupper($semesterRaw) == 'GANJIL') ? 1 : 2;
@@ -24,79 +51,171 @@ class LedgerController extends Controller
         $daftarMapel = [];
         $dataLedger = [];
 
-        if ($id_kelas) {
-            // 1. Ambil daftar mata pelajaran yang ada di kelas tersebut (Header Kolom)
+        /* =========================
+        MODE KELAS
+        ========================= */
+        if ($mode === 'kelas' && $id_kelas) {
+
             $daftarMapel = DB::table('pembelajaran')
                 ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
                 ->where('pembelajaran.id_kelas', $id_kelas)
-                // Urutan: Umum(1) -> Kejuruan(2) -> Pilihan(3) -> Mulok(4)
-                ->orderBy('mata_pelajaran.kategori', 'asc') 
-                // Sub-urutan: Berdasarkan Nama Mapel
-                ->orderBy('mata_pelajaran.urutan', 'asc') 
+                ->orderBy('mata_pelajaran.kategori')
+                ->orderBy('mata_pelajaran.urutan')
                 ->select(
-                    'mata_pelajaran.id_mapel', 
-                    'mata_pelajaran.nama_mapel', 
-                    'mata_pelajaran.nama_singkat', // <-- Tambahan
+                    'mata_pelajaran.id_mapel',
+                    'mata_pelajaran.nama_mapel',
+                    'mata_pelajaran.nama_singkat',
                     'mata_pelajaran.kategori'
                 )
                 ->get();
 
             // 2. Ambil data siswa di kelas tersebut
             $siswaList = Siswa::where('id_kelas', $id_kelas)
-                ->orderBy('nama_siswa', 'asc')
+                ->orderBy('nama_siswa')
                 ->get();
 
+            // 🔥 POINT 1 — ambil semua nilai SEKALIGUS
+            $nilaiList = DB::table('nilai_akhir')
+                ->whereIn('id_siswa', $siswaList->pluck('id_siswa'))
+                ->whereIn('id_mapel', $daftarMapel->pluck('id_mapel'))
+                ->where('semester', $semesterInt)
+                ->where('tahun_ajaran', trim($tahun_ajaran))
+                ->get()
+                ->groupBy(fn ($n) => $n->id_siswa.'-'.$n->id_mapel);
+
+            // 🔥 POINT 2 — ambil semua absensi SEKALIGUS
+            $absensiList = DB::table('catatan')
+                ->whereIn('id_siswa', $siswaList->pluck('id_siswa'))
+                ->where('semester', $semesterInt)
+                ->where('tahun_ajaran', trim($tahun_ajaran))
+                ->get()
+                ->keyBy('id_siswa');
+
             foreach ($siswaList as $siswa) {
-                $nilaiPerMapel = [];
-                $totalNilai = 0;
-                $jumlahMapelTerisi = 0;
+    $nilaiPerMapel = [];
+    $totalNilai = 0;
+    $jumlahMapelTerisi = 0;
 
-                // 3. Ambil Nilai Akhir per Mata Pelajaran untuk tiap siswa
-                foreach ($daftarMapel as $mapel) {
-                    $nilai = DB::table('nilai_akhir')
-                        ->where([
-                            'id_siswa' => $siswa->id_siswa,
-                            'id_mapel' => $mapel->id_mapel,
-                            'semester' => $semesterInt,
-                            'tahun_ajaran' => trim($tahun_ajaran)
-                        ])->first();
+    foreach ($daftarMapel as $mapel) {
+        $key = $siswa->id_siswa.'-'.$mapel->id_mapel;
+        $score = $nilaiList[$key][0]->nilai_akhir ?? 0;
 
-                    $score = $nilai ? $nilai->nilai_akhir : 0;
-                    $nilaiPerMapel[$mapel->id_mapel] = $score;
+        $nilaiPerMapel[$mapel->id_mapel] = $score;
 
-                    if ($score > 0) {
-                        $totalNilai += $score;
-                        $jumlahMapelTerisi++;
-                    }
-                }
+        if ($score > 0) {
+            $totalNilai += $score;
+            $jumlahMapelTerisi++;
+        }
+    }
 
-                // 4. Ambil Data Absensi dari tabel catatan
-                $absensi = DB::table('catatan')
-                    ->where([
-                        'id_siswa' => $siswa->id_siswa,
-                        'semester' => $semesterInt,
-                        'tahun_ajaran' => trim($tahun_ajaran)
-                    ])->first();
+    $absensi = $absensiList[$siswa->id_siswa] ?? null;
 
-                // 5. Susun Baris Data Siswa
-                $dataLedger[] = (object)[
-                    'nama_siswa' => $siswa->nama_siswa,
-                    'nipd'       => $siswa->nipd,
-                    'scores'     => $nilaiPerMapel,
-                    'total'      => $totalNilai,
-                    'rata_rata'  => $jumlahMapelTerisi > 0 ? round($totalNilai / $jumlahMapelTerisi, 2) : 0,
-                    'absensi'    => (object)[
-                        'sakit' => $absensi->sakit ?? 0,
-                        'izin'  => $absensi->ijin ?? 0,
-                        'alpha' => $absensi->alpha ?? 0,
-                    ]
-                ];
-            }
+    $dataLedger[] = (object)[
+        'nama_siswa' => $siswa->nama_siswa,
+        'nipd'       => $siswa->nipd,
+        'scores'     => $nilaiPerMapel,
+        'total'      => $totalNilai,
+        'rata_rata'  => $jumlahMapelTerisi ? round($totalNilai / $jumlahMapelTerisi, 2) : 0,
+        'absensi'    => (object)[
+            'sakit' => $absensi->sakit ?? 0,
+            'izin'  => $absensi->ijin ?? 0,
+            'alpha' => $absensi->alpha ?? 0,
+        ]
+    ];
+}
+
         }
 
+        /* =========================
+        MODE JURUSAN
+        ========================= */
+        if ($mode === 'jurusan' && $jurusan) {
+
+            // 1️⃣ Ambil semua kelas dalam jurusan
+            $kelasIds = Kelas::where('jurusan', $jurusan)
+                ->pluck('id_kelas');
+
+            // 2️⃣ Ambil daftar mapel gabungan
+            $daftarMapel = DB::table('pembelajaran')
+                ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
+                ->whereIn('pembelajaran.id_kelas', $kelasIds)
+                ->orderBy('mata_pelajaran.kategori', 'asc')
+                ->orderBy('mata_pelajaran.urutan', 'asc')
+                ->select(
+                    'mata_pelajaran.id_mapel',
+                    'mata_pelajaran.nama_mapel',
+                    'mata_pelajaran.nama_singkat',
+                    'mata_pelajaran.kategori',
+                    'mata_pelajaran.urutan'
+                )
+                ->distinct()
+                ->get();
+
+            // 3️⃣ Ambil semua siswa di jurusan
+            $siswaList = Siswa::whereIn('id_kelas', $kelasIds)
+                ->orderBy('nama_siswa')
+                ->get();
+
+$nilaiList = DB::table('nilai_akhir')
+    ->whereIn('id_siswa', $siswaList->pluck('id_siswa'))
+    ->whereIn('id_mapel', $daftarMapel->pluck('id_mapel'))
+    ->where('semester', $semesterInt)
+    ->where('tahun_ajaran', trim($tahun_ajaran))
+    ->get()
+    ->groupBy(fn ($n) => $n->id_siswa.'-'.$n->id_mapel);
+
+$absensiList = DB::table('catatan')
+    ->whereIn('id_siswa', $siswaList->pluck('id_siswa'))
+    ->where('semester', $semesterInt)
+    ->where('tahun_ajaran', trim($tahun_ajaran))
+    ->get()
+    ->keyBy('id_siswa');
+            
+    foreach ($siswaList as $siswa) {
+
+    $nilaiPerMapel = [];
+    $totalNilai = 0;
+    $jumlahMapelTerisi = 0;
+
+    foreach ($daftarMapel as $mapel) {
+
+        $key = $siswa->id_siswa . '-' . $mapel->id_mapel;
+        $score = $nilaiList[$key][0]->nilai_akhir ?? 0;
+
+        $nilaiPerMapel[$mapel->id_mapel] = $score;
+
+        if ($score > 0) {
+            $totalNilai += $score;
+            $jumlahMapelTerisi++;
+        }
+    }
+
+    $absensi = $absensiList[$siswa->id_siswa] ?? null;
+
+    $dataLedger[] = (object)[
+        'nama_siswa' => $siswa->nama_siswa,
+        'nipd'       => $siswa->nipd,
+        'scores'     => $nilaiPerMapel,
+        'total'      => $totalNilai,
+        'rata_rata'  => $jumlahMapelTerisi
+            ? round($totalNilai / $jumlahMapelTerisi, 2)
+            : 0,
+        'absensi'    => (object)[
+            'sakit' => $absensi->sakit ?? 0,
+            'izin'  => $absensi->ijin ?? 0,
+            'alpha' => $absensi->alpha ?? 0,
+        ]
+    ];
+}
+        }
+        // 🔥 TAMBAHKAN DI SINI (WAJIB)
+$dataLedger = $this->sortLedger($dataLedger);
         return view('rapor.ledger_index', compact(
             'kelas', 
+            'jurusanList',
+            'mode',
             'id_kelas', 
+            'jurusan',
             'semesterRaw', 
             'tahun_ajaran', 
             'daftarMapel', 
@@ -146,6 +265,12 @@ class LedgerController extends Controller
         $semesterInt = strtoupper($semesterRaw) === 'GANJIL' ? 1 : 2;
 
         $kelas = Kelas::find($id_kelas);
+
+        // 🔥 AMBIL WALI KELAS
+       $kelas = Kelas::find($id_kelas);
+
+$nama_wali = $kelas->wali_kelas ?? 'NAMA WALI KELAS';
+$nip_wali  = '-'; // karena di tabel kelas memang tidak ada nip
         
         $infoSekolah = InfoSekolah::first(); // pakai model
 
@@ -171,49 +296,64 @@ class LedgerController extends Controller
             ->orderBy('nama_siswa')
             ->get();
 
+        // 🔥 WAJIB ADA — AMBIL NILAI
+$nilaiList = DB::table('nilai_akhir')
+    ->whereIn('id_siswa', $siswaList->pluck('id_siswa'))
+    ->whereIn('id_mapel', $daftarMapel->pluck('id_mapel'))
+    ->where('semester', $semesterInt)
+    ->where('tahun_ajaran', trim($tahun_ajaran))
+    ->get()
+    ->groupBy(fn ($n) => $n->id_siswa . '-' . $n->id_mapel);
+
+// 🔥 WAJIB ADA — AMBIL ABSENSI
+$absensiList = DB::table('catatan')
+    ->whereIn('id_siswa', $siswaList->pluck('id_siswa'))
+    ->where('semester', $semesterInt)
+    ->where('tahun_ajaran', trim($tahun_ajaran))
+    ->get()
+    ->keyBy('id_siswa');
+
+
         $dataLedger = [];
 
         foreach ($siswaList as $siswa) {
-            $scores = [];
-            $total = 0;
-            $count = 0;
 
-            foreach ($daftarMapel as $mp) {
-                $nilai = DB::table('nilai_akhir')->where([
-                    'id_siswa' => $siswa->id_siswa,
-                    'id_mapel' => $mp->id_mapel,
-                    'semester' => $semesterInt,
-                    'tahun_ajaran' => trim($tahun_ajaran)
-                ])->first();
+    $nilaiPerMapel = [];
+    $totalNilai = 0;
+    $jumlahMapelTerisi = 0;
 
-                $score = $nilai->nilai_akhir ?? 0;
-                $scores[$mp->id_mapel] = $score;
+    foreach ($daftarMapel as $mapel) {
 
-                if ($score > 0) {
-                    $total += $score;
-                    $count++;
-                }
-            }
+        $key = $siswa->id_siswa . '-' . $mapel->id_mapel;
+        $score = $nilaiList[$key][0]->nilai_akhir ?? 0;
 
-            $absen = DB::table('catatan')->where([
-                'id_siswa' => $siswa->id_siswa,
-                'semester' => $semesterInt,
-                'tahun_ajaran' => trim($tahun_ajaran)
-            ])->first();
+        $nilaiPerMapel[$mapel->id_mapel] = $score;
 
-            $dataLedger[] = (object)[
-                'nama_siswa' => $siswa->nama_siswa,
-                'scores' => $scores,
-                'total' => $total,
-                'rata_rata' => $count ? round($total / $count, 2) : 0,
-                'absensi' => (object)[
-                    'sakit' => $absen->sakit ?? 0,
-                    'izin' => $absen->ijin ?? 0,
-                    'alpha' => $absen->alpha ?? 0,
-                ]
-            ];
+        if ($score > 0) {
+            $totalNilai += $score;
+            $jumlahMapelTerisi++;
         }
 
+    }
+    
+    $absensi = $absensiList[$siswa->id_siswa] ?? null;
+
+    $dataLedger[] = (object)[
+        'nama_siswa' => $siswa->nama_siswa,
+        'nipd'       => $siswa->nipd,
+        'scores'     => $nilaiPerMapel,
+        'total'      => $totalNilai,
+        'rata_rata'  => $jumlahMapelTerisi
+            ? round($totalNilai / $jumlahMapelTerisi, 2)
+            : 0,
+        'absensi'    => (object)[
+            'sakit' => $absensi->sakit ?? 0,
+            'izin'  => $absensi->ijin ?? 0,
+            'alpha' => $absensi->alpha ?? 0,
+        ]
+    ];
+}
+$dataLedger = $this->sortLedger($dataLedger);
         return compact(
             'namaSekolah',
             'alamatSekolah',
@@ -221,7 +361,9 @@ class LedgerController extends Controller
             'daftarMapel',
             'dataLedger',
             'semesterRaw',
-            'tahun_ajaran'
+            'tahun_ajaran',
+            'nama_wali',
+            'nip_wali'
         );
     }
 
