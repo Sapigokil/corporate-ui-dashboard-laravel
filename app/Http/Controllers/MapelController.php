@@ -40,7 +40,7 @@ class MapelController extends Controller
             'urutan'        => 'required|numeric|min:1',
             'id_guru'       => 'nullable|exists:guru,id_guru',
             // Validasi Agama Khusus (Nullable, opsional)
-            'agama_khusus'  => 'nullable|string|in:Islam,Kristen,Katolik,Hindu,Buddha,Khonghucu', 
+            'agama_khusus'  => 'nullable|string|in:Islam,Kristen,Katholik,Hindu,Budha,Khonghucu', 
         ]);
 
         MataPelajaran::create($request->all());
