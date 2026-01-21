@@ -112,11 +112,10 @@ class LedgerController extends Controller
         // ============================================================
         // TAHAP 2: AMBIL DATA (Logic Terpusat)
         // ============================================================
-        // Kita gunakan method buildDataCore agar logic sama dengan PDF/Excel
         $coreData = $this->buildDataCore($kelasIds, $semesterInt, $tahun_ajaran);
         
-        $daftarMapel = $coreData['daftarMapel']; // Header Mapel (Grouped)
-        $dataLedger  = $coreData['dataLedger'];  // Data Nilai Siswa
+        $daftarMapel = $coreData['daftarMapel']; 
+        $dataLedger  = $coreData['dataLedger'];  
 
         // ============================================================
         // TAHAP 3: SORTING TAMPILAN
@@ -147,12 +146,13 @@ class LedgerController extends Controller
     }
 
     /**
-     * CORE LOGIC: Membangun Data Ledger (Dipakai Index, PDF, & Excel)
-     * Agar logic 'AGAMA' konsisten di semua tempat.
+     * CORE LOGIC: Membangun Data Ledger (VERSI DEBUGGING)
      */
     private function buildDataCore($kelasIds, $semesterInt, $tahun_ajaran)
     {
-        // A. Ambil Data Mapel Mentah (Raw) - PENTING untuk ID Asli
+        // -----------------------------------------------------------
+        // A. Ambil Data Mapel (Untuk Header Tabel)
+        // -----------------------------------------------------------
         $rawMapelData = DB::table('pembelajaran')
             ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
             ->whereIn('pembelajaran.id_kelas', $kelasIds)
@@ -170,62 +170,72 @@ class LedgerController extends Controller
                     END AS mapel_key
                 ")
             )
-            ->distinct() // Hindari duplikat jika mode jurusan (banyak kelas punya mapel sama)
+            ->distinct()
             ->orderBy('mata_pelajaran.kategori')
             ->orderBy('mata_pelajaran.urutan')
             ->get();
 
-        // B. Simpan Array ID Asli untuk Query Nilai
-        $allMapelIds = $rawMapelData->pluck('id_mapel')->toArray();
-
-        // C. Simpan Array ID Khusus Agama (Misal: 1, 2, 3...)
-        $agamaMapelIds = $rawMapelData
-            ->where('mapel_key', 'AGAMA')
+        // 1. AMBIL GLOBAL AGAMA IDS
+        $globalAgamaIds = DB::table('mata_pelajaran')
+            ->where('is_active', 1)
+            ->where('nama_mapel', 'LIKE', '%Agama%')
             ->pluck('id_mapel')
             ->toArray();
 
-        // D. Buat Daftar Mapel untuk Header Tabel (Grouping)
-        $daftarMapel = $rawMapelData
-            ->groupBy('mapel_key')
-            ->map(function ($items) {
-                $first = $items->first();
-                // Jika Group Agama, paksa properti jadi 'Agama'
-                if ($first->mapel_key === 'AGAMA') {
-                    return (object)[
-                        'id_mapel'     => 'AGAMA',
-                        'nama_mapel'   => 'Pendidikan Agama',
-                        'nama_singkat' => 'Agama',
-                        'kategori'     => $first->kategori,
-                        'urutan'       => $first->urutan
-                    ];
-                }
-                // Mapel Biasa
-                return (object)[
-                    'id_mapel'     => $first->id_mapel,
-                    'nama_mapel'   => $first->nama_mapel,
-                    'nama_singkat' => $first->nama_singkat,
-                    'kategori'     => $first->kategori,
-                    'urutan'       => $first->urutan
-                ];
-            })
-            ->sortBy(fn($m) => $m->kategori . '-' . $m->urutan)
-            ->values();
-
-        // E. Ambil Siswa
+        // -----------------------------------------------------------
+        // B. Ambil Siswa
+        // -----------------------------------------------------------
         $siswaList = Siswa::whereIn('id_kelas', $kelasIds)
             ->orderBy('nama_siswa')
             ->get();
 
-        // F. Ambil Nilai (Gunakan ID ASLI $allMapelIds)
-        $nilaiList = DB::table('nilai_akhir')
+        // -----------------------------------------------------------
+        // C. Ambil Nilai
+        // -----------------------------------------------------------
+        $nilaiQuery = DB::table('nilai_akhir')
             ->whereIn('id_siswa', $siswaList->pluck('id_siswa'))
-            ->whereIn('id_mapel', $allMapelIds) // <-- PAKE ID ASLI
             ->where('semester', $semesterInt)
-            ->where('tahun_ajaran', trim($tahun_ajaran))
-            ->get()
-            ->groupBy(fn ($n) => $n->id_siswa . '-' . $n->id_mapel); // Key: "100-1"
+            ->where('tahun_ajaran', trim($tahun_ajaran));
+            
+        // Simpan data mentah nilai untuk pengecekan
+        $nilaiRaw = $nilaiQuery->get(); 
+        
+        $nilaiList = $nilaiRaw->groupBy(fn ($n) => $n->id_siswa . '-' . $n->id_mapel);
 
-        // G. Ambil Absensi
+        // =========================================================================
+        // 🛑 AREA DEBUGGING (AKAN MENGHENTIKAN PROSES DI SINI)
+        // =========================================================================
+        
+        // Ambil 1 siswa sampel (misal siswa pertama di list)
+        $siswaSampel = $siswaList->first();
+        $idSiswaSampel = $siswaSampel->id_siswa ?? 0;
+        $namaSiswaSampel = $siswaSampel->nama_siswa ?? 'Tidak ada siswa';
+
+        // Cari nilai apa saja yang dimiliki siswa sampel ini di DB
+        $nilaiSiswaSampel = $nilaiRaw->where('id_siswa', $idSiswaSampel);
+
+        dd([
+            'INFO_DEBUG' => 'Pengecekan Data Ledger',
+            '1_KELAS_TERPILIH' => $kelasIds,
+            '2_GLOBAL_AGAMA_IDS' => $globalAgamaIds, // Cek: Apakah ID Mapel Agama Anda ada di sini?
+            '3_MAPEL_DI_PEMBELAJARAN' => $rawMapelData->pluck('nama_mapel', 'id_mapel'), // Cek: Apakah Mapel Agama muncul di sini?
+            '4_SISWA_SAMPEL' => $namaSiswaSampel . ' (ID: ' . $idSiswaSampel . ')',
+            '5_NILAI_SISWA_SAMPEL' => $nilaiSiswaSampel->map(function($n) {
+                return [
+                    'id_mapel' => $n->id_mapel,
+                    'nilai' => $n->nilai_akhir,
+                    'mapel_name' => DB::table('mata_pelajaran')->where('id_mapel', $n->id_mapel)->value('nama_mapel') // Cek nama mapel aslinya
+                ];
+            }),
+            '6_ANALISIS_AGAMA' => 'Silakan cek poin 5. Apakah siswa punya nilai di salah satu ID yang ada di poin 2?'
+        ]);
+        
+        // =========================================================================
+        // BATAS DEBUGGING
+        // =========================================================================
+
+        // ... (Sisa kode di bawah ini tidak akan dieksekusi karena ada dd di atas) ...
+
         $absensiList = DB::table('catatan')
             ->whereIn('id_siswa', $siswaList->pluck('id_siswa'))
             ->where('semester', $semesterInt)
@@ -233,71 +243,7 @@ class LedgerController extends Controller
             ->get()
             ->keyBy('id_siswa');
 
-        // H. Build Data Siswa
-        $dataLedger = [];
-
-        foreach ($siswaList as $siswa) {
-            $nilaiPerMapel = [];
-            $totalNilai = 0;
-            $jumlahMapelTerisi = 0;
-
-            foreach ($daftarMapel as $mapel) {
-                $score = 0;
-
-                // LOGIKA KHUSUS AGAMA (Cari salah satu ID Agama yang cocok)
-                if ($mapel->id_mapel === 'AGAMA') {
-                    foreach ($agamaMapelIds as $idAgamaAsli) {
-                        $key = $siswa->id_siswa . '-' . $idAgamaAsli;
-                        if (isset($nilaiList[$key])) {
-                            // Ambil nilai pertama yang ketemu (karena siswa biasanya cuma punya 1 agama)
-                            $val = $nilaiList[$key][0]->nilai_akhir ?? 0;
-                            $score = (int) round($val);
-
-                            if ($score > 0) break; // Keluar loop agama jika nilai ketemu
-                        }
-                    }
-                }
-                // LOGIKA MAPEL BIASA
-                else {
-                    $key = $siswa->id_siswa . '-' . $mapel->id_mapel;
-                    if (isset($nilaiList[$key])) {
-                        $val = $nilaiList[$key][0]->nilai_akhir ?? 0;
-                        $score = (int) round($val);
-                    }
-                }
-
-                // Masukkan ke array skor
-                $nilaiPerMapel[$mapel->id_mapel] = $score;
-
-                if ($score > 0) {
-                    $totalNilai += $score;
-                    $jumlahMapelTerisi++;
-                }
-            }
-
-            // Ambil Data Absen
-            $absensi = $absensiList[$siswa->id_siswa] ?? null;
-
-            // Push ke Data Ledger Utama
-            $dataLedger[] = (object)[
-                'nama_siswa' => $siswa->nama_siswa,
-                'nipd'       => $siswa->nipd,
-                'scores'     => $nilaiPerMapel,
-                'total'      => (int) $totalNilai,
-                'rata_rata'  => $jumlahMapelTerisi ? (int) round($totalNilai / $jumlahMapelTerisi) : 0,
-                'absensi'    => (object)[
-                    'sakit' => $absensi->sakit ?? 0,
-                    'izin'  => $absensi->ijin ?? 0,
-                    'alpha' => $absensi->alpha ?? 0,
-                ]
-            ];
-        }
-
-        return [
-            'daftarMapel' => $daftarMapel,
-            'dataLedger'  => $dataLedger,
-            'kelasObj'    => Kelas::find($kelasIds[0] ?? null) // Untuk info wali kelas (ambil sampel kelas pertama)
-        ];
+        // ... dst (Build Data Ledger) ...
     }
 
     /**
@@ -317,15 +263,14 @@ class LedgerController extends Controller
      */
     public function exportPdf(Request $request)
     {
-        // Gunakan fungsi buildDataCore agar data PDF sama persis dengan Web
         $mode = $request->mode ?? 'kelas';
         $semesterRaw = $request->semester ?? 'Ganjil';
         $tahun_ajaran = $request->tahun_ajaran ?? '2025/2026';
         $semesterInt = strtoupper($semesterRaw) === 'GANJIL' ? 1 : 2;
 
-        // Re-logic penentuan Kelas IDs (Duplikasi logic dari index sedikit)
         $kelasIds = [];
         $namaKelasLabel = '';
+        $kelasObj = null;
 
         if ($mode === 'kelas') {
             $id_kelas = $request->id_kelas;
@@ -349,7 +294,7 @@ class LedgerController extends Controller
 
         // Panggil Core Logic
         $core = $this->buildDataCore($kelasIds, $semesterInt, $tahun_ajaran);
-        $dataLedger = $this->sortLedger($core['dataLedger']); // Default PDF Ranking
+        $dataLedger = $this->sortLedger($core['dataLedger']);
 
         // Info Sekolah
         $infoSekolah = InfoSekolah::first();

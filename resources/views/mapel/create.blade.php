@@ -98,9 +98,9 @@
                                             <option value="">-- Umum / Semua Agama --</option>
                                             <option value="Islam" {{ old('agama_khusus') == 'Islam' ? 'selected' : '' }}>Islam</option>
                                             <option value="Kristen" {{ old('agama_khusus') == 'Kristen' ? 'selected' : '' }}>Kristen</option>
-                                            <option value="Katolik" {{ old('agama_khusus') == 'Katolik' ? 'selected' : '' }}>Katolik</option>
+                                            <option value="Katholik" {{ old('agama_khusus') == 'Katholik' ? 'selected' : '' }}>Katholik</option>
                                             <option value="Hindu" {{ old('agama_khusus') == 'Hindu' ? 'selected' : '' }}>Hindu</option>
-                                            <option value="Buddha" {{ old('agama_khusus') == 'Buddha' ? 'selected' : '' }}>Buddha</option>
+                                            <option value="Budha" {{ old('agama_khusus') == 'Budha' ? 'selected' : '' }}>Budha</option>
                                             <option value="Khonghucu" {{ old('agama_khusus') == 'Khonghucu' ? 'selected' : '' }}>Khonghucu</option>
                                         </select>
                                         <small class="text-muted text-xs">
