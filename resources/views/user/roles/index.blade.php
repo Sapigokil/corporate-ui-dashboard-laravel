@@ -3,24 +3,18 @@
 @section('page-title', 'Manajemen Role & Izin') 
 
 @section('content')
-    {{-- START: Pembungkus Main Content --}}
     <main class="main-content position-relative max-height-vh-100 h-100 border-radius-lg">
-        
-        {{-- Panggil Navbar agar tampil --}}
         <x-app.navbar />
         
-        {{-- Konten Role Index dimulai --}}
-        <div class="container-fluid py-4 px-5"> {{-- Tambahkan px-5 --}}
-            
+        <div class="container-fluid py-4 px-5">
             <div class="row">
                 <div class="col-12">
                     <div class="card my-4">
                         <div class="card-header p-0 position-relative mt-n4 mx-3 z-index-2">
                             <div class="bg-gradient-primary shadow-primary border-radius-lg pt-4 pb-3 d-flex justify-content-between align-items-center">
                                 <h6 class="text-white text-capitalize ps-3">Daftar Role Pengguna E-Rapor</h6>
-                                {{-- Hanya Admin yang berhak menambah role --}}
-                                @can('pengaturan-manage-roles')
-                                <a href="{{ route('master.roles.create') }}" class="btn btn-white me-3 mb-0">
+                                @can('roles.create')
+                                <a href="{{ route('settings.system.roles.create') }}" class="btn btn-white me-3 mb-0">
                                     <i class="fas fa-plus me-1"></i> Tambah Role Baru
                                 </a>
                                 @endcan
@@ -39,69 +33,79 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {{-- Looping Data Role --}}
                                         @forelse ($roles as $role)
+                                        
+                                        {{-- REVISI DISINI: Tambahkan 'guru' dan 'siswa' ke dalam array --}}
+                                        @php
+                                            $isSystemRole = in_array(strtolower($role->name), ['developer', 'admin_erapor', 'guru_erapor', 'guru', 'siswa']);
+                                        @endphp
+
                                         <tr>
                                             <td>
                                                 <div class="d-flex px-2 py-1">
                                                     <div class="d-flex flex-column justify-content-center">
-                                                        <h6 class="mb-0 text-sm">{{ Str::title($role->name) }}</h6>
-                                                        <p class="text-xs text-secondary mb-0">Role ini dibuat pada: {{ $role->created_at->format('d/m/Y') }}</p>
+                                                        <div class="d-flex align-items-center">
+                                                            <h6 class="mb-0 text-sm">{{ Str::title(str_replace('_', ' ', $role->name)) }}</h6>
+                                                            
+                                                            {{-- Badge SYSTEM akan muncul untuk Developer, Admin_Erapor, Guru_Erapor, Guru, dan Siswa --}}
+                                                            @if($isSystemRole)
+                                                                <span class="badge badge-sm bg-gradient-secondary ms-2" style="font-size: 0.6rem;">SYSTEM</span>
+                                                            @endif
+                                                        </div>
+                                                        <p class="text-xs text-secondary mb-0">Dibuat: {{ $role->created_at->format('d/m/Y') }}</p>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td>
-                                                {{-- Menampilkan jumlah permission (Asumsi Spatie) --}}
-                                                <p class="text-xs font-weight-bold mb-0">{{ $role->permissions->count() }} Izin</p>
+                                                <p class="text-xs font-weight-bold mb-0">
+                                                    {{ $role->permissions->count() }} Izin Akses
+                                                </p>
                                             </td>
                                             <td class="align-middle text-center text-sm">
-                                                {{-- Menampilkan jumlah user dengan role ini (Asumsi relasi users()->count() sudah ada di model Role) --}}
                                                 <span class="badge badge-sm bg-gradient-success">{{ $role->users->count() }} User</span>
                                             </td>
                                             <td class="align-middle">
-                                                {{-- Aksi Edit Izin --}}
-                                                {{-- @can('pengaturan-manage-roles') --}}
-                                                <a href="{{ route('master.roles.edit', $role->id) }}" class="text-primary font-weight-bold text-xs" data-toggle="tooltip">
-                                                    <i class="fas fa-pencil-alt me-2"></i> Edit Izin
+                                                @can('roles.update')
+                                                <a href="{{ route('settings.system.roles.edit', $role->id) }}" class="text-primary font-weight-bold text-xs me-3" data-toggle="tooltip" title="Atur Izin">
+                                                    <i class="fas fa-pencil-alt me-1"></i> Edit
                                                 </a>
+                                                @endcan
                                                 
-                                                {{-- Aksi Delete --}}
-                                                {{-- Aksi Delete (Tombol Hapus) --}}
-                                                @if (!in_array(strtolower($role->name), ['admin', 'guru', 'wali murid'])) {{-- Lindungi role krusial --}}
-                                                    <form action="{{ route('master.roles.destroy', $role->id) }}" method="POST" class="d-inline">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="btn btn-link text-danger p-0 m-0 ms-3 text-xs" 
-                                                                onclick="return confirm('Yakin hapus role {{ Str::title($role->name) }}? Role ini akan hilang permanen.')">
-                                                            <i class="fas fa-trash-alt"></i> Hapus
-                                                        </button>
-                                                    </form>
-                                                @endif
-                                                {{-- @endcan --}}
+                                                @can('roles.delete')
+                                                    @if ($isSystemRole)
+                                                        {{-- Role Default/Sistem TERKUNCI --}}
+                                                        <span class="text-secondary text-xs" data-toggle="tooltip" title="Role Sistem/Default tidak dapat dihapus">
+                                                            <i class="fas fa-lock me-1"></i> Terkunci
+                                                        </span>
+                                                    @else
+                                                        {{-- Role Tambahan Lainnya (misal: Ekskul, TU) BISA DIHAPUS --}}
+                                                        <form action="{{ route('settings.system.roles.destroy', $role->id) }}" method="POST" class="d-inline">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="submit" class="btn btn-link text-danger p-0 m-0 text-xs" 
+                                                                    onclick="return confirm('PERINGATAN: Menghapus role ini akan menghilangkan akses bagi semua user yang terkait. Lanjutkan?')">
+                                                                <i class="fas fa-trash-alt me-1"></i> Hapus
+                                                            </button>
+                                                        </form>
+                                                    @endif
+                                                @endcan
                                             </td>
                                         </tr>
                                         @empty
                                         <tr>
-                                            <td colspan="4" class="text-center">Belum ada Role yang terdaftar.</td>
+                                            <td colspan="4" class="text-center py-4">
+                                                <h6 class="text-secondary text-sm">Belum ada Role yang terdaftar.</h6>
+                                            </td>
                                         </tr>
                                         @endforelse
                                     </tbody>
                                 </table>
                             </div>
-                            
-                            {{-- Pagination (Asumsi $roles adalah Paginator) --}}
-                            <div class="p-3">
-                                {{-- $roles->links() --}} {{-- Di-comment karena role biasanya tidak di-paginate --}}
-                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-            
-            {{-- Panggil Footer agar tampil --}}
             <x-app.footer />
         </div>
-        
     </main>
-    {{-- END: Pembungkus Main Content --}}
 @endsection

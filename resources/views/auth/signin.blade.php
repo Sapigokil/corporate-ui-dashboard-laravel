@@ -36,12 +36,17 @@
                                 <div class="card-body">
                                     <form role="form" class="text-start" method="POST" action="sign-in">
                                         @csrf
-                                        <label>Email Address</label>
+                                        <label>Email / Username</label>
                                         <div class="mb-3">
-                                            <input type="email" id="email" name="email" class="form-control"
-                                                placeholder="Enter your email address"
-                                                value="{{ old('email') ? old('email') : 'test@m.test' }}"
-                                                aria-label="Email" aria-describedby="email-addon">
+                                            <input type="text" 
+                                                    id="login" 
+                                                    name="login" 
+                                                    class="form-control"
+                                                    placeholder="Enter your email or username"
+                                                    value="{{ old('login') }}"
+                                                    aria-label="Email or Username" 
+                                                    aria-describedby="email-addon"
+                                                    required autofocus>
                                         </div>
                                         <label>Password</label>
                                         <div class="mb-3">

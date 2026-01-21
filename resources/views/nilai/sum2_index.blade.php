@@ -68,6 +68,26 @@
                                     <button type="button" class="btn-close text-lg py-3 opacity-10" data-bs-dismiss="alert" aria-label="Close">&times;</button>
                                 </div>
                             @endif
+                            {{-- Notifikasi untuk karakter TP --}}
+                            @if ($errors->any())
+                                <div class="alert bg-gradient-danger mx-4 alert-dismissible text-white fade show">
+                                    <strong>Gagal!</strong>
+                                    <ul class="mb-0">
+                                        @foreach ($errors->messages() as $field => $messages)
+                                            @foreach ($messages as $message)
+                                                @if (str_contains($field, 'tujuan_pembelajaran'))
+                                                    <li class="text-sm">
+                                                        Tujuan Pembelajaran mengandung karakter tidak valid.
+                                                    </li>
+                                                @else
+                                                    <li class="text-sm">{{ $message }}</li>
+                                                @endif
+                                            @endforeach
+                                        @endforeach
+                                    </ul>
+                                    <button type="button" class="btn-close text-lg py-3 opacity-10" data-bs-dismiss="alert">&times;</button>
+                                </div>
+                            @endif
                             
                             {{-- FORM FILTER --}}
                             <div class="p-4 border-bottom">
@@ -130,6 +150,11 @@
                                 @elseif($siswa->isEmpty())
                                     <p class="text-danger mt-3 p-3 text-center border rounded">Siswa tidak ditemukan.</p>
                                 @else
+                                @if(!$seasonOpen)
+                                    <div class="alert alert-warning text-sm mb-3">
+                                        🔒 Input nilai dikunci karena season tidak aktif.
+                                    </div>
+                                @endif
                                     <form action="{{ route('master.sumatif.store') }}" method="POST">
                                         @csrf
                                         <input type="hidden" name="id_kelas" value="{{ request('id_kelas') }}">
@@ -161,12 +186,12 @@
                                                         </td>
                                                         <td>
                                                             <div class="input-group input-group-outline">
-                                                                <input type="number" name="nilai[]" min="0" max="100" class="form-control text-center" value="{{ old('nilai.' . $i, $nilaiLama->nilai) }}">
+                                                                <input type="number" name="nilai[]" min="0" max="100" class="form-control text-center" {{ !$seasonOpen ? 'disabled' : '' }}>
                                                             </div>
                                                         </td>
                                                         <td>
                                                             <div class="input-group input-group-outline">
-                                                                <textarea name="tujuan_pembelajaran[]" rows="2" class="form-control text-sm">@php echo trim(old('tujuan_pembelajaran.' . $i, $nilaiLama->tujuan_pembelajaran)); @endphp</textarea>
+                                                                <textarea name="tujuan_pembelajaran[]" rows="2" class="form-control text-sm"  {{ !$seasonOpen ? 'disabled' : '' }}>...</textarea>
                                                             </div>
                                                         </td>
                                                     </tr>
@@ -175,7 +200,9 @@
                                             </table>
                                         </div>
                                         <div class="text-end mt-4">
-                                            <button type="submit" class="btn bg-gradient-success">Simpan Nilai Sumatif {{ $sumatifId }}</button>
+                                            @if($seasonOpen)
+                                                <button type="submit" class="btn bg-gradient-success"><i class="fas fa-save me-2"></i> Simpan Nilai</button>
+                                            @endif
                                         </div>
                                     </form>
                                 @endif

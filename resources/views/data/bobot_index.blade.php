@@ -41,7 +41,7 @@
                             </div>
                         @endif
 
-                         <form action="{{ route('pengaturan.bobot.store') }}" method="POST">
+                         <form action="{{ route('settings.erapor.bobot.store') }}" method="POST">
                             @csrf
 
                             <div class="row mb-4">

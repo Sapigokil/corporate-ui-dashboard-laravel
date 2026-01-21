@@ -12,6 +12,7 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if(Schema::hasTable('set_bobot')) return;
         Schema::create('set_bobot', function (Blueprint $table) {
             $table->id();
 

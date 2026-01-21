@@ -29,7 +29,7 @@ class NilaiAkhirController extends Controller
         return $map[strtoupper(trim($semester))] ?? null;
     }
 
-    private function generateCapaianAkhir($siswa, $semuaNilai): ?string
+    public function generateCapaianAkhir($siswa, $semuaNilai): ?string
     {
         if ($semuaNilai->count() === 0) {
             return "Data nilai intrakurikuler dan project belum tersedia.";
@@ -139,12 +139,20 @@ class NilaiAkhirController extends Controller
         $error = null;
         
         if ($request->id_kelas) {
-            $mapel = Pembelajaran::with('mapel')
-                ->where('id_kelas', $request->id_kelas)
-                ->get()
-                ->map(fn($p) => $p->mapel)
-                ->filter()
-                ->values();
+            // $mapel = Pembelajaran::with('mapel')
+            //     ->where('id_kelas', $request->id_kelas)
+            //     ->get()
+            //     ->map(fn($p) => $p->mapel)
+            //     ->filter()
+            //     ->values();
+            $mapel = Pembelajaran::with(['mapel' => function ($q) {
+                $q->where('is_active', 1);
+            }])
+            ->where('id_kelas', $request->id_kelas)
+            ->get()
+            ->pluck('mapel')
+            ->filter()
+            ->values();
         }
 
         if (
@@ -162,7 +170,16 @@ class NilaiAkhirController extends Controller
             }
 
             // ... (Pengambilan Siswa) ...
-            $selectedMapel = MataPelajaran::find($idMapel);
+            // $selectedMapel = MataPelajaran::find($idMapel);
+            $selectedMapel = MataPelajaran::where('id_mapel', $idMapel)
+                ->where('is_active', 1)
+                ->first();
+
+            if (!$selectedMapel) {
+                $error = 'Mata pelajaran sudah tidak aktif.';
+                goto render_view;
+            }
+
             $querySiswa = Siswa::with('detail')->where('id_kelas', $idKelas);
             if ($selectedMapel && $selectedMapel->agama_khusus) {
                 $querySiswa->whereHas('detail', fn ($q) => $q->where('agama', $selectedMapel->agama_khusus));
@@ -211,10 +228,14 @@ class NilaiAkhirController extends Controller
                 $s1_raw = optional($sumatifCollection->firstWhere('sumatif', 1))->nilai;
                 $s2_raw = optional($sumatifCollection->firstWhere('sumatif', 2))->nilai;
                 $s3_raw = optional($sumatifCollection->firstWhere('sumatif', 3))->nilai;
+                $s4_raw = optional($sumatifCollection->firstWhere('sumatif', 4))->nilai;
+                $s5_raw = optional($sumatifCollection->firstWhere('sumatif', 5))->nilai;
                 
                 $s1 = ($s1_raw !== null && $s1_raw !== '') ? (int)$s1_raw : null;
                 $s2 = ($s2_raw !== null && $s2_raw !== '') ? (int)$s2_raw : null;
                 $s3 = ($s3_raw !== null && $s3_raw !== '') ? (int)$s3_raw : null;
+                $s4 = ($s4_raw !== null && $s4_raw !== '') ? (int)$s4_raw : null;
+                $s5 = ($s5_raw !== null && $s5_raw !== '') ? (int)$s5_raw : null;
 
                 // Kumpulkan TP Sumatif yang memiliki nilai
                 $tpSumatif = $sumatifCollection
@@ -225,7 +246,7 @@ class NilaiAkhirController extends Controller
                         'label' => 'Sumatif ' . $item->sumatif, 
                     ]);
 
-                $nilaiSumatif = collect([$s1, $s2, $s3])
+                $nilaiSumatif = collect([$s1, $s2, $s3, $s4, $s5])
                     ->filter(fn ($v) => $v !== null);
                 $rataSumatif = $nilaiSumatif->count() >= 2
                 ? round($nilaiSumatif->sum() / $nilaiSumatif->count(), 2)
@@ -261,8 +282,20 @@ class NilaiAkhirController extends Controller
                 }
 
 
+                $jumlahSumatifTerisi = $nilaiSumatif->count();
+                $projectTerisi = $rataProject !== null;
+
+                $aturanTerpenuhi = $jumlahSumatifTerisi >= 3 && $projectTerisi;
                 // --- 3. HITUNG AKHIR ---
-                $nilaiAkhir = round(($bobotSumatif ?? 0) + ($bobotProject ?? 0), 2);
+                if ($aturanTerpenuhi) {
+                    $nilaiAkhir = round(($bobotSumatif ?? 0) + ($bobotProject ?? 0), 2);
+                } else {
+                    $nilaiAkhir = 0;
+                    $bobotSumatif = 0;
+                    $bobotProject = 0;
+                    $capaianAkhir = null;
+                }
+                // $nilaiAkhir = round(($bobotSumatif ?? 0) + ($bobotProject ?? 0), 2); ---> rumus sebelumnya
 
 
                 // --- 4. GENERATE DAN SIMPAN CAPAIAN AKHIR ---
@@ -282,7 +315,7 @@ class NilaiAkhirController extends Controller
                         'semester' => $semesterDB,
                     ],
                     [
-                        'nilai_s1' => $s1 ?? 0, 'nilai_s2' => $s2 ?? 0, 'nilai_s3' => $s3 ?? 0, 
+                        'nilai_s1' => $s1 ?? 0, 'nilai_s2' => $s2 ?? 0, 'nilai_s3' => $s3 ?? 0, 'nilai_s4' => $s4 ?? 0, 'nilai_s5' => $s5 ?? 0,
                         'rata_sumatif' => $rataSumatif ?? 0.00,
                         'bobot_sumatif' => $bobotSumatif ?? 0.00,
                         'nilai_project' => $nilaiMentahProject ?? 0.00, 
@@ -298,6 +331,8 @@ class NilaiAkhirController extends Controller
                     's1' => ($s1 !== null) ? $s1 : '-', 
                     's2' => ($s2 !== null) ? $s2 : '-',
                     's3' => ($s3 !== null) ? $s3 : '-',
+                    's4' => ($s4 !== null) ? $s4 : '-',
+                    's5' => ($s5 !== null) ? $s5 : '-',
                     'rata_sumatif' => $rataSumatif,
                     'bobot_sumatif' => $bobotSumatif,
                     'nilai_project' => $nilaiMentahProject ?? '-',

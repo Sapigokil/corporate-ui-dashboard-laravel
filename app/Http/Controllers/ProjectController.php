@@ -8,6 +8,7 @@ use App\Models\Siswa;
 use App\Models\MataPelajaran;
 use App\Models\Project;
 use App\Models\Pembelajaran;
+use App\Models\Season;
 use App\Exports\ProjectTemplateExport; // 🛑 ASUMSI CLASS BARU
 use App\Imports\ProjectImport;         // 🛑 ASUMSI CLASS BARU
 use Maatwebsite\Excel\Facades\Excel;
@@ -50,16 +51,20 @@ class ProjectController extends Controller
         $mapel = collect();
 
         if ($request->id_kelas) {
-            $mapel = Pembelajaran::with('mapel')
-                ->where('id_kelas', $request->id_kelas)
-                ->get()
-                ->map(fn($p) => $p->mapel)
-                ->filter()
-                ->values();
+           $mapel = Pembelajaran::with(['mapel' => function ($q) { //hanya mengambil mapel yang aktif
+                $q->where('is_active', 1);
+            }])
+            ->where('id_kelas', $request->id_kelas)
+            ->get()
+            ->map(fn($p) => $p->mapel)
+            ->filter()
+            ->values();
         }
 
         $siswa = collect();
         $rapor = collect();
+        // 🔽 TAMBAHKAN INI
+        $seasonOpen = Season::currentOpen();
 
         if ($request->id_kelas && $request->id_mapel && $request->semester && $request->tahun_ajaran) {
 
@@ -96,11 +101,14 @@ class ProjectController extends Controller
         }
 
         // Koreksi view name jika Anda menggunakan 'nilai.project_index'
-        return view('nilai.project_index', compact('kelas', 'mapel', 'siswa', 'rapor'));
+        return view('nilai.project_index', compact('kelas', 'mapel', 'siswa', 'rapor', 'seasonOpen'));
     }
 
     public function simpan(Request $request)
     {
+        if (!Season::currentOpen()) {
+    return back()->withInput()->withErrors('Input nilai sedang dikunci oleh season.');
+    }
         // 1. Validasi Input
         $request->validate([
             'id_kelas'              => 'required|exists:kelas,id_kelas',
@@ -155,7 +163,16 @@ class ProjectController extends Controller
         ]);
 
         $kelas = Kelas::find($request->id_kelas);
-        $mapel = MataPelajaran::find($request->id_mapel);
+        // $mapel = MataPelajaran::find($request->id_mapel);
+        //menonaktifkan mapel agama master diambil data mapel yang aktif:
+        $mapel = MataPelajaran::where('id_mapel', $request->id_mapel)
+            ->where('is_active', 1)
+            ->first();
+
+        if (!$mapel) {
+            return back()->with('error', 'Mapel sudah tidak aktif atau tidak tersedia.');
+        }
+
         
         $siswa = Siswa::where('id_kelas', $request->id_kelas)->orderBy('nama_siswa')->get();
         
@@ -226,6 +243,7 @@ class ProjectController extends Controller
         $mapel = DB::table('pembelajaran')
             ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
             ->where('pembelajaran.id_kelas', $id_kelas)
+            ->where('mata_pelajaran.is_active', 1) //hanya tampilkan mapel aktif
             ->select('mata_pelajaran.id_mapel', 'mata_pelajaran.nama_mapel')
             ->get();
 

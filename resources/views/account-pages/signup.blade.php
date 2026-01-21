@@ -1,115 +1,141 @@
 <x-app-layout>
-
-    <div class="container position-sticky z-index-sticky top-0">
-        <div class="row">
-            <div class="col-12">
-                <x-sidenav-white />
-            </div>
-        </div>
-    </div>
-    <main class="main-content  mt-0">
-        <section>
-            <div class="page-header min-vh-100">
-                <div class="container">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="position-absolute w-40 top-0 start-0 h-100 d-md-block d-none">
-                                <div class="oblique-image position-absolute d-flex fixed-top ms-auto h-100 z-index-0 bg-cover me-n8"
-                                    style="background-image:url('../assets/img/image-sign-up.jpg')">
-                                    <div class="my-auto text-start max-width-350 ms-7">
-                                        <h1 class="mt-3 text-white font-weight-bolder">Start your <br> new journey.</h1>
-                                        <p class="text-white text-lg mt-4 mb-4">Use these awesome forms to login or
-                                            create new account in your project for free.</p>
-                                        <div class="d-flex align-items-center">
-                                            <div class="avatar-group d-flex">
-                                                <a href="javascript:;" class="avatar avatar-sm rounded-circle"
-                                                    data-bs-toggle="tooltip" data-original-title="Jessica Rowland">
-                                                    <img alt="Image placeholder" src="../assets/img/team-3.jpg"
-                                                        class="">
-                                                </a>
-                                                <a href="javascript:;" class="avatar avatar-sm rounded-circle"
-                                                    data-bs-toggle="tooltip" data-original-title="Audrey Love">
-                                                    <img alt="Image placeholder" src="../assets/img/team-4.jpg"
-                                                        class="rounded-circle">
-                                                </a>
-                                                <a href="javascript:;" class="avatar avatar-sm rounded-circle"
-                                                    data-bs-toggle="tooltip" data-original-title="Michael Lewis">
-                                                    <img alt="Image placeholder" src="../assets/img/marie.jpg"
-                                                        class="rounded-circle">
-                                                </a>
-                                                <a href="javascript:;" class="avatar avatar-sm rounded-circle"
-                                                    data-bs-toggle="tooltip" data-original-title="Audrey Love">
-                                                    <img alt="Image placeholder" src="../assets/img/team-1.jpg"
-                                                        class="rounded-circle">
-                                                </a>
-                                            </div>
-                                            <p class="font-weight-bold text-white text-sm mb-0 ms-2">Join 2.5M+ users
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div class="text-start position-absolute fixed-bottom ms-7">
-                                        <h6 class="text-white text-sm mb-5">Copyright © 2022 Corporate UI Design System
-                                            by Creative Tim.</h6>
-                                    </div>
-                                </div>
+    {{-- Background Section --}}
+    <div class="page-header align-items-start min-vh-100" 
+         style="background-image: url('https://images.unsplash.com/photo-1497294815431-9365093b7331?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1950&q=80');">
+        <span class="mask bg-gradient-dark opacity-6"></span>
+        
+        <div class="container my-auto">
+            <div class="row">
+                <div class="col-lg-6 col-md-8 col-12 mx-auto">
+                    <div class="card z-index-0 fadeIn3 fadeInBottom shadow-lg">
+                        
+                        {{-- Header Card --}}
+                        <div class="card-header p-0 position-relative mt-n4 mx-3 z-index-2">
+                            <div class="bg-gradient-info shadow-info border-radius-lg py-3 pe-1">
+                                <h4 class="text-white font-weight-bolder text-center mt-2 mb-0">Aktivasi Akun E-Rapor</h4>
+                                <p class="text-white text-sm text-center px-3">
+                                    Verifikasi data NIP/NISN Anda untuk memulai
+                                </p>
                             </div>
                         </div>
-                        <div class="col-md-4 d-flex flex-column mx-auto">
-                            <div class="card card-plain mt-8">
-                                <div class="card-header pb-0 text-left bg-transparent">
-                                    <h3 class="font-weight-black text-dark display-6">Sign up</h3>
-                                    <p class="mb-0">Nice to meet you! Please enter your details.</p>
+
+                        <div class="card-body">
+                            {{-- Alert Error Global --}}
+                            @if($errors->has('msg'))
+                                <div class="alert alert-warning text-white text-sm mb-3" role="alert">
+                                    <i class="fas fa-exclamation-triangle me-2"></i> {{ $errors->first('msg') }}
                                 </div>
-                                <div class="card-body">
-                                    <form role="form">
-                                        <label>Name</label>
-                                        <div class="mb-3">
-                                            <input type="text" class="form-control" placeholder="Enter your name"
-                                                aria-label="Name" aria-describedby="name-addon">
+                            @endif
+
+                            <form role="form" class="text-start" method="POST" action="{{ route('sign-up.store') }}">
+                                @csrf
+                                
+                                {{-- SECTION 1: VERIFIKASI IDENTITAS --}}
+                                <h6 class="text-uppercase text-body text-xs font-weight-bolder mb-3">1. Verifikasi Identitas</h6>
+                                
+                                <div class="row">
+                                    {{-- Tipe Akun --}}
+                                    <div class="col-md-4 mb-3">
+                                        <div class="input-group input-group-outline filled">
+                                            <label class="form-label">Saya adalah</label>
+                                            <select name="tipe_akun" class="form-control" style="appearance: auto;" required>
+                                                <option value="siswa" {{ old('tipe_akun') == 'siswa' ? 'selected' : '' }}>Siswa</option>
+                                                <option value="guru" {{ old('tipe_akun') == 'guru' ? 'selected' : '' }}>Guru</option>
+                                            </select>
                                         </div>
-                                        <label>Email Address</label>
-                                        <div class="mb-3">
-                                            <input type="email" class="form-control"
-                                                placeholder="Enter your email address" aria-label="Email"
-                                                aria-describedby="email-addon">
+                                    </div>
+
+                                    {{-- Nomor Induk --}}
+                                    <div class="col-md-8 mb-3">
+                                        <div class="input-group input-group-outline mb-1">
+                                            <label class="form-label">Nomor Induk (NIP / NISN)</label>
+                                            <input type="text" name="nomor_induk" class="form-control" value="{{ old('nomor_induk') }}" required>
                                         </div>
-                                        <label>Password</label>
-                                        <div class="mb-3">
-                                            <input type="email" class="form-control" placeholder="Create a password"
-                                                aria-label="Password" aria-describedby="password-addon">
-                                        </div>
-                                        <div class="form-check form-check-info text-left mb-0">
-                                            <input class="form-check-input" type="checkbox" value=""
-                                                id="flexCheckDefault">
-                                            <label class="font-weight-normal text-dark mb-0" for="flexCheckDefault">
-                                                I agree the <a href="javascript:;"
-                                                    class="text-dark font-weight-bold">Terms and Conditions</a>.
-                                            </label>
-                                        </div>
-                                        <div class="text-center">
-                                            <button type="button" class="btn btn-dark w-100 mt-4 mb-3">Sign up</button>
-                                            <button type="button" class="btn btn-white btn-icon w-100 mb-3">
-                                                <span class="btn-inner--icon me-1">
-                                                    <img class="w-5" src="../assets/img/logos/google-logo.svg"
-                                                        alt="google-logo" />
-                                                </span>
-                                                <span class="btn-inner--text">Sign up with Google</span>
-                                            </button>
-                                        </div>
-                                    </form>
+                                        @error('nomor_induk') 
+                                            <span class="text-danger text-xs ms-1"><i class="fas fa-times-circle"></i> {{ $message }}</span> 
+                                        @enderror
+                                    </div>
                                 </div>
-                                <div class="card-footer text-center pt-0 px-lg-2 px-1">
-                                    <p class="mb-4 text-xs mx-auto">
-                                        Already have an account?
-                                        <a href="javascript:;" class="text-dark font-weight-bold">Sign in</a>
-                                    </p>
+
+                                {{-- Tanggal Lahir (Kunci Keamanan) --}}
+                                <div class="mb-3">
+                                    <label class="form-label text-xs mb-1 ms-1 font-weight-bold">Tanggal Lahir (Wajib sesuai data sekolah)</label>
+                                    <div class="input-group input-group-outline">
+                                        <input type="date" name="tanggal_lahir" class="form-control" value="{{ old('tanggal_lahir') }}" required>
+                                    </div>
+                                    @error('tanggal_lahir') 
+                                        <span class="text-danger text-xs ms-1"><i class="fas fa-times-circle"></i> {{ $message }}</span> 
+                                    @enderror
                                 </div>
-                            </div>
+
+                                <hr class="horizontal dark my-3">
+
+                                {{-- SECTION 2: BUAT AKUN --}}
+                                <h6 class="text-uppercase text-body text-xs font-weight-bolder mb-3">2. Buat Kredensial Login</h6>
+
+                                <div class="mb-3">
+                                    <div class="input-group input-group-outline mb-1">
+                                        <label class="form-label">Email Aktif</label>
+                                        <input type="email" name="email" class="form-control" value="{{ old('email') }}" required>
+                                    </div>
+                                    @error('email') 
+                                        <span class="text-danger text-xs ms-1">{{ $message }}</span> 
+                                    @enderror
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <div class="input-group input-group-outline mb-1">
+                                            <label class="form-label">Password Baru</label>
+                                            <input type="password" name="password" class="form-control" required>
+                                        </div>
+                                        @error('password') 
+                                            <span class="text-danger text-xs ms-1">{{ $message }}</span> 
+                                        @enderror
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="input-group input-group-outline">
+                                            <label class="form-label">Ulangi Password</label>
+                                            <input type="password" name="password_confirmation" class="form-control" required>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Checkbox Terms --}}
+                                <div class="form-check form-check-info text-start ps-0">
+                                    <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault" checked required>
+                                    <label class="form-check-label" for="flexCheckDefault">
+                                        Saya setuju dengan <a href="javascript:;" class="text-dark font-weight-bolder">Syarat & Ketentuan</a>
+                                    </label>
+                                </div>
+
+                                {{-- Submit Button --}}
+                                <div class="text-center">
+                                    <button type="submit" class="btn bg-gradient-info w-100 my-4 mb-2">Daftar & Aktivasi Akun</button>
+                                </div>
+
+                                <p class="mt-4 text-sm text-center">
+                                    Sudah punya akun?
+                                    <a href="{{ route('login') }}" class="text-info text-gradient font-weight-bold">Masuk disini</a>
+                                </p>
+                            </form>
                         </div>
                     </div>
                 </div>
             </div>
-        </section>
-    </main>
-
+        </div>
+        
+        {{-- Footer Simple --}}
+        <footer class="footer position-absolute bottom-2 py-2 w-100">
+            <div class="container">
+                <div class="row align-items-center justify-content-lg-between">
+                    <div class="col-12 col-md-6 my-auto">
+                        <div class="copyright text-center text-sm text-white text-lg-start">
+                            © <script>document.write(new Date().getFullYear())</script>, E-Rapor System
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
 </x-app-layout>

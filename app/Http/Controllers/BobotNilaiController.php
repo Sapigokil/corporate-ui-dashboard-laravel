@@ -84,7 +84,7 @@ class BobotNilaiController extends Controller
     ]);
 
     return redirect()
-        ->route('pengaturan.bobot.index')
+        ->route('settings.erapor.bobot.index')
         ->with('success', 'Data bobot berhasil diperbarui');
 }
 
@@ -94,7 +94,7 @@ class BobotNilaiController extends Controller
         BobotNilai::findOrFail($id)->delete();
 
         return redirect()
-            ->route('pengaturan.bobot.index')
+            ->route('settings.erapor.bobot.index')
             ->with('success', 'Data bobot berhasil dihapus');
     }
 

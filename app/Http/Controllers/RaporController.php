@@ -29,16 +29,34 @@ class RaporController extends Controller
         $semesterRaw = $request->semester ?? 'Ganjil';
         $semesterEnum = (strtoupper($semesterRaw) == 'GANJIL' || $semesterRaw == '1') ? 1 : 2;
 
+        $agamaSiswa = DB::table('detail_siswa')
+            ->where('id_siswa', $id_siswa)
+            ->value('agama');
+
+        $agamaSiswa = strtolower(trim($agamaSiswa));
+
+
         // 2. Ambil daftar mata pelajaran di kelas tersebut
         $pembelajaran = DB::table('pembelajaran')
-            ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
-            ->where('pembelajaran.id_kelas', $id_kelas)
-            ->select(
-                'mata_pelajaran.id_mapel', 
-                'mata_pelajaran.nama_mapel', 
-                'mata_pelajaran.kategori'
-            )
-            ->get();
+        ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
+        ->where('pembelajaran.id_kelas', $id_kelas)
+        ->where('mata_pelajaran.is_active', 1) //menampilkan mapel active
+        ->where(function ($q) use ($agamaSiswa) {
+            $q->whereNull('mata_pelajaran.agama_khusus')
+            ->orWhereRaw(
+                'LOWER(TRIM(mata_pelajaran.agama_khusus)) = ?',
+                [$agamaSiswa]
+            );
+        })
+        ->select(
+            'mata_pelajaran.id_mapel',
+            'mata_pelajaran.nama_mapel',
+            'mata_pelajaran.kategori'
+        )
+        ->orderBy('mata_pelajaran.kategori', 'asc')
+        ->orderBy('mata_pelajaran.urutan', 'asc')
+        ->get();
+
 
         // 3. Loop dan ambil nilai_akhir secara langsung per mapel
         $data = $pembelajaran->map(function($mp) use ($id_siswa, $semesterEnum, $tahun_ajaran) {
@@ -65,7 +83,6 @@ class RaporController extends Controller
                 'is_lengkap' => $hasNilai,
                 'nilai_akhir' => $hasNilai ? (int)$nilai->nilai_akhir : '-'
             ];
-            // dd($data);
         });
 
         return response()->json(['data' => $data]);
@@ -168,6 +185,12 @@ class RaporController extends Controller
     {
         $semesterInt = (strtoupper($semesterRaw) == 'GANJIL' || $semesterRaw == '1') ? 1 : 2;
         $siswa = Siswa::with('kelas')->findOrFail($id_siswa);
+        $agamaSiswa = DB::table('detail_siswa')
+            ->where('id_siswa', $id_siswa)
+            ->value('agama');
+
+        $agamaSiswa = ucfirst(strtolower(trim($agamaSiswa)));
+
         $getSekolah = InfoSekolah::first();
 
         // --- 1. ALWAYS AUTO-SYNC NILAI ---
@@ -195,7 +218,7 @@ class RaporController extends Controller
             }
         }
 
-        // --- 2. MAPEL GROUPING ---
+        // --- 2. MAPEL GROUPING (Dengan Sorting kolom urutan) ---
         $mapelFinal = [];
         $daftarUrutan = [1 => 'MATA PELAJARAN UMUM', 2 => 'MATA PELAJARAN KEJURUAN', 3 => 'MATA PELAJARAN PILIHAN', 4 => 'MUATAN LOKAL'];
         foreach ($daftarUrutan as $key => $headerLabel) {
@@ -203,8 +226,17 @@ class RaporController extends Controller
                 ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
                 ->where('pembelajaran.id_kelas', $siswa->id_kelas)
                 ->where('mata_pelajaran.kategori', $key)
-                ->select('mata_pelajaran.id_mapel', 'mata_pelajaran.nama_mapel')
-                ->get();
+                ->where('mata_pelajaran.is_active', 1) //menampilkan mapel active
+                ->where(function ($q) use ($agamaSiswa) {
+                    $q->whereNull('mata_pelajaran.agama_khusus')
+                    ->orWhereRaw('LOWER(TRIM(mata_pelajaran.agama_khusus)) = ?', [$agamaSiswa]);
+                })
+            ->select(
+                'mata_pelajaran.id_mapel',
+                'mata_pelajaran.nama_mapel'
+            )
+            ->orderBy('mata_pelajaran.urutan', 'asc')
+            ->get();
 
             if ($kelompok->isNotEmpty()) {
                 foreach ($kelompok as $mp) {
@@ -272,6 +304,11 @@ class RaporController extends Controller
     {
         $semesterInt = (strtoupper($semesterRaw) == 'GANJIL' || $semesterRaw == '1') ? 1 : 2;
         $siswa = Siswa::with('kelas')->findOrFail($id_siswa);
+        $agamaSiswa = DB::table('detail_siswa')
+            ->where('id_siswa', $id_siswa)
+            ->value('agama');
+
+        $agamaSiswa = ucfirst(strtolower(trim($agamaSiswa)));
         $getSekolah = InfoSekolah::first();
 
         // --- LOGIKA ALWAYS AUTO-SYNC (NILAI & CAPAIAN) ---
@@ -308,7 +345,7 @@ class RaporController extends Controller
             }
         }
 
-        // --- MAPEL GROUPING (1-4) ---
+        // --- MAPEL GROUPING (1-4) (Dengan Sorting kolom urutan) ---
         $mapelFinal = [];
         $daftarUrutan = [1 => 'MATA PELAJARAN UMUM', 2 => 'MATA PELAJARAN KEJURUAN', 3 => 'MATA PELAJARAN PILIHAN', 4 => 'MUATAN LOKAL'];
         foreach ($daftarUrutan as $key => $headerLabel) {
@@ -316,8 +353,17 @@ class RaporController extends Controller
                 ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
                 ->where('pembelajaran.id_kelas', $siswa->id_kelas)
                 ->where('mata_pelajaran.kategori', $key)
-                ->select('mata_pelajaran.id_mapel', 'mata_pelajaran.nama_mapel')
-                ->get();
+                ->where('mata_pelajaran.is_active', 1) //menampilkan mapel active
+                ->where(function ($q) use ($agamaSiswa) {
+                    $q->whereNull('mata_pelajaran.agama_khusus')
+                    ->orWhereRaw('LOWER(TRIM(mata_pelajaran.agama_khusus)) = ?', [$agamaSiswa]);
+                })
+            ->select(
+                'mata_pelajaran.id_mapel',
+                'mata_pelajaran.nama_mapel'
+            )
+            ->orderBy('mata_pelajaran.urutan', 'asc')
+            ->get();
 
             if ($kelompok->isNotEmpty()) {
                 foreach ($kelompok as $mp) {
@@ -381,6 +427,7 @@ class RaporController extends Controller
 
     /**
      * Mesin Sinkronisasi Progres Rapor (Status Siap Cetak)
+     * PERBAIKAN: Menghapus variable $countSumatif/$sumatifCount yang error
      * MEMBERSIHKAN ERROR Undefined variable $sumatifCount
      */
     public function perbaruiStatusRapor($id_siswa, $semester, $tahun_ajaran)
@@ -390,9 +437,25 @@ class RaporController extends Controller
 
         // 2. Ambil data siswa dan daftar mapel di kelasnya
         $siswa = Siswa::findOrFail($id_siswa);
+        $agamaSiswa = DB::table('detail_siswa')
+            ->where('id_siswa', $id_siswa)
+            ->value('agama');
+
+        $agamaSiswa = strtolower(trim($agamaSiswa));
+
         $daftarMapel = DB::table('pembelajaran')
-            ->where('id_kelas', $siswa->id_kelas)
-            ->pluck('id_mapel');
+            ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
+            ->where('pembelajaran.id_kelas', $siswa->id_kelas)
+            ->where('mata_pelajaran.is_active', 1) //menampilkan mapel active
+            ->where(function ($q) use ($agamaSiswa) {
+                $q->whereNull('mata_pelajaran.agama_khusus')
+                ->orWhereRaw(
+                    'LOWER(TRIM(mata_pelajaran.agama_khusus)) = ?',
+                    [$agamaSiswa]
+                );
+            })
+            ->pluck('mata_pelajaran.id_mapel');
+
 
         $totalMapelSeharusnya = $daftarMapel->count();
         $mapelTuntas = 0;
@@ -400,29 +463,13 @@ class RaporController extends Controller
         // 3. Cek Kelengkapan Nilai Akhir per Mapel
         // Kita cek ke tabel nilai_akhir karena fungsi sinkronkanKelas sudah mengisi tabel tersebut
         foreach ($daftarMapel as $id_mapel) {
-            //tambahan
-            $sumatifCount = DB::table('sumatif')
+            $adaNilai = DB::table('nilai_akhir')
                 ->where([
                     'id_siswa' => $id_siswa,
                     'id_mapel' => $id_mapel,
                     'semester' => $semesterInt,
-                    'tahun_ajaran' => $tahun_ajaran,
+                    'tahun_ajaran' => (string)$tahun_ajaran
                 ])
-                ->where('nilai', '>', 0)
-                ->count();
-
-            $projectCount = DB::table('project')
-                ->where([
-                    'id_siswa' => $id_siswa,
-                    'id_mapel' => $id_mapel,
-                    'semester' => $semesterInt,
-                    'tahun_ajaran' => $tahun_ajaran,
-                ])
-                ->where('nilai', '>', 0)
-                ->count();
-
-            $nilaiAkhir = DB::table('nilai_akhir')
-                ->where(['id_siswa' => $id_siswa, 'id_mapel' => $id_mapel, 'semester' => $semesterInt, 'tahun_ajaran' => $tahun_ajaran])
                 ->where('nilai_akhir', '>', 0)
                 ->exists();
 
@@ -479,7 +526,13 @@ class RaporController extends Controller
         }
 
         $siswaList = Siswa::where('id_kelas', $id_kelas)->get();
-        $daftarMapel = DB::table('pembelajaran')->where('id_kelas', $id_kelas)->get();
+        $daftarMapel = DB::table('pembelajaran')            
+        // ->where('id_kelas', $id_kelas)->get();
+        ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
+        ->where('mata_pelajaran.is_active', 1)
+        ->where('pembelajaran.id_kelas', $id_kelas)
+        ->get();
+
 
         foreach ($siswaList as $siswa) {
             // A. Update Nilai Akhir dari Rata-rata Sumatif
@@ -496,7 +549,7 @@ class RaporController extends Controller
                 if ($avgSumatif > 0) {
                     DB::table('nilai_akhir')->updateOrInsert(
                         [
-                            'id_siswa' => $id_siswa, 
+                            'id_siswa' => $siswa->id_siswa, 
                             'id_mapel' => $mapel->id_mapel, 
                             'semester' => $semesterInt, 
                             'tahun_ajaran' => $tahun_ajaran

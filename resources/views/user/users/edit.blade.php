@@ -23,7 +23,7 @@
                         
                         <div class="card-body pb-2 px-4">
                             
-                            <form method="POST" action="{{ route('master.users.update', $user->id) }}">
+                            <form method="POST" action="{{ route('settings.system.users.update', $user->id) }}">
                                 @csrf
                                 @method('PUT')
                                 
@@ -72,7 +72,7 @@
                                 </div>
 
                                 <div class="text-end mt-4">
-                                    <a href="{{ route('master.users.index') }}" class="btn btn-outline-secondary me-2">Batal</a>
+                                    <a href="{{ route('settings.system.users.index') }}" class="btn btn-outline-secondary me-2">Batal</a>
                                     <button type="submit" class="btn bg-gradient-primary">Simpan Perubahan</button>
                                 </div>
                             </form>

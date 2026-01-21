@@ -24,7 +24,7 @@
                         <div class="card-body pb-2 px-4">
                             
                             {{-- Form menargetkan route roles.update dengan metode PUT --}}
-                            <form method="POST" action="{{ route('master.roles.update', $role->id) }}">
+                            <form method="POST" action="{{ route('settings.system.roles.update', $role->id) }}">
                                 @csrf
                                 @method('PUT')
                                 
@@ -70,7 +70,7 @@
                                 </div>
                                 
                                 <div class="text-end mt-4">
-                                    <a href="{{ route('master.roles.index') }}" class="btn btn-outline-secondary me-2">Batal</a>
+                                    <a href="{{ route('settings.system.roles.index') }}" class="btn btn-outline-secondary me-2">Batal</a>
                                     <button type="submit" class="btn bg-gradient-primary">Simpan Perubahan Izin</button>
                                 </div>
                             </form>

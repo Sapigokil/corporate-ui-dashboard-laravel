@@ -65,6 +65,7 @@
         border: 1px solid #000;
         padding: 4px;
         text-align: center;
+        vertical-align: middle;
     }
 
     th {
@@ -74,6 +75,25 @@
     .text-left {
         text-align: left;
     }
+    .space-ttd {
+    height: 70px;
+}
+
+.font-bold {
+    font-weight: bold;
+}
+
+.ttd-table {
+    width: 100%;
+    margin-top: 40px;
+}
+
+.ttd-table td {
+    border: none;
+    text-align: left;
+    vertical-align: top;
+}
+
 </style>
 </head>
 <body>
@@ -112,9 +132,34 @@
     </table>
 </div>
 
+@php
+    $jumlahMapel = count($daftarMapel);
+
+    // Total lebar A4 landscape kira-kira
+    // No + Nama + Total + Rata2 + S I A
+    $sisaLebar = 100 - (4 + 20 + 6 + 6 + 6);
+    $lebarMapel = $jumlahMapel > 0 ? $sisaLebar / $jumlahMapel : 5;
+@endphp
+
 <table>
+    <colgroup>
+    <col style="width: 4%;">
+    <col style="width: 4%;">   {{-- No --}}
+    <col style="width: 20%;">  {{-- Nama --}}
+
+    @foreach($daftarMapel as $mp)
+        <col style="width: {{ $lebarMapel }}%;">
+    @endforeach
+
+    <col style="width: 6%;"> {{-- Total --}}
+    <col style="width: 6%;"> {{-- Rata-rata --}}
+    <col style="width: 2%;"> {{-- S --}}
+    <col style="width: 2%;"> {{-- I --}}
+    <col style="width: 2%;"> {{-- A --}}
+</colgroup>
     <thead>
         <tr>
+            <th>Rank</th>
             <th>No</th>
             <th>Nama Siswa</th>
 
@@ -133,6 +178,13 @@
     <tbody>
         @foreach($dataLedger as $i => $row)
         <tr>
+            <td>
+                @if(request('urut','ranking') === 'ranking')
+                    {{ $loop->iteration }}
+                @else
+                    -
+                @endif
+            </td>
             <td>{{ $i + 1 }}</td>
             <td class="text-left">{{ $row->nama_siswa }}</td>
 
@@ -153,6 +205,21 @@
         </tr>
         @endforeach
     </tbody>
+</table>
+
+<table class="ttd-table">
+    <tr>
+        <td style="width: 75%;"></td>
+        <td style="width: 25%;">
+            Salatiga, {{ \Carbon\Carbon::now()->isoFormat('D MMMM Y') }}<br>
+            Wali Kelas,
+            <div class="space-ttd"></div>
+            <span style="font-weight:bold; text-decoration: underline;">
+                {{ $nama_wali }}
+            </span><br>
+            NIP. {{ $nip_wali }}
+        </td>
+    </tr>
 </table>
 
 </body>
