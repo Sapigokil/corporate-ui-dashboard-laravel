@@ -113,7 +113,7 @@
                 <table cellpadding="0" cellspacing="0" style="table-layout: auto;">
                     <tr>
                         <td width="70" style="vertical-align: middle; border: none;">
-                            <img src="{{ public_path('assets/img/theme/logo-sekolah.png') }}" width="75">
+                            <img src="{{ public_path('assets/img/theme/logo-sekolah-sml.png') }}" width="75">
                         </td>
                         <td style="padding-left:6px; vertical-align: middle; text-align: left; border: none;">
                         <div class="school-name">{{ $namaSekolah }}</div>
