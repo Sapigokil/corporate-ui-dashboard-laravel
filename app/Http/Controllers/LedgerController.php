@@ -342,6 +342,7 @@ class LedgerController extends Controller
             $dataLedger[] = (object)[
                 'nama_siswa' => $siswa->nama_siswa,
                 'nipd'       => $siswa->nipd,
+                'nisn'       => $siswa->nisn,
                 'scores'     => $nilaiPerMapel,
                 'total'      => (int) $totalNilai,
                 'rata_rata'  => $jumlahMapelTerisi ? (int) round($totalNilai / $jumlahMapelTerisi) : 0,

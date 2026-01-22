@@ -162,6 +162,12 @@
         overflow: hidden;
         text-overflow: ellipsis;
     }
+    /* TAMBAHAN: Style untuk NIS & NISN */
+    .col-id {
+        width: 100px !important;
+        min-width: 100px !important;
+        text-align: center;
+    }
     .col-nilai {
         width: 55px !important;
         min-width: 55px !important;
@@ -411,6 +417,10 @@
                                     Nama Siswa
                                 </th>
                                 
+                                {{-- [BARU] HEADER NIS & NISN --}}
+                                <th rowspan="2" class="sticky-col-header col-id">NIS</th>
+                                <th rowspan="2" class="sticky-col-header col-id">NISN</th>
+
                                 @foreach($groupedMapel as $catId => $mapels)
                                     <th colspan="{{ count($mapels)}}" class="kategori-header kategori-{{ $catId }}">
                                         {{ $catLabels[$catId] ?? 'Lainnya' }}
@@ -461,6 +471,14 @@
                             <td class="text-sm sticky-col col-nama font-weight-bold text-dark"
                                 data-bs-toggle="tooltip" title="{{ $row->nama_siswa }}">
                                 {{ $row->nama_siswa }}
+                            </td>
+
+                            {{-- [BARU] DATA NIS & NISN --}}
+                            <td class="text-sm text-center col-id border-bottom">
+                                {{ $row->nipd ?? '-' }}
+                            </td>
+                            <td class="text-sm text-center col-id border-bottom">
+                                {{ $row->nisn ?? '-' }}
                             </td>
 
                             {{-- NILAI MAPEL --}}
