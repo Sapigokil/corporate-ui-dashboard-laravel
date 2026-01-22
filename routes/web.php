@@ -119,6 +119,8 @@ Route::middleware(['auth'])->group(function () {
 
         // Mapel
         Route::resource('mapel', MapelController::class)->names('mapel')->parameters(['mapel' => 'id_mapel']);
+        // Route AJAX Drag & Drop Mapel
+        Route::post('mapel/update-urutan', [MapelController::class, 'updateUrutan'])->name('mapel.update_urutan');
 
         // Pembelajaran
         Route::prefix('pembelajaran')->name('pembelajaran.')->group(function () {

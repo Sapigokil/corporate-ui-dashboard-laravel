@@ -32,7 +32,8 @@
 
                             <form action="{{ route('master.mapel.store') }}" method="POST">
                                 @csrf
-
+                                {{-- Default is_active = 1 (Aktif) --}}
+                                
                                 {{-- I. Informasi Pokok Mata Pelajaran --}}
                                 <h6 class="text-sm font-weight-bolder my-4 text-primary"><i class="fas fa-info-circle me-1"></i> Data Mata Pelajaran</h6>
                                 <div class="row">
@@ -66,32 +67,29 @@
                                     <div class="col-md-6 mb-3">
                                         <label for="urutan" class="form-label">Urutan Tampilan Rapor <span class="text-danger">*</span></label>
                                         <input type="number" class="form-control" id="urutan" name="urutan" value="{{ old('urutan') }}" required min="1">
-                                        <small class="text-muted text-xs">Angka urutan mapel saat dicetak di rapor.</small>
+                                        <small class="text-muted text-xs">Akan diatur otomatis jika dikosongkan (Urutan Terakhir).</small>
                                     </div>
 
                                 </div>
                                 
                                 <hr class="my-4">
 
-                                {{-- II. Konfigurasi Pengampu & Filter Agama --}}
+                                {{-- II. Konfigurasi Lanjutan --}}
                                 <h6 class="text-sm font-weight-bolder my-4 text-info"><i class="fas fa-cogs me-1"></i> Konfigurasi Lanjutan</h6>
                                 
                                 <div class="row">
-                                    {{-- Guru Pengampu --}}
+                                    {{-- Status Aktif (GANTIKAN POSISI GURU) --}}
                                     <div class="col-md-6 mb-3">
-                                        <label for="id_guru" class="form-label">Guru Pengampu (Utama)</label>
-                                        <select class="form-select" id="id_guru" name="id_guru">
-                                            <option value="">-- Pilih Guru --</option>
-                                            @foreach ($guru as $g)
-                                                <option value="{{ $g->id_guru }}" {{ old('id_guru') == $g->id_guru ? 'selected' : '' }}>
-                                                    {{ $g->nama_guru }}
-                                                </option>
-                                            @endforeach
+                                        <label for="is_active" class="form-label">Status Mata Pelajaran</label>
+                                        <select class="form-select" id="is_active" name="is_active" required>
+                                            {{-- Default Selected: AKTIF (1) --}}
+                                            <option value="1" {{ old('is_active') == '1' || old('is_active') == null ? 'selected' : '' }}>Aktif (Tampil di Rapor)</option>
+                                            <option value="0" {{ old('is_active') == '0' ? 'selected' : '' }}>Non-Aktif (Disembunyikan)</option>
                                         </select>
-                                        <small class="text-muted text-xs">Opsional, penanggung jawab utama mapel ini.</small>
+                                        <small class="text-muted text-xs">Pilih "Non-Aktif" untuk mengarsipkan mapel kurikulum lama.</small>
                                     </div>
 
-                                    {{-- Agama Khusus (Fitur Baru) --}}
+                                    {{-- Agama Khusus --}}
                                     <div class="col-md-6 mb-3">
                                         <label for="agama_khusus" class="form-label">Agama Khusus (Auto Filter)</label>
                                         <select class="form-select" id="agama_khusus" name="agama_khusus">

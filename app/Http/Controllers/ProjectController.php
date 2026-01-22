@@ -58,6 +58,10 @@ class ProjectController extends Controller
             ->get()
             ->map(fn($p) => $p->mapel)
             ->filter()
+            ->sortBy([
+                ['kategori', 'asc'], // Prioritas 1
+                ['urutan', 'asc'],   // Prioritas 2
+            ])
             ->values();
         }
 

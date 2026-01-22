@@ -75,25 +75,21 @@
                                 
                                 <hr class="my-4">
 
-                                {{-- II. Konfigurasi Lanjutan (Guru & Agama) --}}
+                                {{-- II. Konfigurasi Lanjutan --}}
                                 <h6 class="text-sm font-weight-bolder my-4 text-warning"><i class="fas fa-cogs me-1"></i> Konfigurasi Lanjutan</h6>
                                 
                                 <div class="row">
-                                    {{-- Guru Pengampu --}}
+                                    {{-- Status Aktif (Menggantikan Guru Pengampu) --}}
                                     <div class="col-md-6 mb-3">
-                                        <label for="id_guru" class="form-label">Guru Pengampu (Utama)</label>
-                                        <select class="form-select" id="id_guru" name="id_guru">
-                                            <option value="">-- Pilih Guru --</option>
-                                            @foreach ($guru as $g)
-                                                <option value="{{ $g->id_guru }}" {{ old('id_guru', $mapel->id_guru) == $g->id_guru ? 'selected' : '' }}>
-                                                    {{ $g->nama_guru }}
-                                                </option>
-                                            @endforeach
+                                        <label for="is_active" class="form-label">Status Mata Pelajaran</label>
+                                        <select class="form-select" id="is_active" name="is_active" required>
+                                            <option value="1" {{ old('is_active', $mapel->is_active) == 1 ? 'selected' : '' }}>Aktif (Tampil di Rapor)</option>
+                                            <option value="0" {{ old('is_active', $mapel->is_active) == 0 ? 'selected' : '' }}>Non-Aktif (Disembunyikan)</option>
                                         </select>
-                                        <small class="text-muted text-xs">Opsional, penanggung jawab utama mapel ini.</small>
+                                        <small class="text-muted text-xs">Mapel non-aktif tidak akan muncul di input nilai maupun cetak rapor.</small>
                                     </div>
 
-                                    {{-- Agama Khusus (Fitur Baru) --}}
+                                    {{-- Agama Khusus --}}
                                     <div class="col-md-6 mb-3">
                                         <label for="agama_khusus" class="form-label">Agama Khusus (Auto Filter)</label>
                                         <select class="form-select" id="agama_khusus" name="agama_khusus">

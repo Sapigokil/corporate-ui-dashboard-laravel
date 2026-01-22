@@ -1,12 +1,10 @@
-{{-- File: resources/views/nilai/nilaiakhir.blade.php (Koreksi Penegasan Notifikasi) --}}
+{{-- File: resources/views/nilai/nilaiakhir.blade.php --}}
 
 @extends('layouts.app') 
 
-{{-- HEADER DINAMIS --}}
 @section('page-title', 'Rekapitulasi Nilai Akhir')
 
 @php
-    // --- LOGIKA TAHUN AJARAN & SEMESTER ---
     $request = request();
     $tahunSekarang = date('Y');
     $bulanSekarang = date('n');
@@ -23,17 +21,15 @@
 
     $defaultTahunAjaran = $defaultTA1 . '/' . $defaultTA2;
     
-    $tahunMulai = $tahunSekarang - 3; // 3 tahun ke belakang
-    $tahunAkhir = $tahunSekarang + 3; // 3 tahun ke depan
+    $tahunMulai = $tahunSekarang - 3; 
+    $tahunAkhir = $tahunSekarang + 3; 
 
     $tahunAjaranList = [];
-
     for ($tahun = $tahunAkhir; $tahun >= $tahunMulai; $tahun--) {
         $tahunAjaranList[] = $tahun . '/' . ($tahun + 1);
     }
     $semesterList = ['Ganjil', 'Genap']; 
     
-    // Ambil variabel $error dari controller/session
     $error = $error ?? session('error');
 @endphp
 
@@ -47,9 +43,6 @@
                 <div class="col-12">
                     <div class="card my-4 shadow-xs border">
                         
-                        {{-- ================================================================= --}}
-                        {{-- HEADER DINAMIS --}}
-                        {{-- ================================================================= --}}
                         <div class="card-header p-0 position-relative mt-n4 mx-3 z-index-2">
                             <div class="bg-gradient-info shadow-info border-radius-lg pt-4 pb-3 d-flex justify-content-between align-items-center">
                                 <h6 class="text-white text-capitalize ps-3 mb-0">
@@ -57,12 +50,9 @@
                                 </h6>
                             </div>
                         </div>
-                        {{-- ================================================================= --}}
-
 
                         <div class="card-body px-0 pb-2">
                             
-                            {{-- 🛑 KOREKSI 1: NOTIFIKASI DIBUNGKUS DALAM PADDING 🛑 --}}
                             @if (session('success') || $error)
                                 <div class="p-4 pt-0">
                                     @if (session('success'))
@@ -86,7 +76,6 @@
                             
                             {{-- FORM FILTER --}}
                             <div class="p-4 border-bottom">
-                                {{-- 🛑 Route Filter: master.nilaiakhir.index (Asumsi) 🛑 --}}
                                 <form action="{{ route('master.nilaiakhir.index') }}" method="GET" class="row align-items-end">
                                     
                                     {{-- 1. Kelas --}}
@@ -163,8 +152,17 @@
                                     </p>
                                 
                                 @else
-                                    <div style="background-color: #ff7b00 !important;" class="alert text-white text-sm">
-                                        **Catatan:** Wajib memasukan minimal 3 Nilai Sumatif, bila tidak Bobot tidak dapat dihitung.
+                                    {{-- NOTIFIKASI DINAMIS BERDASARKAN DATABASE --}}
+                                    <div style="background-color: #ff7b00 !important;" class="alert text-white text-sm shadow-sm">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        <strong>Informasi Bobot Nilai:</strong><br>
+                                        @if($bobotInfo)
+                                            • Wajib mengisi minimal <strong>{{ $bobotInfo->jumlah_sumatif ?? '0' }}</strong> Nilai Sumatif.<br>
+                                            • Bobot Rata-rata Sumatif: <strong>{{ $bobotInfo->bobot_sumatif }}%</strong>.<br>
+                                            • Bobot Nilai Project/Tugas: <strong>{{ $bobotInfo->bobot_project }}%</strong>.
+                                        @else
+                                            Pengaturan Bobot belum tersedia.
+                                        @endif
                                     </div>
                                     
                                     <div class="table-responsive p-0">
@@ -186,7 +184,6 @@
 
                                                     {{-- 3. PROJECT (Hijau Tua) --}}
                                                     <th class="text-uppercase text-white text-xxs font-weight-bolder opacity-9 text-center bg-success">Project</th>
-                                                    {{-- <th class="text-uppercase text-white text-xxs font-weight-bolder opacity-9 text-center bg-success">Rata P</th> --}}
                                                     <th class="text-uppercase text-white text-xxs font-weight-bolder opacity-9 text-center bg-success">Bobot Project</th>
                                                     
                                                     {{-- 4. AKHIR (Warna Berbeda) --}}
@@ -219,7 +216,6 @@
 
                                                     {{-- Nilai & Bobot Project --}}
                                                     <td class="px-3 py-2 text-sm text-center">{{ $rekapSiswa['nilai_project'] ?? '-' }}</td>
-                                                    {{-- <td class="px-3 py-2 text-sm text-center font-weight-bold">{{ $rekapSiswa['rata_project'] ?? '-' }}</td> --}}
                                                     <td class="px-3 py-2 text-sm text-center text-success font-weight-bolder">{{ $rekapSiswa['bobot_project'] ?? '-' }}</td>
                                                     
                                                     {{-- NILAI AKHIR --}}

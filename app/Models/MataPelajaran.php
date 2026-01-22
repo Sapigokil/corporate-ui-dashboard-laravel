@@ -20,7 +20,8 @@ class MataPelajaran extends Model
         'urutan',        // nomor urut tampilan rapor
         'id_guru',
         'id_pembelajaran',
-        'agama_khusus'
+        'agama_khusus',
+        'is_active'
     ];
 
     /**
