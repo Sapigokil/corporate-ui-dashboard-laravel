@@ -374,7 +374,7 @@ class LedgerController extends Controller
     }
 
     /**
-     * Export PDF (Versi Cepat: Direct Print)
+     * Export PDF
      */
     public function exportPdf(Request $request)
     {
@@ -401,8 +401,6 @@ class LedgerController extends Controller
 
         // Panggil Core Logic
         $core = $this->buildDataCore($kelasIds, $semesterInt, $tahun_ajaran);
-        
-        // Sorting default ranking
         $dataLedger = $this->sortLedger($core['dataLedger']);
 
         $infoSekolah = InfoSekolah::first();
@@ -417,9 +415,6 @@ class LedgerController extends Controller
         $nama_wali = $kelasObj->wali_kelas ?? '-';
         $nip_wali  = '-';
 
-        // Buat Judul File untuk Browser
-        $namaFile = $this->buildFilename($request, 'pdf'); // Hanya untuk title tab
-
         $dataView = [
             'namaSekolah'   => $namaSekolah,
             'alamatSekolah' => $alamatSekolah,
@@ -429,12 +424,14 @@ class LedgerController extends Controller
             'semesterRaw'   => $semesterRaw,
             'tahun_ajaran'  => $tahun_ajaran,
             'nama_wali'     => $nama_wali,
-            'nip_wali'      => $nip_wali,
-            'pageTitle'     => $namaFile // Kirim judul file ke view
+            'nip_wali'      => $nip_wali
         ];
 
-        // PERUBAHAN DISINI:
-        // Jangan pakai Pdf::loadView(), langsung return view biasa.
-        return view('rapor.ledger_pdf', $dataView);
+        $filename = $this->buildFilename($request, 'pdf');
+
+        $pdf = Pdf::loadView('rapor.ledger_pdf', $dataView)
+            ->setPaper('a4', 'landscape');
+
+        return $pdf->stream($filename);
     }
 }
