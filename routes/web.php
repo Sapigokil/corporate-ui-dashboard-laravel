@@ -36,6 +36,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SetKokurikulerController;
 use App\Http\Controllers\BobotNilaiController;
 use App\Http\Controllers\InputController;
+use App\Http\Controllers\SeasonController;
 
 /*
 |--------------------------------------------------------------------------
@@ -118,6 +119,8 @@ Route::middleware(['auth'])->group(function () {
 
         // Mapel
         Route::resource('mapel', MapelController::class)->names('mapel')->parameters(['mapel' => 'id_mapel']);
+        // Route AJAX Drag & Drop Mapel
+        Route::post('mapel/update-urutan', [MapelController::class, 'updateUrutan'])->name('mapel.update_urutan');
 
         // Pembelajaran
         Route::prefix('pembelajaran')->name('pembelajaran.')->group(function () {
@@ -129,6 +132,7 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/{id}', [PembelajaranController::class, 'destroy'])->name('destroy');
             Route::get('/export/pdf', [PembelajaranController::class, 'exportPdf'])->name('export.pdf');
             Route::get('/export/csv', [PembelajaranController::class, 'exportCsv'])->name('export.csv');
+            Route::get('/check/{id_mapel}', [PembelajaranController::class, 'getByMapel'])->name('get_by_mapel');
         });
 
         // Ekstrakurikuler
@@ -164,6 +168,8 @@ Route::middleware(['auth'])->group(function () {
             Route::get('s1', 'sumatif1')->name('s1'); 
             Route::get('s2', 'sumatif2')->name('s2'); 
             Route::get('s3', 'sumatif3')->name('s3'); 
+            Route::get('s4', 'sumatif4')->name('s4'); 
+            Route::get('s5', 'sumatif5')->name('s5'); 
             Route::get('get-mapel/{id_kelas}', 'getMapelByKelas')->name('get_mapel');
             Route::get('download-template', 'downloadTemplate')->name('download');
             
@@ -235,7 +241,7 @@ Route::middleware(['auth'])->group(function () {
     Route::group(['prefix' => 'ledger', 'as' => 'ledger.', 'middleware' => ['can:ledger.view']], function () {
         Route::get('/data-nilai', [LedgerController::class, 'index'])->name('ledger_index');
         
-        Route::middleware('can:ledger.cetak')->group(function() {
+        Route::middleware('can:cetak-print-ledger')->group(function() {
             Route::get('/export/excel', [LedgerController::class, 'exportExcel'])->name('export.excel');
             Route::get('/export/pdf', [LedgerController::class, 'exportPdf'])->name('export.pdf');
         });
@@ -286,6 +292,18 @@ Route::middleware(['auth'])->group(function () {
                     Route::put('/{id}', 'update')->name('update');
                     Route::delete('/{id}', 'destroy')->name('destroy');
                 });
+            });
+
+            // MODULE: SEASON
+            Route::prefix('season')->middleware(['auth'])->group(function () {
+                Route::get('/', [SeasonController::class, 'index'])->name('season.index');
+                Route::post('/store', [SeasonController::class, 'store'])->name('season.store');
+                
+                // Update (Cukup ini saja, otomatis jadi settings.erapor.season.update)
+                Route::put('/{id}', [SeasonController::class, 'update'])->name('season.update'); 
+                
+                // Destroy (Otomatis jadi settings.erapor.season.destroy)
+                Route::delete('/{id}', [SeasonController::class, 'destroy'])->name('season.destroy');
             });
 
             // Input Event

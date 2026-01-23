@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
+use App\Models\Season;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -23,13 +24,12 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        // LOGIKA SUPER ADMIN (Bypass Semua Permission)
-        // Jika user punya role 'admin', dia otomatis lolos semua pengecekan @can atau $user->can()
-        Gate::before(function ($user, $ability) {
-            // Izinkan jika role 'admin_erapor' ATAU 'developer'
-            if ($user->hasRole('admin_erapor') || $user->hasRole('developer')) {
-                return true;
-            }
-        });
+        Gate::define('rapor.cetak', fn ($user) => true);
+        Gate::define('ledger.view', fn ($user) => true);
+        Gate::define('cetak-print-ledger', fn ($user) => true);
+
+    Gate::define('input-nilai', function ($user) {
+        return Season::currentOpen() !== null;
+    });
     }
 }

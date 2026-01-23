@@ -66,43 +66,67 @@ class SumatifImport implements ToCollection, WithHeadingRow, SkipsUnknownSheets
 
 
         foreach ($rows as $row) {
-            
-            $excelNamaSiswa = trim($row['nama_siswa'] ?? null);
-            $excelNilai = (int) ($row['nilai_sumatif'] ?? null);
-            $excelTujuanPembelajaran = trim($row['tujuan_pembelajaran'] ?? null);
-            
-            // 1. Validasi Nilai & Nama Siswa Kosong
-            if (empty($excelNamaSiswa) || empty($excelNilai) || $excelNilai < 0 || $excelNilai > 100) {
+
+            $excelNamaSiswa = trim($row['nama_siswa'] ?? '');
+            $excelNilai = trim($row['nilai_sumatif'] ?? '');
+            $excelTujuanPembelajaran = trim((string) ($row['tujuan_pembelajaran'] ?? ''));
+
+            // 1️⃣ SKIP BARIS KOSONG / TEMPLATE
+            if ($excelNamaSiswa === '' && $excelNilai === '' && $excelTujuanPembelajaran === '') {
                 $this->skippedCount++;
                 continue;
             }
 
-            // 2. Pencocokan Nama Siswa (Ignore Case & Trim)
+            // 2️⃣ Validasi dasar (nama & nilai)
+            if ($excelNamaSiswa === '' || $excelNilai === '' || !is_numeric($excelNilai)) {
+                $this->skippedCount++;
+                continue;
+            }
+
+            $excelNilai = (int) $excelNilai;
+
+            if ($excelNilai < 0 || $excelNilai > 100) {
+                $this->skippedCount++;
+                continue;
+            }
+
+            // 3️⃣ VALIDASI TUJUAN PEMBELAJARAN (SETELAH BARIS VALID)
+            if ($excelTujuanPembelajaran === '') {
+                throw new \Exception(
+                    "Tujuan Pembelajaran siswa '{$excelNamaSiswa}' wajib diisi."
+                );
+            }
+
+            if (preg_match('/[[:punct:]]$/u', $excelTujuanPembelajaran)) {
+                throw new \Exception(
+                    "Tujuan Pembelajaran siswa '{$excelNamaSiswa}' tidak boleh diakhiri tanda baca."
+                );
+            }
+
+            // 4️⃣ Cocokkan siswa
             $upperNamaSiswa = strtoupper($excelNamaSiswa);
             $siswaMatch = $this->siswaCache->get($upperNamaSiswa);
 
             if (!$siswaMatch) {
                 $this->skippedCount++;
-                Log::warning('Import Skipped: Siswa not found in cache for current Class filter', ['name' => $excelNamaSiswa, 'upper_name' => $upperNamaSiswa]);
                 continue;
             }
 
-            // 3. Persiapan Data Store
+            // 5️⃣ Siapkan data simpan
             $dataToStore[] = [
                 'id_siswa' => $siswaMatch->id_siswa,
                 'id_kelas' => $filterData['id_kelas'],
                 'id_mapel' => $filterData['id_mapel'],
                 'sumatif' => $filterData['sumatif'],
                 'tahun_ajaran' => $filterData['tahun_ajaran'],
-                
-                // 🛑 MENGGUNAKAN NILAI NUMERIK 🛑
-                'semester' => $semesterInt, 
+                'semester' => $semesterInt,
                 'nilai' => $excelNilai,
-                'tujuan_pembelajaran' => $excelTujuanPembelajaran ?: 'Diimport',
+                'tujuan_pembelajaran' => $excelTujuanPembelajaran,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
-        } // End Foreach Rows
+        }
+        // End Foreach Rows
 
         // 4. Proses Penyimpanan (UpdateOrCreate)
         DB::beginTransaction();

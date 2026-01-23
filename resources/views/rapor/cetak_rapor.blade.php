@@ -33,6 +33,12 @@
         $tahunAjaranList[] = $tahun . '/' . ($tahun + 1);
     }
     $semesterList = ['Ganjil', 'Genap']; 
+
+    // --- AMBIL INFO BOBOT UNTUK NOTIFIKASI ---
+    // Pastikan Model BobotNilai di-import atau gunakan path lengkap
+    $bobotInfo = \App\Models\BobotNilai::where('tahun_ajaran', $selectedTA)
+        ->where('semester', strtoupper($selectedSemester))
+        ->first();
 @endphp
 
 <main class="main-content position-relative max-height-vh-100 h-100 border-radius-lg">
@@ -83,6 +89,19 @@
                 </form>
 
                 @if($id_kelas)
+                
+                {{-- NOTIFIKASI INFORMASI BOBOT --}}
+                <div style="background-color: #ff7b00 !important;" class="alert text-white text-sm shadow-sm mb-4">
+                    <i class="fas fa-info-circle me-1"></i>
+                    <strong>Informasi Aturan Rapor:</strong><br>
+                    @if($bobotInfo)
+                        • Target Sumatif: Wajib minimal <strong>{{ $bobotInfo->jumlah_sumatif ?? '3' }}</strong> nilai.<br>
+                        • Bobot Nilai: Sumatif <strong>{{ $bobotInfo->bobot_sumatif }}%</strong> | Project <strong>{{ $bobotInfo->bobot_project }}%</strong>.
+                    @else
+                        Pengaturan Bobot belum tersedia untuk semester ini. Menggunakan default (Target 3, Bobot 50:50).
+                    @endif
+                </div>
+
                 <div class="table-responsive p-0">
                     <table class="table align-items-center mb-0">
                         <thead class="bg-light">
@@ -97,74 +116,101 @@
                         </thead>
                         <tbody>
                             @forelse($siswaList as $idx => $s)
+                            @php
+                                $done  = $s->status_monitoring->mapel_tuntas_input ?? 0;
+                                $total = $s->status_monitoring->total_mapel_seharusnya ?? 0;
+                                $notes = $s->status_monitoring->is_catatan_wali_ready ?? false;
+
+                                // Hitung Persentase
+                                $ratio = ($total > 0) ? ($done / $total) * 100 : 0;
+
+                                // Warna Badge Progress
+                                if ($ratio == 100) {
+                                    $progClass = 'bg-gradient-success';
+                                } elseif ($ratio >= 50) {
+                                    $progClass = 'bg-gradient-warning';
+                                } else {
+                                    $progClass = 'bg-gradient-danger';
+                                }
+
+                                // Status Akhir & Warna
+                                if ($ratio == 100 && $notes) {
+                                    $statusBadge = 'bg-gradient-success';
+                                    $statusText  = 'Siap Cetak';
+                                } elseif ($ratio >= 50) {
+                                    $statusBadge = 'bg-gradient-warning';
+                                    $statusText  = 'Belum Lengkap';
+                                } else {
+                                    $statusBadge = 'bg-gradient-danger';
+                                    $statusText  = 'Tidak Lengkap';
+                                }
+                            @endphp
+
                             <tr>
                                 <td class="text-center text-sm">{{ $idx + 1 }}</td>
                                 <td class="text-sm">
                                     <span class="font-weight-bold">{{ $s->nama_siswa }}</span><br>
                                     <small class="text-secondary">{{ $s->nipd }}</small>
                                 </td>
+                                
+                                {{-- PROGRESS --}}
                                 <td class="text-center text-sm">
                                     @if($s->status_monitoring)
-                                        @php
-                                            $isComplete = $s->status_monitoring->mapel_tuntas_input >= $s->status_monitoring->total_mapel_seharusnya;
-                                        @endphp
-                                        <span class="badge {{ $isComplete ? 'bg-gradient-success' : 'bg-light text-dark' }} cursor-pointer" 
+                                        <span class="badge {{ $progClass }} cursor-pointer" 
                                             onclick="showDetailProgress('{{ $s->id_siswa }}', '{{ $s->nama_siswa }}')"
-                                            style="cursor: pointer;"
-                                            data-bs-toggle="tooltip" title="Klik untuk lihat detail mapel">
-                                            {{ $s->status_monitoring->mapel_tuntas_input }} / {{ $s->status_monitoring->total_mapel_seharusnya }} Mapel
+                                            style="cursor: pointer; min-width: 100px;"
+                                            data-bs-toggle="tooltip" title="Klik Detail">
+                                            {{ $done }} / {{ $total }} Mapel
                                         </span>
                                     @else
                                         <span class="text-secondary text-xs italic">Belum disinkronkan</span>
                                     @endif
                                 </td>
+
+                                {{-- CATATAN WALI --}}
                                 <td class="text-center align-middle">
-                                    @if($s->status_monitoring && $s->status_monitoring->is_catatan_wali_ready)
+                                    @if($notes)
                                         <div class="d-flex flex-column align-items-center">
-                                            <span class="text-success mb-1" data-bs-toggle="tooltip" title="Catatan Tersedia">
-                                                <i class="fas fa-check-circle fa-lg"></i>
-                                            </span>
+                                            <span class="text-success mb-1"><i class="fas fa-check-circle fa-lg"></i></span>
                                             <div class="text-xxs text-muted fst-italic px-2" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                                 "{{ $s->data_catatan->catatan_wali_kelas ?? '-' }}"
                                             </div>
                                         </div>
                                     @else
-                                        <div class="d-flex flex-column align-items-center" data-bs-toggle="tooltip" title="Wali kelas belum mengisi catatan">
-                                            <span class="text-danger mb-1">
-                                                <i class="fas fa-times-circle fa-lg"></i>
-                                            </span>
+                                        <div class="d-flex flex-column align-items-center">
+                                            <span class="text-danger mb-1"><i class="fas fa-times-circle fa-lg"></i></span>
                                             <span class="text-xxs text-danger font-weight-bold">Belum Ada</span>
                                         </div>
                                     @endif
                                 </td>
+
+                                {{-- STATUS --}}
                                 <td class="text-center">
-                                    @if($s->status_monitoring && $s->status_monitoring->status_akhir == 'Siap Cetak')
-                                        <span class="badge badge-sm bg-gradient-success">Siap Cetak</span>
+                                    @if($s->status_monitoring)
+                                        <span class="badge badge-sm {{ $statusBadge }}">{{ $statusText }}</span>
                                     @else
-                                        <span class="badge badge-sm bg-gradient-warning">Belum Lengkap</span>
+                                        <span class="text-xs">-</span>
                                     @endif
                                 </td>
-                                <td class="text-center align-middle">
-                                    @if($s->status_monitoring && $s->status_monitoring->status_akhir == 'Siap Cetak')
-                                        <div class="d-flex justify-content-center gap-2">
-                                            <a href="{{ route('rapornilai.cetak_proses', $s->id_siswa) }}?semester={{ $selectedSemester }}&tahun_ajaran={{ $selectedTA }}" 
-                                            target="_blank" 
-                                            class="badge border-0" 
-                                            style="background-color: #2196F3; color: white; padding: 8px 16px; font-weight: bold; font-size: 12px; border-radius: 8px; text-decoration: none;">
-                                                View
-                                            </a>
 
-                                            <a href="{{ route('rapornilai.download_satuan', $s->id_siswa) }}?semester={{ $selectedSemester }}&tahun_ajaran={{ $selectedTA }}" 
-                                            class="badge border-0" 
-                                            style="background-color: #4CAF50; color: white; padding: 8px 16px; font-weight: bold; font-size: 12px; border-radius: 8px; text-decoration: none;">
-                                                Download
-                                            </a>
-                                        </div>
-                                    @else
-                                        <span class="badge" style="background-color: #f5f5f5; color: #9e9e9e; padding: 8px 16px; border-radius: 8px; font-size: 11px;">
-                                            Belum Lengkap
-                                        </span>
-                                    @endif
+                                {{-- AKSI (SELALU TAMPIL) --}}
+                                <td class="text-center align-middle">
+                                    <div class="d-flex justify-content-center gap-2">
+                                        {{-- Tombol VIEW --}}
+                                        <a href="{{ route('rapornilai.cetak_proses', $s->id_siswa) }}?semester={{ $selectedSemester }}&tahun_ajaran={{ $selectedTA }}" 
+                                           target="_blank" 
+                                           class="badge border-0" 
+                                           style="background-color: #2196F3; color: white; padding: 8px 16px; font-weight: bold; font-size: 12px; border-radius: 8px; text-decoration: none;">
+                                            View
+                                        </a>
+
+                                        {{-- Tombol DOWNLOAD --}}
+                                        <a href="{{ route('rapornilai.download_satuan', $s->id_siswa) }}?semester={{ $selectedSemester }}&tahun_ajaran={{ $selectedTA }}" 
+                                           class="badge border-0" 
+                                           style="background-color: #4CAF50; color: white; padding: 8px 16px; font-weight: bold; font-size: 12px; border-radius: 8px; text-decoration: none;">
+                                            Download
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                             @empty
@@ -176,13 +222,11 @@
                     {{-- TOMBOL CETAK MASSAL --}}
                     @if($id_kelas && count($siswaList) > 0)
                         <div class="d-flex justify-content-end p-3 gap-3">
-                            {{-- Tombol PDF Massal (Ditambahkan di sisi kiri ZIP) --}}
                             <a href="{{ route('rapornilai.download_massal_pdf') }}?id_kelas={{ $id_kelas }}&semester={{ $selectedSemester }}&tahun_ajaran={{ $selectedTA }}" 
                                class="btn bg-gradient-primary mb-0" target="_blank">
                                 <i class="fas fa-file-pdf me-2"></i> Download Massal (PDF)
                             </a>
 
-                            {{-- Tombol ZIP Massal --}}
                             <button onclick="downloadZipWithLoading('{{ route('rapornilai.download_massal') }}?id_kelas={{ $id_kelas }}&semester={{ $selectedSemester }}&tahun_ajaran={{ $selectedTA }}')" 
                                     class="btn bg-gradient-success mb-0">
                                 <i class="fas fa-file-archive me-2"></i> Download Massal (ZIP)
@@ -218,7 +262,7 @@
                         <thead class="bg-light">
                             <tr>
                                 <th class="text-xxs font-weight-bolder opacity-7 ps-3">Mata Pelajaran</th>
-                                <th class="text-center text-xxs font-weight-bolder opacity-7">Status Input</th>
+                                <th class="text-center text-xxs font-weight-bolder opacity-7">Status Input (Sumatif)</th>
                                 <th class="text-center text-xxs font-weight-bolder opacity-7">Nilai Akhir</th>
                             </tr>
                         </thead>
@@ -320,7 +364,13 @@ function showDetailProgress(idSiswa, namaSiswa) {
                         : 'background-color: rgba(245, 54, 88, 0.05);';
                     
                     let badgeClass = item.is_lengkap ? 'bg-gradient-success' : 'bg-gradient-danger';
-                    let statusText = item.is_lengkap ? 'Lengkap' : 'Belum Input';
+                    
+                    // --- LOGIKA TAMPILAN STATUS (MODIFIED) ---
+                    // Menggunakan data 'progress_text' dari controller (misal: "2 / 3")
+                    let statusContent = item.progress_text 
+                        ? `<span class="badge badge-sm ${badgeClass}">${item.progress_text}</span>`
+                        : `<span class="badge badge-sm ${badgeClass}">${item.is_lengkap ? 'Lengkap' : 'Belum'}</span>`;
+
                     let iconStatus = item.is_lengkap 
                         ? '<i class="fas fa-check-circle text-success me-2"></i>' 
                         : '<i class="fas fa-exclamation-circle text-danger me-2"></i>';
@@ -337,9 +387,7 @@ function showDetailProgress(idSiswa, namaSiswa) {
                                 </div>
                             </td>
                             <td class="text-center">
-                                <span class="badge badge-sm ${badgeClass}" style="min-width: 90px;">
-                                    ${statusText}
-                                </span>
+                                ${statusContent}
                             </td>
                             <td class="text-center">
                                 <span class="text-sm font-weight-bolder ${item.is_lengkap ? 'text-dark' : 'text-muted'}">

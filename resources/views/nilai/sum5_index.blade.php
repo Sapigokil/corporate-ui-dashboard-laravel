@@ -1,11 +1,10 @@
-{{-- File: resources/views/nilai/sum1_index.blade.php --}}
+{{-- File: resources/views/nilai/sum3_index.blade.php --}}
 
 @extends('layouts.app') 
 
 @section('page-title', 'Input Nilai Sumatif ' . $sumatifId)
 
 @php
-    // LOGIKA TAHUN AJARAN & SEMESTER
     $tahunSekarang = date('Y');
     $bulanSekarang = date('n');
 
@@ -64,7 +63,6 @@
                                     <button type="button" class="btn-close text-lg py-3 opacity-10" data-bs-dismiss="alert" aria-label="Close">&times;</button>
                                 </div>
                             @endif
-                            
                             @if (session('error'))
                                 <div class="alert bg-gradient-danger mx-4 alert-dismissible text-white fade show" role="alert">
                                     <span class="text-sm"><strong>Gagal!</strong> {{ session('error') }}</span>
@@ -91,11 +89,10 @@
                                     <button type="button" class="btn-close text-lg py-3 opacity-10" data-bs-dismiss="alert">&times;</button>
                                 </div>
                             @endif
-
                             
-                            {{-- Form Filter --}}
+                            {{-- FORM FILTER --}}
                             <div class="p-4 border-bottom">
-                                <form action="{{ route('master.sumatif.s1') }}" method="GET" class="row align-items-end">
+                                <form action="{{ route('master.sumatif.s5') }}" method="GET" class="row align-items-end">
                                     <div class="col-md-2 mb-3">
                                         <label class="form-label">Sumatif:</label>
                                         <select name="sumatif" required class="form-select" disabled>
@@ -150,9 +147,9 @@
 
                             <div class="p-4">
                                 @if(!request('id_kelas') || !request('id_mapel'))
-                                    <p class="text-secondary mt-3 p-3 text-center border rounded">Silakan lengkapi filter untuk mengisi nilai.</p>
+                                    <p class="text-secondary mt-3 p-3 text-center border rounded">Pilih filter untuk menginput nilai Sumatif 5.</p>
                                 @elseif($siswa->isEmpty())
-                                    <p class="text-danger mt-3 p-3 text-center border rounded">Tidak ada siswa ditemukan.</p>
+                                    <p class="text-danger mt-3 p-3 text-center border rounded">Data siswa tidak ditemukan.</p>
                                 @else
                                 @if(!$seasonOpen)
                                     <div class="alert alert-warning text-sm mb-3">
@@ -173,7 +170,7 @@
                                                     <tr>
                                                         <th class="text-xxs font-weight-bolder opacity-7 text-center" style="width: 5%">No</th>
                                                         <th class="text-xxs font-weight-bolder opacity-7">Nama Siswa</th>
-                                                        <th class="text-xxs font-weight-bolder opacity-7 text-center" style="width: 15%">Nilai (0-100)</th>
+                                                        <th class="text-xxs font-weight-bolder opacity-7 text-center" style="width: 15%">Nilai</th>
                                                         <th class="text-xxs font-weight-bolder opacity-7">Tujuan Pembelajaran</th>
                                                     </tr>
                                                 </thead>
@@ -185,22 +182,17 @@
                                                     @endphp
                                                     <tr>
                                                         <td class="text-center text-sm font-weight-bold">{{ $i+1 }}</td>
-                                                        <td class="text-sm font-weight-bold">
-                                                            {{ $s->nama_siswa }}
+                                                        <td class="text-sm font-weight-bold">{{ $s->nama_siswa }}
                                                             <input type="hidden" name="id_siswa[]" value="{{ $s->id_siswa }}">
                                                         </td>
                                                         <td>
                                                             <div class="input-group input-group-outline">
-                                                                <input type="number" name="nilai[]" min="0" max="100" class="form-control text-center" 
-                                                                value="{{ old('nilai.' . $i, $nilaiLama->nilai) }}"
-                                                                {{ !$seasonOpen ? 'disabled' : '' }}>
+                                                                <input type="number" name="nilai[]" min="0" max="100" class="form-control text-center" {{ !$seasonOpen ? 'disabled' : '' }}></input>
                                                             </div>
                                                         </td>
                                                         <td>
                                                             <div class="input-group input-group-outline">
-                                                                <textarea name="tujuan_pembelajaran[]" rows="2" class="form-control text-sm" {{ !$seasonOpen ? 'disabled' : '' }}>
-                                                                @php echo trim(old('tujuan_pembelajaran.' . $i, $nilaiLama->tujuan_pembelajaran)); @endphp
-                                                                </textarea>
+                                                                <textarea name="tujuan_pembelajaran[]" rows="2" class="form-control text-sm" {{ !$seasonOpen ? 'disabled' : '' }}></textarea>
                                                             </div>
                                                         </td>
                                                     </tr>
@@ -209,12 +201,8 @@
                                             </table>
                                         </div>
                                         <div class="text-end mt-4">
-                                        @if($seasonOpen)
-                                            <button type="submit" class="btn bg-gradient-success">
-                                                <i class="fas fa-save me-2"></i> Simpan Nilai
-                                            </button>
-                                        @endif
-                                    </div>
+                                            <button type="submit" class="btn bg-gradient-success">Simpan Nilai Sumatif {{ $sumatifId }}</button>
+                                        </div>
                                     </form>
                                 @endif
                             </div>
@@ -239,7 +227,7 @@
                     <div class="modal-body">
                         <div class="mb-3">
                             <label class="form-label">Kelas:</label>
-                            <select name="id_kelas" required class="form-select ajax-select-kelas" data-target="#mapel_download">
+                            <select name="id_kelas" required class="form-select ajax-select-kelas" data-target="#mapel_download_sum5">
                                 <option value="">Pilih Kelas</option>
                                 @foreach(\App\Models\Kelas::orderBy('nama_kelas')->get() as $k)
                                     <option value="{{ $k->id_kelas }}">{{ $k->nama_kelas }}</option>
@@ -248,7 +236,7 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Mata Pelajaran:</label>
-                            <select name="id_mapel" id="mapel_download" required class="form-select">
+                            <select name="id_mapel" id="mapel_download_sum5" required class="form-select">
                                 <option value="">Pilih Kelas Terlebih Dahulu</option>
                             </select>
                         </div>
@@ -289,9 +277,12 @@
                     @csrf
                     <input type="hidden" name="sumatif" value="{{ $sumatifId }}">
                     <div class="modal-body">
+                        <div class="mb-3 text-center">
+                            <p class="text-secondary font-weight-bold">Pastikan data Excel sesuai dengan template.</p>
+                        </div>
                         <div class="mb-3">
                             <label class="form-label">Kelas:</label>
-                            <select name="id_kelas" required class="form-select ajax-select-kelas" data-target="#mapel_import">
+                            <select name="id_kelas" required class="form-select ajax-select-kelas" data-target="#mapel_import_sum5">
                                 <option value="">Pilih Kelas</option>
                                 @foreach(\App\Models\Kelas::orderBy('nama_kelas')->get() as $k)
                                     <option value="{{ $k->id_kelas }}">{{ $k->nama_kelas }}</option>
@@ -300,7 +291,7 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Mata Pelajaran:</label>
-                            <select name="id_mapel" id="mapel_import" required class="form-select">
+                            <select name="id_mapel" id="mapel_import_sum5" required class="form-select">
                                 <option value="">Pilih Kelas Terlebih Dahulu</option>
                             </select>
                         </div>
@@ -321,7 +312,7 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Pilih File Excel:</label>
+                            <label class="form-label">File Excel:</label>
                             <input type="file" name="file_excel" required class="form-control" accept=".xlsx, .xls">
                         </div>
                     </div>
@@ -333,10 +324,16 @@
         </div>
     </div>
 
-    {{-- AJAX SCRIPT --}}
+    {{-- Overlay Loading --}}
+    <div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); justify-content: center; align-items: center; color: white; font-size: 1.5rem; z-index: 9999;">
+        <div class="spinner-border text-light me-3" role="status"></div> Sedang memproses...
+    </div>
+
+    {{-- JAVASCRIPT --}}
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
+            // Dropdown Mapel Dinamis via AJAX
             $('.ajax-select-kelas').on('change', function() {
                 let idKelas = $(this).val();
                 let target = $(this).data('target');
@@ -346,28 +343,28 @@
 
                 if (idKelas) {
                     $.ajax({
-                        // Gunakan nama route lengkap sesuai route:list Anda
                         url: "{{ route('master.sumatif.get_mapel', '') }}/" + idKelas,
                         method: "GET",
                         success: function(res) {
                             let html = '<option value="">-- Pilih Mapel --</option>';
-                            if (res.length > 0) {
-                                res.forEach(item => {
-                                    html += `<option value="${item.id_mapel}">${item.nama_mapel}</option>`;
-                                });
-                            } else {
-                                html = '<option value="">Tidak ada mapel di kelas ini</option>';
-                            }
+                            res.forEach(item => {
+                                html += `<option value="${item.id_mapel}">${item.nama_mapel}</option>`;
+                            });
                             dropdownMapel.html(html);
                         },
-                        error: function(xhr) {
-                            // Lihat error di Console Browser (F12)
-                            console.log(xhr.responseText);
+                        error: function() {
                             dropdownMapel.html('<option value="">Gagal memuat mapel</option>');
                         }
                     });
                 } else {
                     dropdownMapel.html('<option value="">Pilih Kelas Terlebih Dahulu</option>');
+                }
+            });
+
+            // Overlay Loading saat submit
+            $('form').on('submit', function() {
+                if($(this).attr('method') === 'POST'){
+                    $('#loadingOverlay').css('display', 'flex');
                 }
             });
         });

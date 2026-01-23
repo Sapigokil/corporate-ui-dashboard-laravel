@@ -816,26 +816,26 @@ class SiswaController extends Controller
     // =========================================================================
 
     public function exportPdf()
-{
-    $siswas = Siswa::with('kelas')
-        ->get()
-        ->map(function ($s) {
+    {
+        $siswas = Siswa::with('kelas', 'ekskul')->get()->map(function ($s) {
             return [
-                'nama'   => htmlspecialchars((string) $s->nama_siswa),
-                'nisn'   => htmlspecialchars((string) $s->nisn),
-                'nipd'   => htmlspecialchars((string) $s->nipd),
-                'kelas'  => htmlspecialchars((string) optional($s->kelas)->nama_kelas),
-                'tingkat'=> htmlspecialchars((string) $s->tingkat),
+                'nama'   => (string) $s->nama_siswa,
+                'nipd'   => (string) $s->nipd,
+                'nisn'   => (string) $s->nisn,
+                'kelas'  => (string) (optional($s->kelas)->nama_kelas ?? '-'),
+                'ekskul' => (string) (optional($s->ekskul)->nama_ekskul ?? '-'),
             ];
         });
 
-    $pdf = Pdf::loadView('siswa.exports.data_siswa_pdf', compact('siswas'));
+        $namaSekolah = \App\Models\InfoSekolah::value('nama_sekolah');
 
-    return $pdf->download('data-siswa.pdf');
-}
-
-
-
+        return Pdf::loadView(
+            'siswa.exports.data_siswa_pdf',
+            compact('siswas', 'namaSekolah')
+        )
+        ->setPaper('a4', 'portrait') // 🔥 WAJIB
+        ->download('data-siswa.pdf');
+    }
 
     public function exportCsv()
     {

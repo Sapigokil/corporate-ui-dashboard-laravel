@@ -11,6 +11,8 @@ use App\Models\Kelas;
 use App\Models\Guru;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Validation\Rule;
+
 
 class PembelajaranController extends Controller
 {
@@ -18,12 +20,13 @@ class PembelajaranController extends Controller
     public const DEFAULT_GURU_ID = 1; 
 
     // 🟩 Halaman utama (Menambahkan Filter)
-    public function dataPembelajaran(Request $request) // 🛑 Menerima Request $request
+    public function dataPembelajaran(Request $request) 
     {
-        // 1. Inisialisasi Query (Base Query dengan Join untuk Pengurutan Mapel)
+        // 1. Inisialisasi Query
         $query = Pembelajaran::select('pembelajaran.*')
-            ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel');
-            
+            ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
+            ->where('mata_pelajaran.is_active', 1);
+
         // 2. Terapkan Filter
         if ($request->id_mapel) {
             $query->where('pembelajaran.id_mapel', $request->id_mapel);
@@ -33,31 +36,49 @@ class PembelajaranController extends Controller
         }
         
         $idGuruFilter = $request->id_guru;
-        // Logic filter Guru: Hanya terapkan WHERE jika id_guru TIDAK kosong dan TIDAK nol (yang berarti 'Semua Guru' dipilih)
         if (!empty($idGuruFilter) && $idGuruFilter != 0) {
             $query->where('pembelajaran.id_guru', $idGuruFilter);
         }
 
-        // 3. Pengurutan & Eksekusi
+        // 3. Pengurutan & Eksekusi (REVISI DISINI)
+        // Logika: Kategori (asc) -> Urutan (asc) -> Nama (asc)
         $pembelajaran = $query
-            ->orderBy('mata_pelajaran.urutan', 'asc')
-            ->orderBy('mata_pelajaran.nama_mapel', 'asc') 
+            ->orderBy('mata_pelajaran.kategori', 'asc') // 1. Prioritas Utama: Kategori
+            ->orderBy('mata_pelajaran.urutan', 'asc')   // 2. Prioritas Kedua: Urutan
             ->with(['mapel', 'kelas', 'guru'])
-            ->get(); // Eksekusi query dengan filter
+            ->get();
 
-        // 4. Ambil data untuk dropdown filter
-        $mapel_list = MataPelajaran::orderBy('urutan')->orderBy('nama_mapel')->get();
+        // 4. Ambil data untuk dropdown filter (Disamakan urutannya agar konsisten)
+        $mapel_list = MataPelajaran::where('is_active', 1)
+            ->orderBy('kategori', 'asc') // Tambahkan ini
+            ->orderBy('urutan', 'asc')
+            ->get();
+
         $kelas_list = Kelas::orderBy('tingkat')->orderBy('nama_kelas')->get();
         $guru_list = Guru::orderBy('nama_guru')->get(); 
 
-        // 5. Kirim data ke view
         return view('pembelajaran.index', compact('pembelajaran', 'mapel_list', 'kelas_list', 'guru_list'));
+    }
+
+    // 🟩 API: Ambil data pembelajaran berdasarkan Mapel (untuk AJAX)
+    public function getByMapel($id_mapel)
+    {
+        $data = Pembelajaran::where('id_mapel', $id_mapel)
+            ->select('id_kelas', 'id_guru')
+            ->get();
+
+        return response()->json($data);
     }
 
     // 🟫 Tampilkan form create
     public function create()
     {
-        $mapel = MataPelajaran::orderBy('urutan', 'asc')->orderBy('nama_mapel', 'asc')->get();
+        // $mapel = MataPelajaran::orderBy('urutan', 'asc')->orderBy('nama_mapel', 'asc')->get();
+        $mapel = MataPelajaran::where('is_active', 1)
+            ->orderBy('kategori', 'asc') // Tambahkan ini
+            ->orderBy('nama_mapel', 'asc')
+            ->get();
+
         $kelas = Kelas::orderBy('tingkat')->orderBy('nama_kelas')->get();
         $guru = Guru::orderBy('nama_guru')->get();
         
@@ -69,7 +90,10 @@ class PembelajaranController extends Controller
     {
         // 1. Validasi Input Dasar (ID Mapel)
         $request->validate([
-            'id_mapel' => 'required|exists:mata_pelajaran,id_mapel',
+            'id_mapel' => [
+                'required',
+                Rule::exists('mata_pelajaran', 'id_mapel')->where('is_active', 1),
+            ],
             'kelas_guru' => 'required|array', 
         ]);
         
@@ -81,15 +105,21 @@ class PembelajaranController extends Controller
         foreach ($data_pembelajaran as $data) {
             
             $id_kelas = $data['id_kelas'];
-            $id_guru = $data['id_guru'] ?? self::DEFAULT_GURU_ID; 
+            
+            // Ambil input guru, default null jika tidak ada key-nya
+            $raw_guru = $data['id_guru'] ?? null;
+            
+            // LOGIKA BARU: Jika 0 atau string kosong, ubah jadi NULL (Jangan pakai DEFAULT_GURU_ID)
+            if (empty($raw_guru) || $raw_guru === "0" || $raw_guru === 0) {
+                $id_guru = null;
+            } else {
+                $id_guru = $raw_guru;
+            }
+
             $is_active = isset($data['active']); 
 
             if ($is_active) {
-                // Jika aktif, pastikan ID Guru valid (bukan 0 atau kosong)
-                if (empty($id_guru) || $id_guru === "" || $id_guru == 0) {
-                    $id_guru = self::DEFAULT_GURU_ID;
-                }
-                
+                // Cek apakah data sudah ada
                 $existing = Pembelajaran::where('id_mapel', $id_mapel)
                                         ->where('id_kelas', $id_kelas)
                                         ->first();
@@ -99,11 +129,11 @@ class PembelajaranController extends Controller
                     Pembelajaran::create([
                         'id_mapel' => $id_mapel,
                         'id_kelas' => $id_kelas,
-                        'id_guru'  => $id_guru, // Menggunakan ID valid atau Placeholder ID 1
+                        'id_guru'  => $id_guru, // Simpan NULL jika belum ditentukan
                     ]);
                     $counter++;
                 } else {
-                    // Update guru yang ada
+                    // Update guru yang ada (bisa jadi mengubah dari Ada Guru -> NULL)
                     $existing->update(['id_guru' => $id_guru]);
                 }
             } else {
@@ -151,6 +181,7 @@ class PembelajaranController extends Controller
     // 🟨 Proses Update data pembelajaran (Mass Update)
     public function update(Request $request, $id_pembelajaran) 
     {
+        // Ambil data awal untuk mengetahui konteks Mapel apa yang sedang diedit
         $pembelajaran_awal = Pembelajaran::findOrFail($id_pembelajaran);
         $id_mapel_edit = $pembelajaran_awal->id_mapel;
 
@@ -166,39 +197,46 @@ class PembelajaranController extends Controller
         foreach ($data_pembelajaran as $data) {
             
             $id_kelas = $data['id_kelas'];
-            $id_guru = $data['id_guru'] ?? self::DEFAULT_GURU_ID; 
+            
+            // Ambil input guru
+            $raw_guru = $data['id_guru'] ?? null;
+
+            // LOGIKA BARU: Jika 0 atau kosong, set NULL.
+            if (empty($raw_guru) || $raw_guru === "0" || $raw_guru === 0) {
+                $id_guru = null;
+            } else {
+                $id_guru = $raw_guru;
+            }
+
             $is_active = isset($data['active']); 
 
             if ($is_active) {
-                // Jika aktif, pastikan ID Guru valid (bukan 0 atau kosong)
-                if (empty($id_guru) || $id_guru === "" || $id_guru == 0) {
-                    $id_guru = self::DEFAULT_GURU_ID;
-                }
                 
+                // Cek data existing
                 $existing = Pembelajaran::where('id_mapel', $id_mapel_edit)
                                         ->where('id_kelas', $id_kelas)
                                         ->first();
                 
                 if (!$existing) {
-                    // Create baru
+                    // Create baru jika belum ada
                     Pembelajaran::create([
                         'id_mapel' => $id_mapel_edit, 
                         'id_kelas' => $id_kelas,
-                        'id_guru'  => $id_guru, // Menggunakan ID valid (misal 1)
+                        'id_guru'  => $id_guru, 
                     ]);
                     $counter_created++;
                 } else {
-                    // Update guru yang ada jika berbeda
+                    // Update jika id_guru berbeda (termasuk jika berubah jadi NULL)
                     if ($existing->id_guru != $id_guru) {
                         $existing->update(['id_guru' => $id_guru]);
                         $counter_updated++;
                     }
                 }
             } else {
-                // Skema Delete: Jika Tidak Aktif, Hapus Record Pembelajaran
+                // Skema Delete: Jika Tidak Aktif (Uncheck), Hapus Data
                 $deleted = Pembelajaran::where('id_mapel', $id_mapel_edit) 
-                                        ->where('id_kelas', $id_kelas)
-                                        ->delete();
+                                       ->where('id_kelas', $id_kelas)
+                                       ->delete();
                 if($deleted) $counter_deleted++;
             }
         }

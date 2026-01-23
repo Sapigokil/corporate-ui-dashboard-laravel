@@ -19,7 +19,9 @@ class MataPelajaran extends Model
         'kategori',      // Umum / Kejuruan / Pilihan / Mulok
         'urutan',        // nomor urut tampilan rapor
         'id_guru',
-        'id_pembelajaran'
+        'id_pembelajaran',
+        'agama_khusus',
+        'is_active'
     ];
 
     /**

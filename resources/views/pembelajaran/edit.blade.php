@@ -1,4 +1,3 @@
-{{-- File: resources/views/pembelajaran/edit.blade.php --}}
 @extends('layouts.app') 
 
 @section('page-title', 'Edit Tautan Pembelajaran Mapel: ' . $mapel_edit->nama_mapel)
@@ -12,9 +11,27 @@
             <div class="row">
                 <div class="col-lg-10 col-md-12 mx-auto">
                     <div class="card my-4">
+                        
+                        {{-- REVISI: Header dengan Tombol Hapus di Kanan --}}
                         <div class="card-header p-0 position-relative mt-n4 mx-3 z-index-2">
-                            <div class="bg-gradient-warning shadow-warning border-radius-lg pt-4 pb-3">
-                                <h6 class="text-white text-capitalize ps-3"><i class="fas fa-edit me-2"></i> Edit Tautan Pembelajaran Jamak</h6>
+                            <div class="bg-gradient-warning shadow-warning border-radius-lg pt-4 pb-3 d-flex justify-content-between align-items-center">
+                                
+                                {{-- Judul --}}
+                                <h6 class="text-white text-capitalize ps-3 mb-0">
+                                    <i class="fas fa-edit me-2"></i> Edit Tautan Pembelajaran Jamak
+                                </h6>
+
+                                {{-- Tombol Hapus --}}
+                                <form action="{{ route('master.pembelajaran.destroy', $pembelajaran_awal->id_pembelajaran) }}" method="POST" class="d-inline pe-3">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-white text-danger mb-0" 
+                                            title="Hapus Data Ini"
+                                            onclick="return confirm('PERINGATAN: Anda yakin ingin menghapus data pembelajaran ini? Tindakan ini tidak dapat dibatalkan.')">
+                                        <i class="fas fa-trash me-1"></i> Hapus
+                                    </button>
+                                </form>
+
                             </div>
                         </div>
                         
@@ -34,7 +51,8 @@
                             
                             {{-- Notifikasi Info --}}
                             <div class="alert bg-gradient-info alert-dismissible text-white fade show text-sm">
-                                <i class="fas fa-info-circle me-1"></i> Centang Checkbox *Aktif* untuk mengaktifkan Mata Pelajaran di kelas tersebut. Menandakan Mata Pelajaran itu tersedia bagi kelas.
+                                <i class="fas fa-info-circle me-1"></i> 
+                                <strong>Tips:</strong> Centang "Aktif" untuk mengaktifkan mapel di kelas. Hapus centang untuk menghapus tautan pada kelas tertentu.
                                 <button type="button" class="btn-close text-white" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
 
@@ -62,7 +80,15 @@
                                         <thead>
                                             <tr>
                                                 <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Nama Kelas</th>
-                                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 text-center">Aktif?</th>
+                                                
+                                                {{-- Checkbox Master --}}
+                                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 text-center">
+                                                    Aktif? <br>
+                                                    <div class="form-check d-flex justify-content-center">
+                                                        <input class="form-check-input" type="checkbox" id="checkAll" title="Centang Semua">
+                                                    </div>
+                                                </th>
+                                                
                                                 <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Guru Pengampu</th>
                                             </tr>
                                         </thead>
@@ -77,20 +103,19 @@
                                                     $old_active = old("kelas_guru.{$loop->index}.active");
                                                     $old_guru = old("kelas_guru.{$loop->index}.id_guru");
 
-                                                    // 3. Tentukan status akhir: Prioritas Old Input > Data Database > Default
+                                                    // 3. Tentukan status akhir
                                                     $final_active = ($old_active !== null) ? ($old_active == 1) : $is_active;
                                                     $final_guru_id = ($old_guru !== null) ? $old_guru : $current_guru_id;
                                                 @endphp
                                             <tr>
                                                 <td class="align-middle">
                                                     <p class="text-sm font-weight-bold mb-0">{{ $k->nama_kelas }}</p>
-                                                    {{-- Hidden Input untuk ID Kelas --}}
                                                     <input type="hidden" name="kelas_guru[{{ $loop->index }}][id_kelas]" value="{{ $k->id_kelas }}">
                                                 </td>
                                                 
                                                 {{-- Checkbox Active --}}
                                                 <td class="align-middle text-center">
-                                                    <div class="form-check">
+                                                    <div class="form-check d-flex justify-content-center">
                                                         <input class="form-check-input check-active" type="checkbox" 
                                                                value="1" 
                                                                id="active_{{ $k->id_kelas }}"
@@ -143,4 +168,38 @@
         </div>
         
     </main>
+
+    {{-- SCRIPT CENTANG SEMUA --}}
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const checkAll = document.getElementById('checkAll');
+            const checkItems = document.querySelectorAll('.check-active');
+
+            // 1. Cek status awal (Penting untuk Edit Page)
+            if (checkItems.length > 0) {
+                const allChecked = Array.from(checkItems).every(c => c.checked);
+                checkAll.checked = allChecked;
+            }
+
+            // 2. Event Listener: Klik Master Checkbox
+            checkAll.addEventListener('change', function() {
+                const isChecked = this.checked;
+                checkItems.forEach(function(checkbox) {
+                    checkbox.checked = isChecked;
+                });
+            });
+
+            // 3. Event Listener: Klik Child Checkbox
+            checkItems.forEach(function(checkbox) {
+                checkbox.addEventListener('change', function() {
+                    if (!this.checked) {
+                        checkAll.checked = false;
+                    } else {
+                        const allChecked = Array.from(checkItems).every(c => c.checked);
+                        checkAll.checked = allChecked;
+                    }
+                });
+            });
+        });
+    </script>
 @endsection
