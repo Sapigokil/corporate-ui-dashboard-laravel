@@ -212,6 +212,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/input', 'inputCatatan')->name('input');
             Route::get('/template', 'downloadTemplate')->name('template');
             Route::get('/get-siswa/{id_kelas}', 'getSiswa')->name('getSiswa');
+            Route::get('check-prerequisite', 'checkPrerequisite')->name('check_prerequisite');
             
             Route::middleware('can:nilai.input')->group(function() {
                 Route::post('/simpan', 'simpanCatatan')->name('simpan');

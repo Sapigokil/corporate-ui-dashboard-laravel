@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Siswa;
 use App\Models\Kelas;
 use App\Models\InfoSekolah;
-use App\Models\MataPelajaran;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Exports\LedgerTemplateExport;
@@ -15,32 +14,18 @@ use Illuminate\Support\Facades\DB;
 class LedgerController extends Controller
 {
     /**
-     * =========================================================================
-     * 1. HELPER FUNCTIONS
-     * =========================================================================
-     */
-
-    /**
-     * Helper: Mapping Semester String ke Integer
-     */
-    private function mapSemesterToInt(?string $semester): int
-    {
-        return (strtoupper($semester) == 'GENAP') ? 2 : 1;
-    }
-
-    /**
-     * Helper: Sorting Data Ledger (Ranking)
+     * Helper untuk sorting data ledger (Ranking)
      */
     private function sortLedger($dataLedger)
     {
         return collect($dataLedger)
             ->sort(function ($a, $b) {
-                // 1. Rata-rata DESC
+                // 1️⃣ rata-rata DESC
                 $cmp = $b->rata_rata <=> $a->rata_rata;
                 if ($cmp !== 0) {
                     return $cmp;
                 }
-                // 2. Nama ASC
+                // 2️⃣ kalau sama → nama A-Z
                 return strcmp($a->nama_siswa, $b->nama_siswa);
             })
             ->values()
@@ -48,7 +33,7 @@ class LedgerController extends Controller
     }
 
     /**
-     * Helper: Generate Nama File Export
+     * Helper untuk membuat nama file export
      */
     private function buildFilename(Request $request, string $ext): string
     {
@@ -65,7 +50,7 @@ class LedgerController extends Controller
     }
 
     /**
-     * Helper: Mendapatkan List ID Kelas berdasarkan Filter
+     * Helper: Mendapatkan List ID Kelas berdasarkan Request (Mode Kelas / Jurusan)
      */
     private function getKelasIdsFromRequest(Request $request)
     {
@@ -79,28 +64,151 @@ class LedgerController extends Controller
         $jurusan = $request->jurusan;
         $tingkat = $request->tingkat;
         
-        $kelasQuery = Kelas::query();
-
-        if ($jurusan) {
-            $kelasQuery->where('jurusan', $jurusan);
-        }
+        $kelasQuery = Kelas::where('jurusan', $jurusan);
 
         if (!empty($tingkat)) {
-            $kelasQuery->where('tingkat', $tingkat);
+            $kelasQuery->where(function ($q) use ($tingkat) {
+                $q->where('nama_kelas', 'LIKE', $tingkat . '%')
+                    ->orWhere('nama_kelas', 'LIKE', 'X' . $tingkat . '%');
+            });
         }
         
         return $kelasQuery->pluck('id_kelas')->toArray();
     }
 
     /**
-     * =========================================================================
-     * 2. CORE LOGIC (STRUKTUR LAMA + DATA NILAI TEPAT)
-     * =========================================================================
+     * Halaman Utama Ledger (Web View)
+     */
+    public function index(Request $request)
+    {
+        // 1. Data Pendukung Filter
+        $kelas = Kelas::orderBy('nama_kelas', 'asc')->get();
+        $jurusanList = Kelas::select('jurusan')
+            ->whereNotNull('jurusan')
+            ->distinct()
+            ->orderBy('jurusan')
+            ->pluck('jurusan');
+
+        // 2. Ambil Parameter Request
+        $mode = $request->mode ?? 'kelas';
+        $id_kelas = $request->id_kelas;
+        $jurusan  = $request->jurusan;
+        $tingkat  = $request->tingkat;
+        $semesterRaw = $request->semester ?? 'Ganjil';
+        $tahun_ajaran = $request->tahun_ajaran ?? '2025/2026';
+        $semesterInt = (strtoupper($semesterRaw) == 'GANJIL') ? 1 : 2;
+
+        // Inisialisasi Variabel View
+        $daftarMapel = collect();
+        $dataLedger = [];
+
+        // 3. Ambil Kelas IDs
+        $kelasIds = $this->getKelasIdsFromRequest($request);
+
+        // Jika tidak ada kelas terpilih/valid, return view kosong
+        if (empty($kelasIds)) {
+            return view('rapor.ledger_index', compact(
+                'kelas',
+                'jurusanList',
+                'mode',
+                'id_kelas',
+                'jurusan',
+                'semesterRaw',
+                'tahun_ajaran',
+                'daftarMapel',
+                'dataLedger'
+            ));
+        }
+
+        // 4. Ambil Data Core
+        $coreData = $this->buildDataCore($kelasIds, $semesterInt, $tahun_ajaran);
+        
+        $daftarMapel = $coreData['daftarMapel'];
+        $dataLedger  = $coreData['dataLedger'];
+
+        // 5. Sorting Tampilan
+        $urut = $request->urut ?? 'ranking';
+
+        if ($urut === 'ranking') {
+            $dataLedger = $this->sortLedger($dataLedger);
+        } else {
+            // Sort by Nama (Absen)
+            $dataLedger = collect($dataLedger)
+                ->sortBy(fn ($r) => strtolower($r->nama_siswa))
+                ->values()
+                ->all();
+        }
+
+        return view('rapor.ledger_index', compact(
+            'kelas',
+            'jurusanList',
+            'mode',
+            'id_kelas',
+            'jurusan',
+            'semesterRaw',
+            'tahun_ajaran',
+            'daftarMapel',
+            'dataLedger'
+        ));
+    }
+
+    /**
+     * 🟢 PUBLIC API: Digunakan oleh LedgerTemplateExport (EXCEL)
+     * Method ini menjembatani antara Request Excel dengan Core Logic
+     */
+    public function buildLedgerData(Request $request)
+    {
+        $semesterRaw = $request->semester ?? 'Ganjil';
+        $tahun_ajaran = $request->tahun_ajaran ?? '2025/2026';
+        $semesterInt = (strtoupper($semesterRaw) == 'GANJIL') ? 1 : 2;
+
+        // Ambil ID Kelas dari logic terpusat
+        $kelasIds = $this->getKelasIdsFromRequest($request);
+
+        // Panggil Logic Utama (Ambil Nilai, Mapel, Siswa)
+        $data = $this->buildDataCore($kelasIds, $semesterInt, $tahun_ajaran);
+
+        // ---------------------------------------------------------
+        // PERBAIKAN: Tambahkan Data Info Sekolah di sini
+        // ---------------------------------------------------------
+        $infoSekolah = InfoSekolah::first();
+        
+        $data['namaSekolah'] = $infoSekolah->nama_sekolah ?? 'NAMA SEKOLAH BELUM DISET';
+        
+        $data['alamatSekolah'] = implode(', ', array_filter([
+            $infoSekolah->jalan ?? null,
+            $infoSekolah->kelurahan ?? null,
+            $infoSekolah->kecamatan ?? null,
+            $infoSekolah->kota_kab ?? null
+        ]));
+
+        // Tambahkan Metadata Lainnya
+        $data['semester'] = $semesterRaw;
+        $data['tahun_ajaran'] = $tahun_ajaran;
+        
+        // Ambil Nama Kelas (jika mode kelas)
+        if (!empty($kelasIds)) {
+            $kelasObj = Kelas::find($kelasIds[0]);
+            $data['namaKelas'] = $kelasObj ? $kelasObj->nama_kelas : 'Semua Kelas';
+            $data['waliKelas'] = $kelasObj ? ($kelasObj->wali_kelas ?? '-') : '-';
+        } else {
+            $data['namaKelas'] = 'Semua Kelas';
+            $data['waliKelas'] = '-';
+        }
+        
+        // Sorting default ranking untuk Excel
+        $data['dataLedger'] = $this->sortLedger($data['dataLedger']);
+
+        return $data;
+    }
+
+    /**
+     * CORE LOGIC: Membangun Data Ledger (FIX ZOMBIE DATA & GLOBAL AGAMA)
      */
     private function buildDataCore($kelasIds, $semesterInt, $tahun_ajaran)
     {
         // -----------------------------------------------------------
-        // A. Ambil Data Mapel (Header Tabel - Logic Lama)
+        // A. Ambil Data Mapel (Header Tabel)
         // -----------------------------------------------------------
         $rawMapelData = DB::table('pembelajaran')
             ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
@@ -124,18 +232,18 @@ class LedgerController extends Controller
             ->orderBy('mata_pelajaran.urutan')
             ->get();
 
-        // Ambil ID Mapel Agama untuk lookup nilai nanti
+        // 🟢 GLOBAL AGAMA LOOKUP + ZOMBIE ID FIX
         $globalAgamaIds = DB::table('mata_pelajaran')
             ->where('nama_mapel', 'LIKE', '%Agama%')
             ->pluck('id_mapel')
             ->toArray();
         
-        // Fix jika ada mapel agama zombie (ID 1)
+        // ⚠️ PAKSA MASUKKAN ID 1 (Mapel Zombie/Terhapus)
         if (!in_array(1, $globalAgamaIds)) {
             $globalAgamaIds[] = 1; 
         }
 
-        // Grouping Header Mapel (Agar kolom Agama jadi satu)
+        // Grouping Header Mapel
         $daftarMapel = $rawMapelData
             ->groupBy('mapel_key')
             ->map(function ($items) {
@@ -168,13 +276,12 @@ class LedgerController extends Controller
             ->get();
 
         // -----------------------------------------------------------
-        // C. Ambil Nilai Akhir (KONSISTENSI RAPOR)
+        // C. Ambil Nilai
         // -----------------------------------------------------------
         $nilaiList = DB::table('nilai_akhir')
             ->whereIn('id_siswa', $siswaList->pluck('id_siswa'))
             ->where('semester', $semesterInt)
             ->where('tahun_ajaran', trim($tahun_ajaran))
-            ->select('id_siswa', 'id_mapel', 'nilai_akhir') 
             ->get()
             ->groupBy(fn ($n) => $n->id_siswa . '-' . $n->id_mapel);
 
@@ -185,7 +292,6 @@ class LedgerController extends Controller
             ->whereIn('id_siswa', $siswaList->pluck('id_siswa'))
             ->where('semester', $semesterInt)
             ->where('tahun_ajaran', trim($tahun_ajaran))
-            ->select('id_siswa', 'sakit', 'ijin', 'alpha')
             ->get()
             ->keyBy('id_siswa');
 
@@ -208,7 +314,7 @@ class LedgerController extends Controller
                         $key = $siswa->id_siswa . '-' . $idAgamaAsli;
                         if (isset($nilaiList[$key])) {
                             $val = $nilaiList[$key][0]->nilai_akhir ?? 0;
-                            $score = $val; 
+                            $score = (int) round($val);
                             if ($score > 0) break; 
                         }
                     }
@@ -218,13 +324,10 @@ class LedgerController extends Controller
                     $key = $siswa->id_siswa . '-' . $mapel->id_mapel;
                     if (isset($nilaiList[$key])) {
                         $val = $nilaiList[$key][0]->nilai_akhir ?? 0;
-                        $score = $val;
+                        $score = (int) round($val);
                     }
                 }
 
-                // 🛑 FIX UTAMA: Simpan nilai LANGSUNG sebagai angka (Bukan Object)
-                // Ini memperbaiki error "Object could not be converted to int"
-                // Dan menghapus predikat sesuai permintaan.
                 $nilaiPerMapel[$mapel->id_mapel] = $score;
 
                 if ($score > 0) {
@@ -240,12 +343,14 @@ class LedgerController extends Controller
                 'nama_siswa' => $siswa->nama_siswa,
                 'nipd'       => $siswa->nipd,
                 'nisn'       => $siswa->nisn,
-                'scores'     => $nilaiPerMapel, // Array Angka: ['101' => 85, '102' => 90]
-                'total'      => $totalNilai,
-                'rata_rata'  => $jumlahMapelTerisi ? round($totalNilai / $jumlahMapelTerisi, 2) : 0,
+                'scores'     => $nilaiPerMapel,
+                'total'      => (int) $totalNilai,
+                // 'rata_rata'  => $jumlahMapelTerisi ? (int) round($totalNilai / $jumlahMapelTerisi) : 0,
+                // Hapus (int) dan tambah koma 2
+'rata_rata' => $jumlahMapelTerisi ? round($totalNilai / $jumlahMapelTerisi, 1) : 0,
                 'absensi'    => (object)[
                     'sakit' => $absensi->sakit ?? 0,
-                    'izin'  => $absensi->ijin ?? 0, 
+                    'izin'  => $absensi->ijin ?? 0,
                     'alpha' => $absensi->alpha ?? 0,
                 ]
             ];
@@ -259,119 +364,14 @@ class LedgerController extends Controller
     }
 
     /**
-     * =========================================================================
-     * 3. MAIN PAGES
-     * =========================================================================
-     */
-
-    public function index(Request $request)
-    {
-        // 1. Data Pendukung Filter
-        $kelas = Kelas::orderBy('nama_kelas', 'asc')->get();
-        
-        $jurusanList = Kelas::select('jurusan')
-            ->whereNotNull('jurusan')
-            ->distinct()
-            ->orderBy('jurusan')
-            ->pluck('jurusan');
-
-        $tingkatList = Kelas::select('tingkat')
-            ->whereNotNull('tingkat')
-            ->distinct()
-            ->orderBy('tingkat')
-            ->pluck('tingkat');
-
-        // Logic Tahun Ajaran
-        $tahunSekarang = date('Y');
-        $tahunAjaranList = [];
-        for ($t = $tahunSekarang - 3; $t <= $tahunSekarang + 3; $t++) {
-            $tahunAjaranList[] = $t . '/' . ($t + 1);
-        }
-        rsort($tahunAjaranList);
-
-        $defaultSemester = 'Ganjil';
-        $bulanSekarang = date('n');
-        if ($bulanSekarang < 7) {
-            $defaultTahunAjaran = ($tahunSekarang - 1) . '/' . $tahunSekarang;
-            $defaultSemester = 'Genap';
-        } else {
-            $defaultTahunAjaran = $tahunSekarang . '/' . ($tahunSekarang + 1);
-        }
-
-        // Set default request jika kosong
-        if (!$request->has('tahun_ajaran')) {
-            $request->merge([
-                'tahun_ajaran' => $defaultTahunAjaran, 
-                'semester' => $defaultSemester,
-                'mode' => 'kelas'
-            ]);
-        }
-
-        // 2. Ambil Parameter Request
-        $mode = $request->mode;
-        $id_kelas = $request->id_kelas;
-        $jurusan = $request->jurusan;
-        $semesterRaw = $request->semester;
-        $tahun_ajaran = $request->tahun_ajaran;
-        
-        $semesterInt = $this->mapSemesterToInt($semesterRaw);
-
-        // 3. Cek apakah filter terisi
-        $kelasIds = $this->getKelasIdsFromRequest($request);
-
-        // Default Kosong
-        $daftarMapel = collect();
-        $dataLedger = [];
-
-        if (!empty($kelasIds)) {
-            // Panggil Core Logic
-            $coreData = $this->buildDataCore($kelasIds, $semesterInt, $tahun_ajaran);
-            
-            $daftarMapel = $coreData['daftarMapel'];
-            $dataLedger  = $coreData['dataLedger'];
-
-            // Sorting Tampilan
-            $urut = $request->urut ?? 'ranking';
-            if ($urut === 'ranking') {
-                $dataLedger = $this->sortLedger($dataLedger);
-            } else {
-                $dataLedger = collect($dataLedger)
-                    ->sortBy(fn ($r) => strtolower($r->nama_siswa))
-                    ->values()
-                    ->all();
-            }
-        }
-
-        $semesterList = ['Ganjil', 'Genap'];
-        $kbm = 75;
-
-        return view('rapor.ledger_index', compact(
-            'kelas',
-            'jurusanList',
-            'tingkatList',
-            'mode',
-            'id_kelas',
-            'jurusan',
-            'semesterRaw',
-            'tahun_ajaran',
-            'daftarMapel',
-            'dataLedger',
-            'tahunAjaranList',
-            'semesterList',
-            'defaultSemester',
-            'defaultTahunAjaran',
-            'kbm'
-        ));
-    }
-
-    /**
      * Export Excel
      */
     public function exportExcel(Request $request)
     {
+        $filename = $this->buildFilename($request, 'xlsx');
         return Excel::download(
-            new LedgerTemplateExport($request), 
-            $this->buildFilename($request, 'xlsx')
+            new LedgerTemplateExport($request),
+            $filename
         );
     }
 
@@ -380,15 +380,31 @@ class LedgerController extends Controller
      */
     public function exportPdf(Request $request)
     {
-        ini_set('memory_limit', '1024M');
+        ini_set('memory_limit', '1024M'); 
         ini_set('max_execution_time', 300);
 
         $semesterRaw = $request->semester ?? 'Ganjil';
-        $semesterInt = $this->mapSemesterToInt($semesterRaw);
         $tahun_ajaran = $request->tahun_ajaran ?? '2025/2026';
+        $semesterInt = strtoupper($semesterRaw) === 'GANJIL' ? 1 : 2;
 
+        // Ambil ID Kelas
         $kelasIds = $this->getKelasIdsFromRequest($request);
         
+        // Label Nama Kelas untuk PDF
+        $mode = $request->mode ?? 'kelas';
+        $namaKelasLabel = '-';
+        $kelasObj = null;
+
+        if (!empty($kelasIds)) {
+            $kelasObj = Kelas::find($kelasIds[0]);
+            if ($mode === 'kelas') {
+                $namaKelasLabel = $kelasObj->nama_kelas;
+            } else {
+                $namaKelasLabel = 'Jurusan ' . $request->jurusan;
+            }
+        }
+
+        // Panggil Core Logic
         $core = $this->buildDataCore($kelasIds, $semesterInt, $tahun_ajaran);
         $dataLedger = $this->sortLedger($core['dataLedger']);
 
@@ -400,11 +416,6 @@ class LedgerController extends Controller
             $infoSekolah->kecamatan ?? null,
             $infoSekolah->kota_kab ?? null
         ]));
-
-        $kelasObj = $core['kelasObj'];
-        $namaKelasLabel = ($request->mode == 'jurusan') 
-            ? 'Jurusan ' . $request->jurusan 
-            : ($kelasObj->nama_kelas ?? '-');
 
         $nama_wali = $kelasObj->wali_kelas ?? '-';
         $nip_wali  = '-';
@@ -421,37 +432,11 @@ class LedgerController extends Controller
             'nip_wali'      => $nip_wali
         ];
 
+        $filename = $this->buildFilename($request, 'pdf');
+
         $pdf = Pdf::loadView('rapor.ledger_pdf', $dataView)
             ->setPaper('a4', 'landscape');
 
-        return $pdf->stream($this->buildFilename($request, 'pdf'));
-    }
-
-    /**
-     * PUBLIC API: Digunakan oleh LedgerTemplateExport (EXCEL)
-     */
-    public function buildLedgerData(Request $request)
-    {
-        $semesterRaw = $request->semester ?? 'Ganjil';
-        $tahun_ajaran = $request->tahun_ajaran ?? '2025/2026';
-        $semesterInt = $this->mapSemesterToInt($semesterRaw);
-
-        $kelasIds = $this->getKelasIdsFromRequest($request);
-        $data = $this->buildDataCore($kelasIds, $semesterInt, $tahun_ajaran);
-
-        $infoSekolah = InfoSekolah::first();
-        $data['namaSekolah'] = $infoSekolah->nama_sekolah ?? 'SEKOLAH';
-        $data['alamatSekolah'] = $infoSekolah->alamat ?? '';
-        
-        $data['semester'] = $semesterRaw;
-        $data['tahun_ajaran'] = $tahun_ajaran;
-        
-        $kelasObj = $data['kelasObj'];
-        $data['namaKelas'] = $kelasObj ? $kelasObj->nama_kelas : 'Semua';
-        $data['waliKelas'] = $kelasObj ? $kelasObj->wali_kelas : '-';
-
-        $data['dataLedger'] = $this->sortLedger($data['dataLedger']);
-
-        return $data;
+        return $pdf->stream($filename);
     }
 }

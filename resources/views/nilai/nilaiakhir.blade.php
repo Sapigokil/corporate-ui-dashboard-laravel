@@ -74,67 +74,62 @@
                                 </div>
                             @endif
                             
-                            {{-- FORM FILTER --}}
+                            {{-- FORM FILTER NILAI AKHIR (STYLE CLEAN & AUTO-SUBMIT) --}}
                             <div class="p-4 border-bottom">
-                                <form action="{{ route('master.nilaiakhir.index') }}" method="GET" class="row align-items-end">
+                                <form action="{{ route('master.nilaiakhir.index') }}" method="GET" class="row align-items-end mb-0">
                                     
-                                    {{-- 1. Kelas --}}
+                                    {{-- Filter Kelas --}}
                                     <div class="col-md-3 mb-3">
                                         <label for="id_kelas" class="form-label">Kelas:</label>
-                                        <select name="id_kelas" id="id_kelas" required class="form-select" onchange="this.form.submit()">
+                                        <select name="id_kelas" id="id_kelas" required class="form-select ajax-select-kelas" data-target="#mapel_filter" onchange="this.form.submit()">
                                             <option value="">Pilih Kelas</option>
                                             @foreach($kelas as $k)
-                                                <option value="{{ $k->id_kelas }}" 
-                                                    {{ request('id_kelas') == $k->id_kelas ? 'selected' : '' }}>
+                                                <option value="{{ $k->id_kelas }}" {{ request('id_kelas') == $k->id_kelas ? 'selected' : '' }}>
                                                     {{ $k->nama_kelas }}
                                                 </option>
                                             @endforeach
                                         </select>
                                     </div>
                                     
-                                    {{-- 2. Mapel --}}
-                                    <div class="col-md-3 mb-3">
+                                    {{-- Filter Mapel --}}
+                                    <div class="col-md-5 mb-3">
                                         <label for="id_mapel" class="form-label">Mata Pelajaran:</label>
-                                        <select name="id_mapel" id="id_mapel" required class="form-select" {{ !request('id_kelas') ? 'disabled' : '' }} onchange="this.form.submit()">
+                                        <select name="id_mapel" id="mapel_filter" required class="form-select" {{ !request('id_kelas') ? 'disabled' : '' }} onchange="this.form.submit()">
                                             <option value="">Pilih Mapel</option>
                                             @foreach ($mapel as $m)
-                                                <option value="{{ $m->id_mapel }}" 
-                                                    {{ request('id_mapel') == $m->id_mapel ? 'selected' : '' }}>
+                                                <option value="{{ $m->id_mapel }}" {{ request('id_mapel') == $m->id_mapel ? 'selected' : '' }}>
                                                     {{ $m->nama_mapel }}
                                                 </option>
                                             @endforeach
                                         </select>
                                     </div>
 
-                                    {{-- 3. Semester --}}
+                                    {{-- Filter Semester --}}
                                     <div class="col-md-2 mb-3">
                                         <label for="semester" class="form-label">Semester:</label>
-                                        <select name="semester" id="semester" required class="form-select">
+                                        <select name="semester" id="input_semester" required class="form-select" onchange="this.form.submit()">
                                             @foreach($semesterList as $sem)
-                                                <option value="{{ $sem }}" 
-                                                    {{ request('semester', $defaultSemester) == $sem ? 'selected' : '' }}>
+                                                <option value="{{ $sem }}" {{ request('semester', $defaultSemester) == $sem ? 'selected' : '' }}>
                                                     {{ $sem }}
                                                 </option>
                                             @endforeach
                                         </select>
                                     </div>
 
-                                    {{-- 4. Tahun Ajaran --}}
+                                    {{-- Filter Tahun Ajaran --}}
                                     <div class="col-md-2 mb-3">
                                         <label for="tahun_ajaran" class="form-label">Tahun Ajaran:</label>
-                                        <select name="tahun_ajaran" id="tahun_ajaran" required class="form-select">
+                                        <select name="tahun_ajaran" id="input_tahun_ajaran" required class="form-select" onchange="this.form.submit()">
                                             @foreach ($tahunAjaranList as $ta)
-                                                <option value="{{ $ta }}" 
-                                                    {{ request('tahun_ajaran', $defaultTahunAjaran) == $ta ? 'selected' : '' }}>
+                                                <option value="{{ $ta }}" {{ request('tahun_ajaran', $defaultTahunAjaran) == $ta ? 'selected' : '' }}>
                                                     {{ $ta }}
                                                 </option>
                                             @endforeach
                                         </select>
                                     </div>
-                                    
-                                    <div class="col-md-2 mb-3 text-end">
-                                        <button type="submit" class="btn bg-gradient-primary w-100 mb-0">Tampilkan Data</button>
-                                    </div>
+
+                                    {{-- Hidden Submit Button (Trigger otomatis) --}}
+                                    <button type="submit" class="d-none"></button>
                                 </form>
                             </div>
 

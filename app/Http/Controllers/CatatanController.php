@@ -15,55 +15,123 @@ use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\RaporController;
 
-
 class CatatanController extends Controller
 {
-
-/**
-     * ==============================
-     * FUNCTION BANTU KATEGORI NILAI
-     * ==============================
+    /**
+     * Helper: Menentukan Kategori Nilai untuk Template Catatan
      */
     private function getKategoriNilai($nilai)
     {
-        if ($nilai === null) {
-            return null;
-        }
-
-        if ($nilai < 78) {
-            return 'belum_berkembang';
-        } elseif ($nilai >= 78 && $nilai <= 85) {
-            return 'layak';
-        } elseif ($nilai >= 86 && $nilai <= 92) {
-            return 'cakap';
-        } else {
-            return 'mahir';
-        }
+        if ($nilai === null) return null;
+        if ($nilai < 78) return 'belum_berkembang';
+        if ($nilai <= 85) return 'layak';
+        if ($nilai <= 92) return 'cakap';
+        return 'mahir';
     }
 
+    /**
+     * Helper: Mapping Semester String ke Integer
+     */
     private function mapSemesterToInt(?string $semester): ?int
     {
         if (!$semester) return null;
-
-        $map = [
-            'GANJIL' => 1,
-            'GENAP' => 2,
-        ];
-
+        $map = ['GANJIL' => 1, 'GENAP' => 2];
         return $map[strtoupper(trim($semester))] ?? null;
     }
 
     /**
-     * Tampilkan halaman input catatan
+     * ==========================================
+     * 1. AJAX PREREQUISITE CHECK (Lock Season)
+     * ==========================================
+     * Digunakan oleh JavaScript untuk memvalidasi akses secara real-time
+     */
+    public function checkPrerequisite(Request $request)
+    {
+        // Ambil season yang sedang aktif
+        $activeSeason = Season::where('is_active', 1)->first();
+
+        // 1. Cek Keberadaan Season
+        if (!$activeSeason) {
+            return response()->json([
+                'status' => 'locked_season',
+                'message' => '<strong>AKSES DITUTUP:</strong> Tidak ada Season (Tahun Ajaran) yang aktif di sistem.',
+                'season' => null
+            ]);
+        }
+
+        // Data Season untuk ditampilkan di Frontend
+        $seasonData = [
+            'semester' => $activeSeason->semester == 1 ? 'Ganjil' : 'Genap',
+            'tahun' => $activeSeason->tahun_ajaran,
+            'status' => $activeSeason->is_open ? 'Terbuka' : 'Tertutup',
+            'is_open' => (bool)$activeSeason->is_open,
+            'start' => date('d/m/Y', strtotime($activeSeason->start_date)),
+            'end' => date('d/m/Y', strtotime($activeSeason->end_date))
+        ];
+
+        // 2. Cek Status Open Manual (Switch Admin)
+        if ($activeSeason->is_open == 0) {
+            return response()->json([
+                'status' => 'locked_season',
+                'message' => '<strong>AKSES DITUTUP SEMENTARA:</strong> Input catatan sedang dinonaktifkan oleh Administrator.',
+                'season' => $seasonData
+            ]);
+        }
+
+        // 3. Cek Rentang Tanggal (Start - End)
+        $today = now()->format('Y-m-d');
+        if ($today < $activeSeason->start_date) {
+            return response()->json([
+                'status' => 'locked_season',
+                'message' => "<strong>BELUM DIMULAI:</strong> Periode input catatan baru akan dibuka pada tanggal <strong>{$seasonData['start']}</strong>.",
+                'season' => $seasonData
+            ]);
+        }
+        if ($today > $activeSeason->end_date) {
+            return response()->json([
+                'status' => 'locked_season',
+                'message' => "<strong>PERIODE BERAKHIR:</strong> Batas waktu input catatan telah berakhir pada tanggal <strong>{$seasonData['end']}</strong>.",
+                'season' => $seasonData
+            ]);
+        }
+
+        // 4. Cek Kesesuaian Input User dengan Season Aktif
+        // Validasi Tahun Ajaran
+        if ($request->tahun_ajaran != $activeSeason->tahun_ajaran) {
+            return response()->json([
+                'status' => 'locked_season',
+                'message' => "<strong>TAHUN AJARAN TIDAK SESUAI:</strong> Sistem aktif untuk <strong>{$activeSeason->tahun_ajaran}</strong>. Anda memilih <strong>{$request->tahun_ajaran}</strong>.",
+                'season' => $seasonData
+            ]);
+        }
+
+        // Validasi Semester
+        $semesterInputInt = $this->mapSemesterToInt($request->semester);
+        if ($semesterInputInt != $activeSeason->semester) {
+            return response()->json([
+                'status' => 'locked_season',
+                'message' => "<strong>SEMESTER TIDAK SESUAI:</strong> Sistem aktif untuk Semester <strong>{$seasonData['semester']}</strong>. Anda memilih <strong>{$request->semester}</strong>.",
+                'season' => $seasonData
+            ]);
+        }
+
+        // Jika semua lolos, status Safe
+        return response()->json([
+            'status' => 'safe',
+            'season' => $seasonData
+        ]);
+    }
+
+    /**
+     * ==========================================
+     * 2. HALAMAN UTAMA INPUT CATATAN
+     * ==========================================
      */
     public function inputCatatan(Request $request)
     {
-        $seasonOpen = \App\Models\Season::currentOpen(); // 🔒 cek season aktif
-
-        // Ambil semua kelas untuk filter dropdown
         $kelas = Kelas::all();
         
-        // Inisialisasi variabel awal agar tidak error saat view dimuat pertama kali
+        // Inisialisasi variabel
         $set_kokurikuler = collect(); 
         $siswa = collect();
         $rapor = null;
@@ -72,27 +140,25 @@ class CatatanController extends Controller
         $dataEkskulTersimpan = []; 
         $templateKokurikuler = '';
 
-        // Load siswa jika kelas dipilih (untuk dropdown siswa)
+        // Load siswa untuk dropdown jika kelas dipilih
         if ($request->id_kelas) {
-            $siswa = Siswa::where('id_kelas', $request->id_kelas)->get();
+            $siswa = Siswa::where('id_kelas', $request->id_kelas)->orderBy('nama_siswa')->get();
         }
 
-        // Eksekusi logika utama jika filter lengkap
+        // Jika Filter Lengkap -> Load Data Utama
         if ($request->id_kelas && $request->id_siswa && $request->tahun_ajaran && $request->semester) {
-            // Gunakan Eager Loading 'kelas' untuk mendapatkan data 'tingkat'
             $siswaTerpilih = Siswa::with('kelas')->find($request->id_siswa);
             $kelasTerpilih = Kelas::find($request->id_kelas);
             
+            // Ambil Template Kokurikuler Sesuai Tingkat
             if ($siswaTerpilih && $siswaTerpilih->kelas) {
-                // Ambil template kokurikuler berdasarkan TINGKAT (Angka: 10, 11, 12)
                 $set_kokurikuler = SetKokurikuler::where('tingkat', $siswaTerpilih->kelas->tingkat)
-                                    ->where('aktif', 1)
-                                    ->get();
+                                                 ->where('aktif', 1)->get();
             }
 
             $semesterInt = $this->mapSemesterToInt($request->semester);
 
-            // 1. Ambil Nilai Akhir & Template Fallback (dari Config jika ada)
+            // Ambil Nilai Akhir untuk Penentuan Template Otomatis
             $dataNilai = NilaiAkhir::where('id_siswa', $request->id_siswa)
                 ->where('semester', $semesterInt)
                 ->where('tahun_ajaran', $request->tahun_ajaran)
@@ -106,7 +172,7 @@ class CatatanController extends Controller
                 $templateKokurikuler = config("catatan.template_kokurikuler.$kelasLevel.$kategori") ?? '';
             }    
 
-            // 2. Ambil data catatan dari tabel 'catatan'
+            // Ambil Data Catatan yang sudah tersimpan
             $rapor = \DB::table('catatan')
                 ->where('id_kelas', $request->id_kelas)
                 ->where('id_siswa', $request->id_siswa)
@@ -114,7 +180,7 @@ class CatatanController extends Controller
                 ->where('semester', $semesterInt)
                 ->first();
 
-            // 3. Parsing data ekskul, predikat, dan keterangan
+            // Parsing Data Ekskul (Array)
             if ($rapor && !empty($rapor->ekskul)) {
                 $ids = explode(',', $rapor->ekskul);
                 $preds = explode(',', $rapor->predikat ?? ''); 
@@ -133,44 +199,36 @@ class CatatanController extends Controller
         } 
 
         return view('nilai.catatan', compact(
-            'kelas', 
-            'siswa', 
-            'rapor', 
-            'ekskul', 
-            'siswaTerpilih', 
-            'dataEkskulTersimpan', 
-            'templateKokurikuler',
-            'set_kokurikuler',
-            'seasonOpen'
+            'kelas', 'siswa', 'rapor', 'ekskul', 
+            'siswaTerpilih', 'dataEkskulTersimpan', 
+            'templateKokurikuler', 'set_kokurikuler'
         ));
     }
 
     /**
-     * AJAX get siswa berdasarkan kelas
+     * AJAX Helper: Get Siswa
      */
     public function getSiswa($id_kelas)
     {
-        try {
-            return Siswa::where('id_kelas', $id_kelas)->get();
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        return Siswa::where('id_kelas', $id_kelas)->orderBy('nama_siswa')->get();
     }
 
-
     /**
-     * Simpan Catatan Rapor
+     * ==========================================
+     * 3. SIMPAN CATATAN (SERVER-SIDE LOCK)
+     * ==========================================
      */
     public function simpanCatatan(Request $request)
     {
-        $seasonOpen = \App\Models\Season::currentOpen();
-        if (!$seasonOpen) {
-            return back()->with('error', '🔒 Input catatan dikunci karena season tidak aktif.');
+        // 🔒 VALIDASI SEASON KETAT (Backend Guard)
+        // Mencegah bypass form via inspect element
+        if (!Season::currentOpen()) {
+            return back()->with('error', '⛔ Gagal Simpan: Season Input Data Sedang Ditutup atau Tidak Sesuai.');
         }
+
         $semesterInt = $this->mapSemesterToInt($request->semester);
         
+        // Proses Data Ekskul
         $validIds = [];
         $validPredikats = [];
         $validKets = [];
@@ -185,6 +243,7 @@ class CatatanController extends Controller
             }
         }
 
+        // Simpan ke DB
         \DB::table('catatan')->updateOrInsert(
             [
                 'id_siswa'     => $request->id_siswa,
@@ -205,65 +264,69 @@ class CatatanController extends Controller
             ]
         );
 
-        // Panggil mesin penghitung status rapor
+        // Update Status Rapor (Generate/Lock status)
         app(RaporController::class)->perbaruiStatusRapor(
             $request->id_siswa, 
             $request->semester, 
             $request->tahun_ajaran
         );
 
-        return back()->with('success', 'Data berhasil disimpan!');
+        return back()->with('success', 'Data catatan berhasil disimpan!');
     }
 
+    /**
+     * ==========================================
+     * 4. MONITORING PROGRESS (Dashboard Progress)
+     * ==========================================
+     */
     public function indexProgressCatatan(Request $request)
     {
-        // --- Data Pendukung ---
         $kelasList = Kelas::all(); 
         
-        // Logika untuk menampilkan progres hanya berdasarkan Kelas, TA, dan Semester
         $query = DB::table('catatan')->select([
             'id_kelas', 
             'tahun_ajaran', 
             'semester',
-            DB::raw('COUNT(id_siswa) as total_siswa_dicatat') // Menghitung baris unik siswa yang memiliki catatan
+            DB::raw('COUNT(id_siswa) as total_siswa_dicatat')
         ])
         ->groupBy('id_kelas', 'tahun_ajaran', 'semester');
         
-        // --- Terapkan Filter ---
-        if ($request->id_kelas) {
-            $query->where('id_kelas', $request->id_kelas);
-        } 
-        if ($request->tahun_ajaran) {
-            $query->where('tahun_ajaran', $request->tahun_ajaran);
-        } 
+        if ($request->id_kelas) $query->where('id_kelas', $request->id_kelas);
+        if ($request->tahun_ajaran) $query->where('tahun_ajaran', $request->tahun_ajaran);
         if ($request->semester) {
-            $query->where('semester', $request->semester);
-        } 
+            $semInt = $this->mapSemesterToInt($request->semester);
+            if ($semInt) $query->where('semester', $semInt);
+        }
         
         $progressData = $query->get();
 
-        // Mapping Data untuk View
         $kelasMap = Kelas::pluck('nama_kelas', 'id_kelas');
-        $siswaPerKelas = Siswa::select('id_kelas', DB::raw('COUNT(*) as total'))->groupBy('id_kelas')->get()->keyBy('id_kelas');
+        $siswaPerKelas = Siswa::select('id_kelas', DB::raw('COUNT(*) as total'))
+                              ->groupBy('id_kelas')
+                              ->get()
+                              ->keyBy('id_kelas');
 
         $progress = $progressData->map(function ($item) use ($kelasMap, $siswaPerKelas) {
-            $totalSiswaDiKelas = $siswaPerKelas[$item->id_kelas]->total ?? 0;
-            
+            $totalSiswa = $siswaPerKelas[$item->id_kelas]->total ?? 0;
             return [
                 'nama_kelas' => $kelasMap[$item->id_kelas] ?? 'Kelas Dihapus',
                 'tahun_ajaran' => $item->tahun_ajaran,
-                'semester' => $item->semester,
+                'semester' => $item->semester == 1 ? 'Ganjil' : 'Genap',
                 'dicatat' => $item->total_siswa_dicatat,
-                'total_siswa' => $totalSiswaDiKelas,
-                'persen' => $totalSiswaDiKelas > 0 ? round(($item->total_siswa_dicatat / $totalSiswaDiKelas) * 100) : 0,
+                'total_siswa' => $totalSiswa,
+                'persen' => $totalSiswa > 0 ? round(($item->total_siswa_dicatat / $totalSiswa) * 100) : 0,
                 'id_kelas' => $item->id_kelas, 
             ];
         });
 
-        return view('nilai.catatan', compact('progress', 'kelasList'));
+        return view('nilai.catatan_progress', compact('progress', 'kelasList'));
     }
 
-    // === METHOD DOWNLOAD TEMPLATE CATATAN ===
+    /**
+     * ==========================================
+     * 5. DOWNLOAD TEMPLATE
+     * ==========================================
+     */
     public function downloadTemplate(Request $request)
     {
         $request->validate([
@@ -281,7 +344,6 @@ class CatatanController extends Controller
 
         $fileName = 'Template_Catatan_Wali_' . str_replace(' ', '_', $kelas->nama_kelas) . '.xlsx';
         
-        // Kirim data filter, koleksi siswa, dan objek kelas ke Export Class
         return Excel::download(new CatatanTemplateExport(
             $request->all(),
             $siswa,
@@ -289,9 +351,18 @@ class CatatanController extends Controller
         ), $fileName);
     }
     
-    // === METHOD IMPORT CATATAN WALI KELAS ===
+    /**
+     * ==========================================
+     * 6. IMPORT EXCEL (SERVER-SIDE LOCK)
+     * ==========================================
+     */
     public function importExcel(Request $request)
     {
+        // 🔒 VALIDASI SEASON SERVER-SIDE
+        if (!Season::currentOpen()) {
+            return back()->with('error', '⛔ Gagal Import: Season Input Data Sedang Ditutup.');
+        }
+
         $request->validate([
             'file_excel' => 'required|file|mimes:xlsx,xls',
             'id_kelas' => 'required|exists:kelas,id_kelas',
@@ -302,7 +373,6 @@ class CatatanController extends Controller
         $filters = $request->only(['id_kelas', 'semester', 'tahun_ajaran']);
 
         try {
-            // Inisialisasi Import Class dengan filter
             Excel::import(new CatatanImport($filters), $request->file('file_excel'));
 
             return redirect()->route('master.catatan.input', $request->query())
