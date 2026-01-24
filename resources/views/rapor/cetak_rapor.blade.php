@@ -56,37 +56,70 @@
             </div>
             
             <div class="card-body">
-                {{-- Form Filter --}}
-                <form action="{{ route('rapornilai.cetak') }}" method="GET" class="row align-items-end mb-4">
-                    <div class="col-md-3">
-                        <label class="form-label font-weight-bold">Pilih Kelas</label>
-                        <select name="id_kelas" class="form-select" required onchange="this.form.submit()">
-                            <option value="">-- Pilih Kelas --</option>
-                            @foreach($kelas as $k)
-                                <option value="{{ $k->id_kelas }}" {{ $id_kelas == $k->id_kelas ? 'selected' : '' }}>{{ $k->nama_kelas }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label font-weight-bold">Semester</label>
-                        <select name="semester" class="form-select" onchange="this.form.submit()">
-                            @foreach($semesterList as $smt)
-                                <option value="{{ $smt }}" {{ $selectedSemester == $smt ? 'selected' : '' }}>{{ $smt }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label font-weight-bold">Tahun Ajaran</label>
-                        <select name="tahun_ajaran" class="form-select" onchange="this.form.submit()">
-                            @foreach($tahunAjaranList as $ta)
-                                <option value="{{ $ta }}" {{ $selectedTA == $ta ? 'selected' : '' }}>{{ $ta }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <button type="submit" class="btn btn-dark w-100 mb-0">Tampilkan</button>
-                    </div>
-                </form>
+                {{-- FORM FILTER (Style Ledger - Auto Submit) --}}
+                <div class="p-4 border-bottom bg-gray-100">
+                    <form action="{{ route('rapornilai.cetak') }}" method="GET">
+
+                        {{-- Logic Data Pendukung (Safety Fallback) --}}
+                        @php
+                            $tahunSekarang = date('Y');
+                            $listTahun = [];
+                            for($t = $tahunSekarang - 3; $t <= $tahunSekarang + 3; $t++) {
+                                $listTahun[] = $t . '/' . ($t + 1);
+                            }
+                            rsort($listTahun);
+
+                            $listSemester = ['Ganjil', 'Genap'];
+                        @endphp
+
+                        <div class="row align-items-end mb-0">
+
+                            {{-- Input Kelas --}}
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Pilih Kelas</label>
+                                <select name="id_kelas" class="form-select bg-white" required onchange="this.form.submit()">
+                                    <option value="">-- Pilih Kelas --</option>
+                                    @foreach($kelas as $k)
+                                        <option value="{{ $k->id_kelas }}" 
+                                            {{ request('id_kelas', $id_kelas ?? '') == $k->id_kelas ? 'selected' : '' }}>
+                                            {{ $k->nama_kelas }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            {{-- Input Semester --}}
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Semester</label>
+                                <select name="semester" class="form-select bg-white" onchange="this.form.submit()">
+                                    @foreach($listSemester as $smt)
+                                        <option value="{{ $smt }}" 
+                                            {{ request('semester', $semesterRaw ?? 'Ganjil') == $smt ? 'selected' : '' }}>
+                                            {{ $smt }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            {{-- Input Tahun Ajaran --}}
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Tahun Ajaran</label>
+                                <select name="tahun_ajaran" class="form-select bg-white" onchange="this.form.submit()">
+                                    @foreach($listTahun as $ta)
+                                        <option value="{{ $ta }}" 
+                                            {{ request('tahun_ajaran', $tahun_ajaran ?? '2025/2026') == $ta ? 'selected' : '' }}>
+                                            {{ $ta }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                        </div>
+
+                        {{-- Hidden Button (Agar form valid secara HTML standard) --}}
+                        <button type="submit" class="d-none"></button>
+                    </form>
+                </div>
 
                 @if($id_kelas)
                 
