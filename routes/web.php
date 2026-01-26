@@ -255,6 +255,8 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/download-satuan/{id_siswa}', [RaporController::class, 'download_satuan'])->name('download_satuan');
             Route::get('/download-massal', [RaporController::class, 'download_massal'])->name('download_massal');
             Route::get('/download-massal-pdf', [RaporController::class, 'download_massal_pdf'])->name('download_massal_pdf');
+            Route::post('/generate', [RaporController::class, 'generateRapor'])->name('generate_rapor');
+            Route::post('/unlock', [RaporController::class, 'unlockRapor'])->name('unlock_rapor');
         });
     });
 

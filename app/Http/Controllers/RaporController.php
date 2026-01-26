@@ -5,9 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Siswa;
 use App\Models\Kelas;
 use App\Models\InfoSekolah;
-use App\Models\Catatan;
-use App\Models\StatusRapor;
-use App\Models\BobotNilai; // WAJIB ADA
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -16,90 +13,14 @@ use ZipArchive;
 class RaporController extends Controller
 {
     /**
-     * AJAX: Get Detail Progress Per Siswa (FIX WARNA & STATUS)
-     */
-    public function getDetailProgress(Request $request)
-    {
-        $id_siswa = $request->id_siswa;
-        $id_kelas = $request->id_kelas;
-        $tahun_ajaran = $request->tahun_ajaran;
-        
-        $semesterRaw = $request->semester ?? 'Ganjil';
-        $semesterEnum = (strtoupper($semesterRaw) == 'GANJIL' || $semesterRaw == '1') ? 1 : 2;
-
-        // 1. Ambil Target Sumatif
-        $bobotSetting = BobotNilai::where('tahun_ajaran', $tahun_ajaran)
-            ->where('semester', strtoupper($semesterRaw))
-            ->first();
-        
-        $targetMin = $bobotSetting->jumlah_sumatif ?? 3; 
-
-        $agamaSiswa = DB::table('detail_siswa')->where('id_siswa', $id_siswa)->value('agama');
-        $agamaSiswa = strtolower(trim($agamaSiswa));
-
-        // 2. Ambil Mapel
-        $pembelajaran = DB::table('pembelajaran')
-        ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
-        ->where('pembelajaran.id_kelas', $id_kelas)
-        ->where('mata_pelajaran.is_active', 1)
-        ->where(function ($q) use ($agamaSiswa) {
-            $q->whereNull('mata_pelajaran.agama_khusus')
-            ->orWhereRaw('LOWER(TRIM(mata_pelajaran.agama_khusus)) = ?', [$agamaSiswa]);
-        })
-        ->select('mata_pelajaran.id_mapel', 'mata_pelajaran.nama_mapel', 'mata_pelajaran.kategori')
-        ->orderBy('mata_pelajaran.urutan', 'asc')
-        ->orderBy('mata_pelajaran.nama_mapel', 'asc')
-        ->get();
-
-        // 3. Loop Mapel
-        $data = $pembelajaran->map(function($mp) use ($id_siswa, $semesterEnum, $tahun_ajaran, $targetMin) {
-            
-            // Cek Nilai Akhir
-            $nilai = DB::table('nilai_akhir')
-                ->where('id_siswa', $id_siswa)
-                ->where('id_mapel', $mp->id_mapel)
-                ->where('semester', (string)$semesterEnum) 
-                ->where('tahun_ajaran', trim($tahun_ajaran))
-                ->first();
-            
-            // Cek Jumlah Sumatif
-            $countSumatif = DB::table('sumatif')
-                ->where('id_siswa', $id_siswa)
-                ->where('id_mapel', $mp->id_mapel)
-                ->where('semester', $semesterEnum)
-                ->where('tahun_ajaran', $tahun_ajaran)
-                ->whereNotNull('nilai')
-                ->count();
-
-            $hasNilaiAkhir = ($nilai && !is_null($nilai->nilai_akhir) && $nilai->nilai_akhir > 0);
-            
-            // Syarat Lengkap: Jumlah Sumatif >= Target DAN Nilai Akhir Ada
-            $isLengkap = ($countSumatif >= $targetMin) && $hasNilaiAkhir;
-
-            return [
-                'nama_mapel' => $mp->nama_mapel,
-                'kategori' => match((int)$mp->kategori) {
-                    1 => 'Umum', 2 => 'Kejuruan', 3 => 'Pilihan', 4 => 'Muatan Lokal', default => 'Lainnya'
-                },
-                // PERBAIKAN DI SINI: Gunakan key 'is_lengkap' agar cocok dengan JS
-                'is_lengkap' => $isLengkap, 
-                'progress_text' => $countSumatif . ' / ' . $targetMin, 
-                'nilai_akhir' => $hasNilaiAkhir ? (int)$nilai->nilai_akhir : '-'
-            ];
-        });
-
-        return response()->json(['data' => $data]);
-    }
-
-    /**
-     * Halaman Cetak Rapor (List Siswa per Kelas)
+     * Halaman Dashboard Cetak Rapor
      */
     public function cetakIndex(Request $request)
     {
         $kelas = Kelas::orderBy('nama_kelas', 'asc')->get();
         $id_kelas = $request->id_kelas;
         $semesterRaw = $request->semester ?? 'Ganjil';
-        $tahun_ajaran = $request->tahun_ajaran ?? '2025/2026';
+        $tahun_ajaran = $request->tahun_ajaran ?? date('Y') . '/' . (date('Y') + 1);
         $semesterInt = (strtoupper($semesterRaw) == 'GANJIL' || $semesterRaw == '1') ? 1 : 2;
 
         $siswaList = [];
@@ -110,18 +31,18 @@ class RaporController extends Controller
                 ->orderBy('nama_siswa', 'asc')
                 ->get();
 
+            // Cek Status Snapshot di tabel nilai_akhir_rapor
             foreach ($siswaList as $s) {
-                $s->status_monitoring = DB::table('status_rapor')
+                $headerRapor = DB::table('nilai_akhir_rapor')
                     ->where('id_siswa', $s->id_siswa)
-                    ->where('semester', (int)$semesterInt)
-                    ->where('tahun_ajaran', trim((string)$tahun_ajaran))
+                    ->where('semester', $semesterInt)
+                    ->where('tahun_ajaran', $tahun_ajaran)
+                    ->select('status_data', 'updated_at')
                     ->first();
 
-                $s->data_catatan = DB::table('catatan')
-                    ->where('id_siswa', $s->id_siswa)
-                    ->where('semester', (int)$semesterInt)
-                    ->where('tahun_ajaran', trim((string)$tahun_ajaran))
-                    ->first();
+                // Status untuk UI: Apakah sudah Final/Terkunci?
+                $s->is_locked = ($headerRapor && $headerRapor->status_data === 'final');
+                $s->last_update = $headerRapor->updated_at ?? null;
             }
         }
 
@@ -129,33 +50,356 @@ class RaporController extends Controller
     }
 
     /**
-     * Proses Cetak PDF Rapor Satuan
+     * AJAX: Detail Progress Mapel (Untuk Pop-up Cek Kelengkapan)
+     */
+    public function getDetailProgress(Request $request)
+    {
+        $id_siswa = $request->id_siswa;
+        $id_kelas = $request->id_kelas;
+        $tahun_ajaran = $request->tahun_ajaran;
+        $semesterRaw = $request->semester ?? 'Ganjil';
+        $semesterInt = (strtoupper($semesterRaw) == 'GANJIL' || $semesterRaw == '1') ? 1 : 2;
+
+        // 1. Ambil Agama Siswa (Untuk filter mapel agama)
+        $agamaSiswaRaw = DB::table('detail_siswa')->where('id_siswa', $id_siswa)->value('agama');
+        $agamaSiswa = strtolower(trim($agamaSiswaRaw));
+
+        // 2. Ambil List Mapel Wajib Kelas Ini (Live Data)
+        $pembelajaran = DB::table('pembelajaran')
+            ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
+            ->where('pembelajaran.id_kelas', $id_kelas)
+            ->where('mata_pelajaran.is_active', 1)
+            ->where(function ($q) use ($agamaSiswa) {
+                $q->whereNull('mata_pelajaran.agama_khusus')
+                  ->orWhereRaw('LOWER(TRIM(mata_pelajaran.agama_khusus)) = ?', [$agamaSiswa]);
+            })
+            ->select('mata_pelajaran.id_mapel', 'mata_pelajaran.nama_mapel', 'mata_pelajaran.kategori', 'mata_pelajaran.kode_mapel')
+            ->orderBy('mata_pelajaran.urutan', 'asc')
+            ->get();
+
+        // 3. Cek apakah sudah ada di tabel nilai_akhir
+        $nilaiData = DB::table('nilai_akhir')
+            ->where('id_siswa', $id_siswa)
+            ->where('semester', $semesterInt)
+            ->where('tahun_ajaran', $tahun_ajaran)
+            ->get()
+            ->keyBy('id_mapel');
+
+        $result = $pembelajaran->map(function($mp) use ($nilaiData) {
+            $data = $nilaiData->get($mp->id_mapel);
+            // Dianggap Lengkap jika row ada dan nilai_akhir tidak null
+            $isLengkap = $data && $data->nilai_akhir !== null; 
+
+            return [
+                'nama_mapel' => $mp->nama_mapel,
+                'kode'       => $mp->kode_mapel,
+                'kategori'   => match((int)$mp->kategori) {
+                    1 => 'Umum', 2 => 'Kejuruan', 3 => 'Pilihan', 4 => 'Mulok', default => '-'
+                },
+                'is_lengkap' => $isLengkap,
+                'nilai'      => $isLengkap ? (int)$data->nilai_akhir : '-',
+                'status_text'=> $isLengkap ? 'Sudah Masuk' : 'Belum Input'
+            ];
+        });
+
+        return response()->json(['data' => $result]);
+    }
+
+    /**
+     * GENERATE & KUNCI RAPOR (FULL SNAPSHOT VERSION)
+     * Menyimpan SEMUA data teks ke dalam tabel agar mandiri 100%.
+     */
+    public function generateRapor(Request $request)
+    {
+        $id_siswa = $request->id_siswa;
+        $tahun_ajaran = $request->tahun_ajaran;
+        $semesterRaw = $request->semester;
+        $semesterInt = (strtoupper($semesterRaw) == 'GANJIL' || $semesterRaw == '1') ? 1 : 2;
+
+        DB::beginTransaction();
+        try {
+            // 1. SIAPKAN DATA MENTAH (LIVE DATA SAAT INI)
+            $siswa = Siswa::with('kelas')->findOrFail($id_siswa);
+            $kelas = Kelas::find($siswa->id_kelas);
+            $sekolah = InfoSekolah::first();
+            $wali = DB::table('guru')->where('nama_guru', $kelas->wali_kelas)->first(); 
+
+            // Ambil Catatan & Absensi (Inputan Wali Kelas)
+            $catatanData = DB::table('catatan')
+                ->where('id_siswa', $id_siswa)
+                ->where('semester', $semesterInt)
+                ->where('tahun_ajaran', $tahun_ajaran)
+                ->first();
+
+            // 2. SIAPKAN JSON EKSKUL (SNAPSHOT NAMA & NILAI)
+            // Kita olah sekarang agar nanti tinggal baca JSON saja tanpa query master ekskul
+            $ekskulSnapshot = [];
+            if ($catatanData && !empty($catatanData->ekskul)) {
+                $ids = explode(',', $catatanData->ekskul);
+                $predikats = explode(',', $catatanData->predikat ?? '');
+                $descs = explode('|', $catatanData->keterangan ?? '');
+
+                foreach($ids as $idx => $idEkskul) {
+                    if(trim($idEkskul) == "") continue;
+                    
+                    // Ambil Nama Ekskul dari Master SAAT INI
+                    $namaEkskul = DB::table('ekskul')->where('id_ekskul', trim($idEkskul))->value('nama_ekskul');
+                    
+                    $ekskulSnapshot[] = [
+                        'nama' => $namaEkskul ?? 'Ekstrakurikuler Terhapus',
+                        'predikat' => $predikats[$idx] ?? '-',
+                        'keterangan' => $descs[$idx] ?? '-'
+                    ];
+                }
+            }
+            $jsonEkskul = json_encode($ekskulSnapshot); 
+
+            // 3. SIMPAN HEADER SNAPSHOT (nilai_akhir_rapor)
+            DB::table('nilai_akhir_rapor')->updateOrInsert(
+                [
+                    'id_siswa' => $id_siswa,
+                    'semester' => $semesterInt,
+                    'tahun_ajaran' => $tahun_ajaran
+                ],
+                [
+                    'id_kelas' => $siswa->id_kelas,
+                    
+                    // --- SNAPSHOT IDENTITAS SISWA (MANDIRI) ---
+                    'nama_siswa_snapshot' => $siswa->nama_siswa, 
+                    'nisn_snapshot' => $siswa->nisn,
+                    'nipd_snapshot' => $siswa->nipd,
+                    
+                    // --- SNAPSHOT KELAS & SEKOLAH ---
+                    'nama_kelas_snapshot' => $kelas->nama_kelas,
+                    'tingkat' => $kelas->tingkat,
+                    'fase_snapshot' => $this->getFase($kelas->tingkat), // Simpan huruf E/F
+                    
+                    'wali_kelas_snapshot' => $kelas->wali_kelas,
+                    'nip_wali_snapshot' => $wali->nip ?? '-',
+                    
+                    'kepsek_snapshot' => $sekolah->nama_kepsek ?? '-',
+                    'nip_kepsek_snapshot' => $sekolah->nip_kepsek ?? '-',
+                    
+                    'tanggal_cetak' => now(), 
+                    
+                    // --- SNAPSHOT NILAI NON-MAPEL ---
+                    'sakit' => $catatanData->sakit ?? 0,
+                    'izin' => $catatanData->izin ?? 0,
+                    'alpha' => $catatanData->alpha ?? 0,
+                    'dispensasi' => $catatanData->dispensasi ?? 0,
+                    
+                    'catatan_akademik' => $catatanData->catatan_akademik ?? null,
+                    'catatan_wali_kelas' => $catatanData->catatan_wali_kelas ?? '-',
+                    'catatan_p5' => $catatanData->catatan_p5 ?? null,
+                    
+                    'data_ekskul_snapshot' => $jsonEkskul, // SIMPAN JSON LENGKAP
+                    
+                    'status_kenaikan' => $catatanData->status_kenaikan ?? 'naik', 
+                    
+                    // --- KUNCI STATUS ---
+                    'status_data' => 'final',
+                    'updated_at' => now(),
+                    'created_at' => now() // Perlu dihandle jika insert manual, tapi updateOrInsert biasanya aman
+                ]
+            );
+
+            // 4. SIMPAN DETAIL SNAPSHOT (nilai_akhir)
+            // Mengisi kolom snapshot mapel/guru
+            $nilaiAkhirItems = DB::table('nilai_akhir')
+                ->where('id_siswa', $id_siswa)
+                ->where('semester', $semesterInt)
+                ->where('tahun_ajaran', $tahun_ajaran)
+                ->get();
+
+            foreach ($nilaiAkhirItems as $item) {
+                // Ambil data master saat ini
+                $mapelMaster = DB::table('mata_pelajaran')->where('id_mapel', $item->id_mapel)->first();
+                
+                $pembelajaran = DB::table('pembelajaran')
+                    ->where('id_kelas', $siswa->id_kelas)
+                    ->where('id_mapel', $item->id_mapel)
+                    ->first();
+                
+                $guruPengampu = $pembelajaran ? DB::table('guru')->where('id_guru', $pembelajaran->id_guru)->first() : null;
+
+                // Kunci data mapel & guru ke dalam row nilai_akhir
+                DB::table('nilai_akhir')
+                    ->where('id_nilai_akhir', $item->id_nilai_akhir)
+                    ->update([
+                        // Identitas Kelas saat nilai dibuat
+                        'nama_kelas_snapshot' => $kelas->nama_kelas,
+                        'tingkat' => $kelas->tingkat,
+                        'fase' => $this->getFase($kelas->tingkat),
+                        
+                        // Identitas Mapel (TEXT MATI)
+                        'nama_mapel_snapshot' => $mapelMaster->nama_mapel ?? $item->nama_mapel_snapshot ?? 'Mapel Terhapus',
+                        'kategori_mapel_snapshot' => $mapelMaster->kategori ?? '1',
+                        'kode_mapel_snapshot' => $mapelMaster->kode_mapel ?? '-',
+                        
+                        // Identitas Guru (TEXT MATI)
+                        'nama_guru_snapshot' => $guruPengampu->nama_guru ?? 'Belum diset',
+                        
+                        // Kunci Status
+                        'status_data' => 'final'
+                    ]);
+            }
+
+            DB::commit();
+            return response()->json(['message' => 'Rapor berhasil dikunci. Data aman untuk arsip jangka panjang.']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Gagal: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * UNLOCK RAPOR (REVISI)
+     * Mengembalikan status menjadi 'draft'
+     */
+    public function unlockRapor(Request $request)
+    {
+        $id_siswa = $request->id_siswa;
+        $tahun_ajaran = $request->tahun_ajaran;
+        $semesterRaw = $request->semester;
+        $semesterInt = (strtoupper($semesterRaw) == 'GANJIL' || $semesterRaw == '1') ? 1 : 2;
+
+        DB::beginTransaction();
+        try {
+            DB::table('nilai_akhir_rapor')
+                ->where('id_siswa', $id_siswa)
+                ->where('semester', $semesterInt)
+                ->where('tahun_ajaran', $tahun_ajaran)
+                ->update(['status_data' => 'draft', 'updated_at' => now()]);
+
+            DB::table('nilai_akhir')
+                ->where('id_siswa', $id_siswa)
+                ->where('semester', $semesterInt)
+                ->where('tahun_ajaran', $tahun_ajaran)
+                ->update(['status_data' => 'draft']);
+
+            DB::commit();
+            return response()->json(['message' => 'Kunci rapor dibuka. Silakan revisi data.']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Gagal: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * PROSES CETAK PDF (MURNI MEMBACA SNAPSHOT)
+     * Tidak ada Join ke tabel Master Siswa, Guru, Mapel, atau Ekskul.
+     */
+    private function persiapkanDataRapor($id_siswa, $semesterRaw, $tahun_ajaran)
+    {
+        $semesterInt = (strtoupper($semesterRaw) == 'GANJIL' || $semesterRaw == '1') ? 1 : 2;
+        
+        // 1. BACA HEADER SNAPSHOT
+        $header = DB::table('nilai_akhir_rapor')
+            ->where('id_siswa', $id_siswa)
+            ->where('semester', $semesterInt)
+            ->where('tahun_ajaran', $tahun_ajaran)
+            ->first();
+
+        // Validasi Final
+        if (!$header || $header->status_data !== 'final') {
+            return null; 
+        }
+
+        // 2. BACA DETAIL SNAPSHOT (Nilai Mapel)
+        $nilai = DB::table('nilai_akhir')
+            ->where('id_siswa', $id_siswa)
+            ->where('semester', $semesterInt)
+            ->where('tahun_ajaran', $tahun_ajaran)
+            ->orderBy('id_mapel', 'asc') // Atau kolom urutan jika disnapshot
+            ->get();
+            
+        // Grouping Mapel
+        $mapelFinal = [];
+        foreach ($nilai as $row) {
+            $kategoriId = $row->kategori_mapel_snapshot ?? 1;
+            
+            $item = (object) [
+                'nama_mapel'  => $row->nama_mapel_snapshot, // Nama dari Arsip
+                'nilai_akhir' => (int) $row->nilai_akhir,   // Integer
+                'capaian'     => $row->capaian_akhir,
+                'nama_guru'   => $row->nama_guru_snapshot   // Nama dari Arsip
+            ];
+            $mapelFinal[$kategoriId][] = $item;
+        }
+
+        // 3. DECODE EKSKUL (DARI JSON SNAPSHOT)
+        $dataEkskul = [];
+        if (!empty($header->data_ekskul_snapshot)) {
+            $dataEkskul = json_decode($header->data_ekskul_snapshot);
+        }
+
+        // 4. SUSUN DATA RETURN (MOCK OBJECT)
+        // Kita buat object palsu agar View PDF (rapor/pdf1_template) tidak error
+        $siswaMock = (object) [
+            'nama_siswa' => $header->nama_siswa_snapshot,
+            'nisn' => $header->nisn_snapshot,
+            'nipd' => $header->nipd_snapshot,
+            'kelas' => (object) [
+                'nama_kelas' => $header->nama_kelas_snapshot
+            ]
+        ];
+
+        return [
+            'siswa'         => $siswaMock, // Menggunakan data arsip
+            'fase'          => $header->fase_snapshot,
+            'sekolah'       => 'SMKN 1 SALATIGA', // Bisa disnapshot juga jika perlu
+            'mapelGroup'    => $mapelFinal,
+            'dataEkskul'    => $dataEkskul,
+            
+            'catatan'       => (object) [
+                'sakit' => $header->sakit,
+                'izin' => $header->izin,
+                'alpha' => $header->alpha,
+                'catatan_wali_kelas' => $header->catatan_wali_kelas,
+                'catatan_akademik' => $header->catatan_akademik,
+                'status_kenaikan' => $header->status_kenaikan
+            ],
+            
+            'semester'      => $semesterRaw,
+            'tahun_ajaran'  => $tahun_ajaran,
+            
+            'nama_wali'     => $header->wali_kelas_snapshot,
+            'nip_wali'      => $header->nip_wali_snapshot,
+            'nama_kepsek'   => $header->kepsek_snapshot,
+            'nip_kepsek'    => $header->nip_kepsek_snapshot,
+            'tanggal_cetak' => $header->tanggal_cetak,
+        ];
+    }
+
+    /**
+     * PROSES CETAK SATUAN
      */
     public function cetak_proses($id_siswa, Request $request)
     {
         $semesterRaw = $request->semester ?? 'Ganjil';
-        $tahun_ajaran = $request->tahun_ajaran ?? '2025/2026';
-
-        // Menggunakan Logic Baru
+        $tahun_ajaran = $request->tahun_ajaran;
+        
         $data = $this->persiapkanDataRapor($id_siswa, $semesterRaw, $tahun_ajaran);
+
+        if (!$data) return "<script>alert('Data Rapor belum dikunci. Silakan Generate terlebih dahulu.');window.close();</script>";
 
         $pdf = Pdf::loadView('rapor.pdf1_template', $data)
                 ->setPaper('a4', 'portrait')
                 ->setOption(['isPhpEnabled' => true, 'isRemoteEnabled' => true]);
-
         return $pdf->stream('Rapor_'.$data['siswa']->nama_siswa.'.pdf');
     }
 
     /**
-     * Proses Cetak Rapor Massal per Kelas (ZIP)
+     * PROSES CETAK MASSAL (ZIP)
      */
     public function cetak_massal(Request $request)
     {
         $id_kelas = $request->id_kelas;
         $semesterRaw = $request->semester ?? 'Ganjil';
-        $tahun_ajaran = $request->tahun_ajaran ?? '2025/2026';
+        $tahun_ajaran = $request->tahun_ajaran;
 
-        if (!$id_kelas) return redirect()->back()->with('error', 'Silakan pilih kelas terlebih dahulu.');
+        if (!$id_kelas) return redirect()->back()->with('error', 'Pilih kelas.');
 
         $daftarSiswa = Siswa::where('id_kelas', $id_kelas)->orderBy('nama_siswa', 'asc')->get();
         
@@ -164,17 +408,23 @@ class RaporController extends Controller
         $zipFilePath = storage_path('app/public/' . $zipFileName);
 
         if ($zip->open($zipFilePath, ZipArchive::CREATE | ZipArchive::OVERWRITE) === TRUE) {
+            $count = 0;
             foreach ($daftarSiswa as $siswa) {
                 $data = $this->persiapkanDataRapor($siswa->id_siswa, $semesterRaw, $tahun_ajaran);
-                
+                if (!$data) continue; 
+
                 $pdf = \Pdf::loadView('rapor.pdf1_template', $data)
                         ->setPaper('a4', 'portrait')
                         ->setOption(['isPhpEnabled' => true, 'isRemoteEnabled' => true]);
                 
                 $safeName = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '_', $siswa->nama_siswa);
                 $zip->addFromString($safeName . '.pdf', $pdf->output());
+                $count++;
             }
             $zip->close();
+
+            if ($count === 0) return redirect()->back()->with('error', 'Tidak ada data rapor FINAL di kelas ini.');
+
             return response()->download($zipFilePath)->deleteFileAfterSend(true);
         }
 
@@ -182,7 +432,7 @@ class RaporController extends Controller
     }
 
     /**
-     * Download Rapor Massal dalam SATU FILE PDF
+     * PROSES DOWNLOAD SATU PDF (GABUNGAN)
      */
     public function download_massal_pdf(Request $request)
     {
@@ -191,16 +441,21 @@ class RaporController extends Controller
 
         $id_kelas = $request->id_kelas;
         $semesterRaw = $request->semester ?? 'Ganjil';
-        $tahun_ajaran = $request->tahun_ajaran ?? '2025/2026';
+        $tahun_ajaran = $request->tahun_ajaran;
 
-        if (!$id_kelas) return redirect()->back()->with('error', 'Silakan pilih kelas.');
+        if (!$id_kelas) return redirect()->back()->with('error', 'Pilih kelas.');
 
         $daftarSiswa = Siswa::where('id_kelas', $id_kelas)->orderBy('nama_siswa', 'asc')->get();
         $allData = [];
 
         foreach ($daftarSiswa as $siswa) {
-            $allData[] = $this->persiapkanDataRapor($siswa->id_siswa, $semesterRaw, $tahun_ajaran);
+            $data = $this->persiapkanDataRapor($siswa->id_siswa, $semesterRaw, $tahun_ajaran);
+            if ($data) {
+                $allData[] = $data;
+            }
         }
+
+        if (empty($allData)) return redirect()->back()->with('error', 'Belum ada data rapor FINAL untuk kelas ini.');
 
         $pdf = Pdf::loadView('rapor.pdf2_massal_template', compact('allData'))
                 ->setPaper('a4', 'portrait')
@@ -210,392 +465,11 @@ class RaporController extends Controller
         return $pdf->download($filename);
     }
 
-    /**
-     * ==========================================================
-     * 🔥 CORE LOGIC: PERHITUNGAN NILAI RAPOR (REVISI BOBOT & TARGET)
-     * ==========================================================
-     */
-    private function persiapkanDataRapor($id_siswa, $semesterRaw, $tahun_ajaran)
-    {
-        $semesterInt = (strtoupper($semesterRaw) == 'GANJIL' || $semesterRaw == '1') ? 1 : 2;
-        $siswa = Siswa::with('kelas')->findOrFail($id_siswa);
-        $agamaSiswa = DB::table('detail_siswa')->where('id_siswa', $id_siswa)->value('agama');
-        $agamaSiswa = ucfirst(strtolower(trim($agamaSiswa)));
-        $getSekolah = InfoSekolah::first();
-
-        // 1. AMBIL SETTING BOBOT (WAJIB ADA DI DB)
-        $bobotSetting = BobotNilai::where('tahun_ajaran', $tahun_ajaran)
-            ->where('semester', strtoupper($semesterRaw))
-            ->first();
-
-        // Fallback jika belum disetting (agar tidak error, tapi idealnya harus diset)
-        $targetMinSumatif = $bobotSetting->jumlah_sumatif ?? 0; // Target Pembagi Minimal
-        $persenSumatif    = $bobotSetting->bobot_sumatif ?? 50; // Default 50:50 jika null
-        $persenProject    = $bobotSetting->bobot_project ?? 50;
-
-        // 2. AUTO-SYNC: Hitung & Update Nilai Akhir
-        $pembelajaranSiswa = DB::table('pembelajaran')->where('id_kelas', $siswa->id_kelas)->get();
-        
-        foreach ($pembelajaranSiswa as $pb) {
-            
-            // A. HITUNG RATA-RATA SUMATIF (DENGAN TARGET MINIMAL)
-            // Ambil semua nilai sumatif yg terisi
-            $nilaiSumatifList = DB::table('sumatif')
-                ->where([
-                    'id_siswa' => $id_siswa, 
-                    'id_mapel' => $pb->id_mapel, 
-                    'semester' => $semesterInt, 
-                    'tahun_ajaran' => $tahun_ajaran
-                ])
-                ->whereNotNull('nilai')
-                ->pluck('nilai');
-
-            $jumlahTerisi = $nilaiSumatifList->count();
-            $totalNilaiS  = $nilaiSumatifList->sum();
-
-            // Logika Pembagi: Pilih mana yang lebih besar (Terisi vs Target)
-            // Contoh: Terisi 2, Target 3 => Pembagi 3 (Nilai jadi turun)
-            // Contoh: Terisi 4, Target 3 => Pembagi 4 (Rata-rata murni)
-            $pembagiS = max($jumlahTerisi, $targetMinSumatif);
-
-            $avgSumatif = ($pembagiS > 0) ? round($totalNilaiS / $pembagiS, 2) : 0;
-
-            // B. HITUNG RATA-RATA PROJECT
-            $avgProject = DB::table('project')
-                ->where([
-                    'id_siswa' => $id_siswa, 
-                    'id_mapel' => $pb->id_mapel, 
-                    'semester' => $semesterInt, 
-                    'tahun_ajaran' => $tahun_ajaran
-                ])
-                ->avg('nilai') ?? 0;
-            
-            // C. HITUNG NILAI AKHIR BERBOBOT
-            // Rumus: (RataS * BobotS%) + (RataP * BobotP%)
-            $nilaiAkhirCalculated = 0;
-
-            // Hitung hanya jika ada minimal 1 nilai masuk (Sumatif atau Project)
-            if ($avgSumatif > 0 || $avgProject > 0) {
-                $bobotS_nominal = $avgSumatif * ($persenSumatif / 100);
-                $bobotP_nominal = $avgProject * ($persenProject / 100);
-                
-                // Pembulatan Akhir (Menjadi Integer)
-                $nilaiAkhirCalculated = (int) round($bobotS_nominal + $bobotP_nominal);
-            }
-
-            // D. UPDATE KE DATABASE NILAI_AKHIR
-            if ($nilaiAkhirCalculated > 0) {
-                // Cek data lama untuk mempertahankan capaian/deskripsi jika sudah ada
-                $existing = DB::table('nilai_akhir')
-                    ->where([
-                        'id_siswa' => $id_siswa, 
-                        'id_mapel' => $pb->id_mapel, 
-                        'semester' => $semesterInt, 
-                        'tahun_ajaran' => $tahun_ajaran
-                    ])->first();
-
-                // Jika capaian belum ada, generate otomatis
-                $deskripsi = $existing->capaian_akhir ?? $this->generateCapaianDariSumatif($id_siswa, $pb->id_mapel, $semesterInt, $tahun_ajaran);
-
-                DB::table('nilai_akhir')->updateOrInsert(
-                    [
-                        'id_siswa' => $id_siswa, 
-                        'id_mapel' => $pb->id_mapel, 
-                        'semester' => $semesterInt, 
-                        'tahun_ajaran' => $tahun_ajaran
-                    ],
-                    [
-                        'id_kelas' => $siswa->id_kelas, 
-                        'nilai_akhir' => $nilaiAkhirCalculated, 
-                        'capaian_akhir' => $deskripsi, 
-                        'updated_at' => now()
-                    ]
-                );
-            }
-        }
-
-        // --- 3. AMBIL DATA FINAL UNTUK VIEW (Grouping Mapel) ---
-        $mapelFinal = [];
-        $daftarUrutan = [1 => 'MATA PELAJARAN UMUM', 2 => 'MATA PELAJARAN KEJURUAN', 3 => 'MATA PELAJARAN PILIHAN', 4 => 'MUATAN LOKAL'];
-        
-        foreach ($daftarUrutan as $key => $headerLabel) {
-            $kelompok = DB::table('pembelajaran')
-                ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
-                ->where('pembelajaran.id_kelas', $siswa->id_kelas)
-                ->where('mata_pelajaran.kategori', $key)
-                ->where('mata_pelajaran.is_active', 1)
-                ->where(function ($q) use ($agamaSiswa) {
-                    $q->whereNull('mata_pelajaran.agama_khusus')
-                    ->orWhereRaw('LOWER(TRIM(mata_pelajaran.agama_khusus)) = ?', [$agamaSiswa]);
-                })
-                ->select('mata_pelajaran.id_mapel', 'mata_pelajaran.nama_mapel')
-                ->orderBy('mata_pelajaran.urutan', 'asc')
-                ->get();
-
-            if ($kelompok->isNotEmpty()) {
-                foreach ($kelompok as $mp) {
-                    // Ambil nilai yang BARU SAJA DIUPDATE DI ATAS
-                    $nf = DB::table('nilai_akhir')->where([
-                        'id_siswa' => $id_siswa, 
-                        'id_mapel' => $mp->id_mapel, 
-                        'semester' => $semesterInt, 
-                        'tahun_ajaran' => $tahun_ajaran
-                    ])->first();
-
-                    $mp->nilai_akhir = $nf->nilai_akhir ?? 0;
-                    $mp->capaian = $nf->capaian_akhir ?? '-';
-                }
-                $mapelFinal[$key] = $kelompok;
-            }
-        }
-
-        // --- 4. DATA PELENGKAP (Ekskul, Wali, Dll) ---
-        $catatan = DB::table('catatan')->where(['id_siswa' => $id_siswa, 'semester' => $semesterInt, 'tahun_ajaran' => $tahun_ajaran])->first();
-        $dataEkskul = [];
-        if ($catatan && !empty($catatan->ekskul)) {
-            $ids = array_map('trim', explode(',', $catatan->ekskul));
-            $grades = !empty($catatan->predikat) ? array_map('trim', explode(',', $catatan->predikat)) : [];
-            $descs = !empty($catatan->keterangan) ? array_map('trim', explode('|', $catatan->keterangan)) : [];
-
-            foreach ($ids as $index => $idEkstra) {
-                if ($idEkstra != "") {
-                    $namaEkskulReal = DB::table('ekskul')->where('id_ekskul', $idEkstra)->value('nama_ekskul');
-                    $dataEkskul[] = (object)[
-                        'nama' => $namaEkskulReal ?? 'Ekstra ID: ' . $idEkstra,
-                        'predikat' => $grades[$index] ?? '-',
-                        'keterangan' => $descs[$index] ?? '-'
-                    ];
-                }
-            }
-        }
-
-        $tktRaw = strtoupper(preg_replace("/[^a-zA-Z0-9]/", "", trim($siswa->kelas->tingkat ?? '')));
-        $fase = match (true) {
-            ($tktRaw === 'X' || $tktRaw === '10') => 'E',
-            ($tktRaw === 'XI' || $tktRaw === '11' || $tktRaw === 'XII' || $tktRaw === '12') => 'F',
-            default => '-'
-        };
-
-        $namaWali = $siswa->kelas->wali_kelas ?? 'Wali Kelas';
-        $dataGuru = DB::table('guru')->where('nama_guru', 'LIKE', '%' . $namaWali . '%')->first();
-
-        return [
-            'siswa'         => $siswa,
-            'fase'          => $fase,
-            'sekolah'       => $getSekolah->nama_sekolah ?? 'SMKN 1 SALATIGA',
-            'infoSekolah'   => $getSekolah->jalan ?? 'Alamat Sekolah',
-            'info_sekolah'  => $getSekolah,
-            'mapelGroup'    => $mapelFinal,
-            'dataEkskul'    => $dataEkskul,
-            'catatan'       => $catatan,
-            'semester'      => $semesterRaw,
-            'tahun_ajaran'  => $tahun_ajaran,
-            'semesterInt'   => $semesterInt,
-            'nama_wali'     => $namaWali,
-            'nip_wali'      => $dataGuru->nip ?? '-',
-            'nama_kepsek'   => $getSekolah->nama_kepsek ?? 'NAMA KEPALA SEKOLAH',
-            'nip_kepsek'    => $getSekolah->nip_kepsek ?? '-',
-        ];
-    }
-
-    /**
-     * Generate Deskripsi Capaian (Helper)
-     */
-    private function generateCapaianDariSumatif($id_siswa, $id_mapel, $semester, $tahun_ajaran)
-    {
-        $nilaiTp = DB::table('sumatif')
-            ->where(['id_siswa' => $id_siswa, 'id_mapel' => $id_mapel, 'semester' => $semester, 'tahun_ajaran' => $tahun_ajaran])
-            ->whereNotNull('nilai')
-            ->select('nilai', 'tujuan_pembelajaran')
-            ->orderBy('nilai', 'asc')
-            ->get();
-
-        if ($nilaiTp->isEmpty()) return 'Perlu penguatan dalam hal Belum ditentukan.';
-
-        $tpRendah = $nilaiTp->first();
-        $tpTinggi = $nilaiTp->last();
-
-        $narasiRendah = ($tpRendah->nilai < 78) ? 'Perlu peningkatan dalam hal' : 'Perlu penguatan dalam hal';
-        $narasiTinggi = ($tpTinggi->nilai >= 78) ? 'Baik dalam hal' : 'Cukup dalam hal';
-
-        if ($tpRendah->tujuan_pembelajaran === $tpTinggi->tujuan_pembelajaran) {
-            return "{$narasiRendah} {$tpRendah->tujuan_pembelajaran}.";
-        }
-        return "{$narasiRendah} {$tpRendah->tujuan_pembelajaran}, namun menunjukkan capaian {$narasiTinggi} {$tpTinggi->tujuan_pembelajaran}.";
-    }
-
-    /**
-     * Sinkronisasi Kelas (FIX: Force Update & Handle Nilai 0)
-     */
-    public function sinkronkanKelas(Request $request)
-    {
-        $id_kelas = $request->id_kelas;
-        $semesterRaw = $request->semester ?? 'Ganjil';
-        $tahun_ajaran = $request->tahun_ajaran ?? '2025/2026';
-        $semesterInt = (strtoupper($semesterRaw) == 'GANJIL' || $semesterRaw == '1') ? 1 : 2;
-
-        if (!$id_kelas) return response()->json(['message' => 'Kelas tidak ditemukan'], 400);
-
-        DB::beginTransaction();
-        try {
-            // 1. Ambil Pengaturan Bobot
-            $bobotSetting = BobotNilai::where('tahun_ajaran', $tahun_ajaran)
-                ->where('semester', strtoupper($semesterRaw))
-                ->first();
-
-            // Default jika bobot tidak ditemukan (agar tidak error division by zero)
-            $targetMinSumatif = $bobotSetting->jumlah_sumatif ?? 0;
-            $persenSumatif    = $bobotSetting->bobot_sumatif ?? 50; 
-            $persenProject    = $bobotSetting->bobot_project ?? 50;
-
-            // 2. Ambil Siswa & Mapel
-            $siswaList = Siswa::where('id_kelas', $id_kelas)->pluck('id_siswa');
-            
-            $pembelajaran = DB::table('pembelajaran')
-                ->join('mata_pelajaran', 'pembelajaran.id_mapel', '=', 'mata_pelajaran.id_mapel')
-                ->where('pembelajaran.id_kelas', $id_kelas)
-                ->where('mata_pelajaran.is_active', 1)
-                ->select('pembelajaran.id_mapel', 'mata_pelajaran.agama_khusus')
-                ->get();
-
-            // 3. PRE-FETCH DATA (Batch Query)
-            $allSumatif = DB::table('sumatif')
-                ->whereIn('id_siswa', $siswaList)
-                ->where('semester', $semesterInt)
-                ->where('tahun_ajaran', $tahun_ajaran)
-                ->whereNotNull('nilai')
-                ->select('id_siswa', 'id_mapel', 'nilai')
-                ->get()
-                ->groupBy('id_siswa');
-
-            $allProject = DB::table('project')
-                ->whereIn('id_siswa', $siswaList)
-                ->where('semester', $semesterInt)
-                ->where('tahun_ajaran', $tahun_ajaran)
-                ->select('id_siswa', 'id_mapel', 'nilai')
-                ->get()
-                ->groupBy('id_siswa');
-
-            // Ambil Capaian Lama (Agar deskripsi yang sudah diedit manual tidak hilang)
-            $allExisting = DB::table('nilai_akhir')
-                ->whereIn('id_siswa', $siswaList)
-                ->where('semester', $semesterInt)
-                ->where('tahun_ajaran', $tahun_ajaran)
-                ->select('id_siswa', 'id_mapel', 'capaian_akhir')
-                ->get()
-                ->groupBy('id_siswa');
-
-            $mapelTuntasPerSiswa = []; // Counter tuntas
-
-            // 4. LOOPING HITUNG NILAI & STATUS
-            foreach ($siswaList as $id_siswa) {
-                $sumatifSiswa = $allSumatif->get($id_siswa) ?? collect();
-                $projectSiswa = $allProject->get($id_siswa) ?? collect();
-                $existingSiswa = $allExisting->get($id_siswa) ?? collect();
-                $agamaSiswa = strtolower(trim(DB::table('detail_siswa')->where('id_siswa', $id_siswa)->value('agama')));
-
-                $mapelTuntasPerSiswa[$id_siswa] = 0; // Reset counter
-
-                foreach ($pembelajaran as $pb) {
-                    // Filter Agama
-                    if (!is_null($pb->agama_khusus)) {
-                        if (strtolower(trim($pb->agama_khusus)) !== $agamaSiswa) continue;
-                    }
-
-                    // A. Hitung Sumatif
-                    $nilaiS_list = $sumatifSiswa->where('id_mapel', $pb->id_mapel)->pluck('nilai');
-                    $jumlahTerisi = $nilaiS_list->count(); // Jumlah Real (Misal: 2)
-                    $totalNilaiS = $nilaiS_list->sum();
-                    
-                    // Pembagi (Max antara Real vs Target)
-                    $pembagiS = max($jumlahTerisi, $targetMinSumatif);
-                    $rataSumatif = ($pembagiS > 0) ? round($totalNilaiS / $pembagiS, 2) : 0;
-
-                    // B. Hitung Project
-                    $rataProject = $projectSiswa->where('id_mapel', $pb->id_mapel)->avg('nilai') ?? 0;
-
-                    // C. Hitung Nilai Akhir
-                    $bobotS = $rataSumatif * ($persenSumatif / 100);
-                    $bobotP = $rataProject * ($persenProject / 100);
-                    $nilaiFinal = (int) round($bobotS + $bobotP);
-
-                    // D. Simpan ke Database (Force Sync)
-                    // ... (Kode simpan DB tetap sama) ...
-                    $oldData = $existingSiswa->where('id_mapel', $pb->id_mapel)->first();
-                    $deskripsi = $oldData->capaian_akhir ?? $this->generateCapaianDariSumatif($id_siswa, $pb->id_mapel, $semesterInt, $tahun_ajaran);
-
-                    DB::table('nilai_akhir')->updateOrInsert(
-                        [
-                            'id_siswa' => $id_siswa, 
-                            'id_mapel' => $pb->id_mapel, 
-                            'semester' => $semesterInt, 
-                            'tahun_ajaran' => $tahun_ajaran
-                        ],
-                        [
-                            'id_kelas' => $id_kelas, 
-                            'nilai_akhir' => $nilaiFinal, 
-                            'capaian_akhir' => $deskripsi, 
-                            'updated_at' => now()
-                        ]
-                    );
-
-                    // ======================================================
-                    // 🔥 PERBAIKAN LOGIKA STATUS TUNTAS (SYARAT DIPERKETAT)
-                    // ======================================================
-                    // Syarat: Nilai > 0 DAN Jumlah Sumatif >= Target
-                    
-                    $isSumatifLengkap = ($jumlahTerisi >= $targetMinSumatif);
-
-                    if ($nilaiFinal > 0 && $isSumatifLengkap) {
-                        $mapelTuntasPerSiswa[$id_siswa]++;
-                    }
-                }
-            }
-
-            // 5. UPDATE STATUS RAPOR (Sekaligus)
-            $allCatatan = DB::table('catatan')
-                ->whereIn('id_siswa', $siswaList)
-                ->where('semester', $semesterInt)
-                ->where('tahun_ajaran', $tahun_ajaran)
-                ->select('id_siswa', 'catatan_wali_kelas')
-                ->get()
-                ->keyBy('id_siswa');
-            
-            foreach ($siswaList as $id_siswa) {
-                // Hitung total mapel siswa ini (tergantung agama)
-                $agamaSiswa = strtolower(trim(DB::table('detail_siswa')->where('id_siswa', $id_siswa)->value('agama')));
-                $totalMapelSeharusnya = $pembelajaran->filter(function($m) use ($agamaSiswa){
-                     return is_null($m->agama_khusus) || strtolower(trim($m->agama_khusus)) == $agamaSiswa;
-                })->count();
-
-                $mapelTuntas = $mapelTuntasPerSiswa[$id_siswa] ?? 0;
-                
-                $catatan = $allCatatan->get($id_siswa);
-                $isCatatanReady = ($catatan && !empty(trim($catatan->catatan_wali_kelas)));
-
-                // Syarat Siap Cetak: Mapel Tuntas 100% DAN Catatan Ada
-                $statusAkhir = ($mapelTuntas >= $totalMapelSeharusnya && $isCatatanReady) ? 'Siap Cetak' : 'Belum Lengkap';
-
-                StatusRapor::updateOrCreate(
-                    ['id_siswa' => $id_siswa, 'semester' => $semesterInt, 'tahun_ajaran' => (string)$tahun_ajaran],
-                    [
-                        'id_kelas' => $id_kelas, 
-                        'total_mapel_seharusnya' => $totalMapelSeharusnya, 
-                        'mapel_tuntas_input' => $mapelTuntas, 
-                        'is_catatan_wali_ready' => $isCatatanReady ? 1 : 0, 
-                        'status_akhir' => $statusAkhir
-                    ]
-                );
-            }
-
-            DB::commit();
-            return response()->json(['message' => 'Sinkronisasi Berhasil! Data Nilai & Status Rapor telah diperbarui.']);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            // Log error untuk developer
-            // \Log::error($e->getMessage()); 
-            return response()->json(['message' => 'Gagal: ' . $e->getMessage()], 500);
-        }
+    // Helper
+    private function getFase($tingkat) {
+        $t = strtoupper(preg_replace("/[^a-zA-Z0-9]/", "", $tingkat));
+        if (in_array($t, ['10', 'X'])) return 'E';
+        if (in_array($t, ['11', 'XI', '12', 'XII'])) return 'F';
+        return '-';
     }
 }
