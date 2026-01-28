@@ -5,30 +5,20 @@
 @section('content')
 <style>
     .table-responsive {
-        /* Hapus max-height agar scroll halaman, bukan scroll elemen */
         max-height: 90vh;          
         overflow: auto;
-        /* overflow-x: auto; 
-        overflow-y: visible;  */
-        /* border: 1px solid #c1d6e0; Border container lebih tegas */
         border-radius: 3px;
         margin-bottom: 20px;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
     
-    /* REVISI 1 & 2: Styling Header yang Konsisten & Tegas */
     .table-ledger {
-        border-collapse: collapse !important; /* Penting untuk Sticky Header & Border */
+        border-collapse: collapse !important;
         border-spacing: 0;
         width: 100%;
     }
     .table-ledger tbody tr:hover {
         background-color: #f9fafb;
-    }
-
-    .table-ledger thead th[class^="kategori-"] {
-        color: #fff;
-        font-weight: 700;
     }
 
     .table-ledger thead th {
@@ -48,10 +38,10 @@
     /* HEADER KATEGORI (ROW 1) */
     .table-ledger thead tr:first-child th {
         top: 0;
-        height: : 32px;
+        height: 32px;
         color: #fff;
         font-weight: 700;
-        font-size: 0.8rem;
+        z-index: 30;
     }
 
     .table-ledger thead tr:nth-child(2) th.kategori-sub {
@@ -59,101 +49,47 @@
         color: #495057;
         font-weight: 600;
         border-bottom: 2px solid transparent;
+        top: 27px; /* tinggi baris kategori */
+        z-index: 25;
     }
 
     /* WARNA KATEGORI */
-    .kategori-1 { background-color: #b0bec5  !important; } /* Umum */
-    .kategori-2 { background-color: #b0bec5  !important; } /* Kejuruan */
-    .kategori-3 { background-color: #b0bec5  !important; } /* Pilihan */
-    .kategori-4 { background-color: #b0bec5  !important; } /* Mulok */
-    .kategori-5 { background-color: #b0bec5  !important; } /* Rekap */
-    .kategori-6 { background-color: #b0bec5  !important; } /* Absen */
+    .kategori-1 { background-color: #b0bec5 !important; } /* Umum */
+    .kategori-2 { background-color: #b0bec5 !important; } /* Kejuruan */
+    .kategori-3 { background-color: #b0bec5 !important; } /* Pilihan */
+    .kategori-4 { background-color: #b0bec5 !important; } /* Mulok */
+    .kategori-5 { background-color: #b0bec5 !important; } /* Rekap */
+    .kategori-6 { background-color: #b0bec5 !important; } /* Absen */
+    .kategori-7 { background-color: #fb8c00 !important; } /* Ranking (Orange) */
 
-    /* Baris kedua (Nama Mapel) - Background disamakan */
-    /* .table-ledger thead tr:nth-child(2) th {
-        background-color: #f7f7f7 !important;
-        color: #fff;
-        font-weight: 600;
-        top: 36px;
-    } */
+    /* Sub Header Warna */
+    .table-ledger thead tr:nth-child(2) th.kategori-1 { background-color: #cfd8dc !important; color: #37474f; }
+    .table-ledger thead tr:nth-child(2) th.kategori-2 { background-color: #cfd8dc !important; color: #37474f; }
+    .table-ledger thead tr:nth-child(2) th.kategori-3 { background-color: #cfd8dc !important; color: #37474f; }
+    .table-ledger thead tr:nth-child(2) th.kategori-4 { background-color: #cfd8dc !important; color: #37474f; }
+    .table-ledger thead tr:nth-child(2) th.kategori-5 { background-color: #cfd8dc !important; color: #37474f; }
+    .table-ledger thead tr:nth-child(2) th.kategori-6 { background-color: #cfd8dc !important; color: #37474f; }
+    .table-ledger thead tr:nth-child(2) th.kategori-7 { background-color: #ffe0b2 !important; color: #e65100; }
 
-    /* ===== Style Sub Header ===== */
-    .table-ledger thead tr:nth-child(2) th.kategori-1 {
-        background-color: #cfd8dc !important; /* pastel merah */
-        color: #37474f;
-    }
-
-    .table-ledger thead tr:nth-child(2) th.kategori-2 {
-        background-color: #cfd8dc !important; /* pastel kuning */
-        color: #37474f;
-    }
-
-    .table-ledger thead tr:nth-child(2) th.kategori-3 {
-        background-color: #cfd8dc !important; /* pastel hijau */
-        color: #37474f;
-    }
-
-    .table-ledger thead tr:nth-child(2) th.kategori-4 {
-        background-color: #cfd8dc !important; /* pastel biru */
-        color: #37474f;
-    }
-
-    .table-ledger thead tr:nth-child(2) th.kategori-5 {
-        background-color: #cfd8dc !important; /* pastel coklat */
-        color: #37474f;
-    }
-
-    .table-ledger thead tr:nth-child(2) th.kategori-6 {
-        background-color: #cfd8dc !important; /* pastel abu */
-        color: #37474f;
-    }
-
-
-    /* Styling Kolom Nama & No (Sticky Left) */
+    /* Sticky Columns (No, Nama, NIS, NISN) */
     .sticky-col {
         position: sticky;
         left: 0;
         z-index: 10;
         background-color: #ffffff !important; 
-        border-right: 1px solid #d0d7de  !important;
+        border-right: 1px solid #d0d7de !important;
         border-bottom: 1px solid #e9ecef !important;
     }
     
     .sticky-col-header {
-        /* position: sticky;
+        position: sticky;
+        top: 0;
         left: 0;
-        z-index: 30 !important;
-        background-color: #f0f5fa !important;
-        border-right: 2px solid #c1d6e0 !important;
-        border: 1px solid #c1d6e0 !important; */
-        border: none !important;
-        background-color: #f7f7f7 !important;
-    }
-
-    /* ===== HEADER NO & NAMA ===== */
-    .table-ledger thead th.sticky-col-header {
+        z-index: 40 !important;
         background-color: #37474f !important;
         color: #fff !important;
     }
 
-    /* REVISI 3: Indikator Sorting */
-    .sortable {
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
-    .sortable:hover {
-        background-color: #e2e6ea !important;
-    }
-    .sort-icon {
-        font-size: 0.7em;
-        margin-left: 5px;
-        color: #adb5bd;
-    }
-    .sort-active .sort-icon {
-        color: #5e72e4; /* Warna Primary */
-    }
-
-    /* Styling Lainnya Tetap */
     .col-nama {
         width: 220px !important;
         min-width: 220px !important;
@@ -162,7 +98,6 @@
         overflow: hidden;
         text-overflow: ellipsis;
     }
-    /* TAMBAHAN: Style untuk NIS & NISN */
     .col-id {
         width: 100px !important;
         min-width: 100px !important;
@@ -171,7 +106,6 @@
     .col-nilai {
         width: 55px !important;
         min-width: 55px !important;
-        max-width: 55px !important;
         text-align: center;
         font-size: 0.85rem;
     }
@@ -179,38 +113,14 @@
     .bg-rekap { background-color: #fff8e1 !important; color: #344767; }
     .bg-absen { background-color: #e3f2fd !important; color: #344767; }
     
-    /* Border Body */
+    /* RANKING STYLE */
+    .bg-ranking { background-color: #fff3e0 !important; font-weight: bold; color: #e65100; }
+
     .table-ledger tbody td {
         border: none !important;
         border-bottom: 1px solid #e0e0e0 !important;
         padding: 8px 6px;
     }
-    /* =============================== */
-    /* FIX FREEZE 2 BARIS HEADER LEDGER */
-    /* =============================== */
-
-    /* BARIS 1 : UMUM / KEJURUAN / DLL */
-    .table-ledger thead tr:first-child th {
-        position: sticky;
-        top: 0;
-        z-index: 30;
-    }
-
-    /* BARIS 2 : NAMA MAPEL */
-    .table-ledger thead tr:nth-child(2) th {
-        position: sticky;
-        top: 27px; /* tinggi baris kategori */
-        z-index: 25;
-    }
-
-    /* HEADER NO & NAMA SISWA */
-    .table-ledger thead th.sticky-col-header {
-        position: sticky;
-        top: 0;
-        left: 0;
-        z-index: 40 !important;
-    }
-
 </style>
 
 @php
@@ -252,7 +162,7 @@
             <div class="card-body">
                 {{-- FORM FILTER LEDGER (STYLE CLEAN & AUTO-SUBMIT) --}}
                 <div class="p-4 border-bottom">
-                    <form action="{{ route('ledger.ledger_index') }}" method="GET">
+                    <form action="{{ route('ledger.ledger_index') }}" method="GET" id="filterForm">
                         
                         {{-- ROW 1: FILTER UTAMA --}}
                         <div class="row align-items-end mb-3">
@@ -266,7 +176,7 @@
                                 </select>
                             </div>
 
-                            {{-- 2. Kelas (Aktif jika Mode = Kelas) --}}
+                            {{-- 2. Kelas --}}
                             <div class="col-md-2">
                                 <label class="form-label">Kelas:</label>
                                 <select name="id_kelas" class="form-select" onchange="this.form.submit()"
@@ -280,7 +190,7 @@
                                 </select>
                             </div>
 
-                            {{-- 3. Jurusan (Aktif jika Mode = Jurusan) --}}
+                            {{-- 3. Jurusan --}}
                             <div class="col-md-2">
                                 <label class="form-label">Jurusan:</label>
                                 <select name="jurusan" class="form-select" onchange="this.form.submit()"
@@ -294,7 +204,7 @@
                                 </select>
                             </div>
 
-                            {{-- 4. Tingkat (Aktif jika Mode = Jurusan) --}}
+                            {{-- 4. Tingkat --}}
                             <div class="col-md-2">
                                 <label class="form-label">Tingkat:</label>
                                 <select name="tingkat" class="form-select" onchange="this.form.submit()"
@@ -333,26 +243,30 @@
                             </div>
                         </div>
 
-                        {{-- ROW 2: SORTING & ACTIONS --}}
+                        {{-- ROW 2: FILTER TAMPILAN & RANKING (BARU) --}}
                         <div class="row align-items-end">
-                            {{-- Sorting --}}
+                            
+                            {{-- Filter A: Opsi Ranking --}}
                             <div class="col-md-3">
-                                <label class="form-label">Urutkan Berdasarkan:</label>
-                                <select name="urut" class="form-select" onchange="this.form.submit()">
-                                    <option value="ranking" {{ request('urut', 'ranking') == 'ranking' ? 'selected' : '' }}>Ranking Nilai</option>
-                                    <option value="absen" {{ request('urut') == 'absen' ? 'selected' : '' }}>Nomor Absen</option>
+                                <label class="form-label fw-bold">Opsi Tampilan (Filter A)</label>
+                                <select name="show_ranking" id="selectShowRanking" class="form-select" onchange="handleFilterChange()">
+                                    <option value="0" {{ $showRanking == '0' ? 'selected' : '' }}>Sembunyikan Ranking</option>
+                                    <option value="1" {{ $showRanking == '1' ? 'selected' : '' }}>Tampilkan Ranking</option>
                                 </select>
                             </div>
 
-                            {{-- Action Buttons --}}
-                            {{-- <div class="col-md-9 text-end">
-                                <button type="submit" class="btn bg-gradient-dark mb-0 px-4">
-                                    <i class="fas fa-search me-2"></i> Tampilkan Ledger
-                                </button>
-                            </div> --}}
+                            {{-- Filter B: Urutkan Berdasar --}}
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Urutkan Data (Filter B)</label>
+                                <select name="sort_by" id="selectSortBy" class="form-select" onchange="this.form.submit()">
+                                    <option value="absen" {{ $sortBy == 'absen' ? 'selected' : '' }}>Berdasarkan Absen (Nama)</option>
+                                    <option value="ranking" {{ $sortBy == 'ranking' ? 'selected' : '' }}>Berdasarkan Ranking (Nilai)</option>
+                                </select>
+                            </div>
+
                         </div>
 
-                        {{-- Hidden Submit Button (Untuk handling Enter key jika diperlukan) --}}
+                        {{-- Hidden Submit Button --}}
                         <button type="submit" class="d-none"></button>
                     </form>
                 </div>
@@ -370,33 +284,31 @@
                     <table id="ledgerTable" class="table table-ledger align-items-center mb-0">
                         <thead>
                             <tr>
-                                <th rowspan="2" class="sticky-col-header">
-                                    Rank
-                                    @if(request('urut') == 'absen')
-                                        <small class="d-block text-xs">(nonaktif)</small>
-                                    @endif
-                                </th>
+                                {{-- 1. HEADER NO & NAMA (STICKY) --}}
                                 <th rowspan="2" class="sticky-col-header" style="width: 45px;">No</th>
-                                {{-- SORTING NAMA --}}
-                                <th rowspan="2" class="sticky-col-header col-nama">
-                                    Nama Siswa
-                                </th>
-                                
-                                {{-- [BARU] HEADER NIS & NISN --}}
+                                <th rowspan="2" class="sticky-col-header col-nama">Nama Siswa</th>
                                 <th rowspan="2" class="sticky-col-header col-id">NIS</th>
                                 <th rowspan="2" class="sticky-col-header col-id">NISN</th>
 
+                                {{-- 2. HEADER KATEGORI MAPEL --}}
                                 @foreach($groupedMapel as $catId => $mapels)
                                     <th colspan="{{ count($mapels)}}" class="kategori-header kategori-{{ $catId }}">
                                         {{ $catLabels[$catId] ?? 'Lainnya' }}
                                     </th>
                                 @endforeach
 
+                                {{-- 3. HEADER REKAP & ABSEN --}}
                                 <th colspan="2" class="kategori-header kategori-5">REKAP</th>
                                 <th colspan="3" class="kategori-header kategori-6">ABSEN</th>
+
+                                {{-- 4. HEADER RANKING (PALING BELAKANG) --}}
+                                @if($showRanking == '1')
+                                    <th rowspan="2" class="kategori-header kategori-7">RANK</th>
+                                @endif
                             </tr>
 
                             <tr>
+                                {{-- SUB HEADER NAMA MAPEL --}}
                                 @foreach($groupedMapel as $catId => $mapels)
                                     @foreach($mapels as $mp)
                                         <th class="col-nilai kategori-sub kategori-{{ $catId }}" 
@@ -406,70 +318,66 @@
                                     @endforeach
                                 @endforeach
 
+                                {{-- SUB HEADER REKAP & ABSEN --}}
                                 <th class="kategori-sub kategori-5">JML</th>
-                                {{-- SORTING AVG --}}
-                                <th class="kategori-sub kategori-5">
-                                    AVG
-                                </th>
+                                <th class="kategori-sub kategori-5">AVG</th>
                                 <th class="kategori-sub kategori-6">S</th>
                                 <th class="kategori-sub kategori-6">I</th>
                                 <th class="kategori-sub kategori-6">A</th>
+                            </tr>
                         </thead>
                         <tbody id="ledgerBody">
                             @forelse($dataLedger as $idx => $row)
                             <tr>
-                            {{-- RANK (sementARA) --}}
-                            <td class="text-center text-sm sticky-col">
-                                @if(request('urut','ranking') === 'ranking')
+                                {{-- NO --}}
+                                <td class="text-center text-sm sticky-col">
                                     {{ $loop->iteration }}
-                                @else
-                                    -
-                                @endif
-                            </td>
+                                </td>
 
-                            {{-- NO --}}
-                            <td class="text-center text-sm sticky-col">
-                                {{ $loop->iteration }}
-                            </td>
+                                {{-- NAMA SISWA --}}
+                                <td class="text-sm sticky-col col-nama font-weight-bold text-dark"
+                                    data-bs-toggle="tooltip" title="{{ $row->nama_siswa }}">
+                                    {{ $row->nama_siswa }}
+                                </td>
 
-                            {{-- NAMA SISWA --}}
-                            <td class="text-sm sticky-col col-nama font-weight-bold text-dark"
-                                data-bs-toggle="tooltip" title="{{ $row->nama_siswa }}">
-                                {{ $row->nama_siswa }}
-                            </td>
+                                {{-- NIS & NISN --}}
+                                <td class="text-sm text-center col-id sticky-col">
+                                    {{ $row->nipd ?? '-' }}
+                                </td>
+                                <td class="text-sm text-center col-id sticky-col">
+                                    {{ $row->nisn ?? '-' }}
+                                </td>
 
-                            {{-- [BARU] DATA NIS & NISN --}}
-                            <td class="text-sm text-center col-id border-bottom">
-                                {{ $row->nipd ?? '-' }}
-                            </td>
-                            <td class="text-sm text-center col-id border-bottom">
-                                {{ $row->nisn ?? '-' }}
-                            </td>
-
-                            {{-- NILAI MAPEL --}}
-                            @foreach($groupedMapel as $catId => $mapels)
-                                @foreach($mapels as $mp)
-                                    @php $val = $row->scores[$mp->id_mapel] ?? 0; @endphp
-                                    <td class="col-nilai text-sm {{ $val <= 0 ? 'bg-light-danger' : '' }}">
-                                        {{ $val > 0 ? (int)$val : '-' }}
-                                    </td>
+                                {{-- NILAI MAPEL --}}
+                                @foreach($groupedMapel as $catId => $mapels)
+                                    @foreach($mapels as $mp)
+                                        @php $val = $row->scores[$mp->id_mapel] ?? 0; @endphp
+                                        <td class="col-nilai text-sm {{ $val <= 0 ? 'bg-light-danger' : '' }}">
+                                            {{ $val > 0 ? (int)$val : '-' }}
+                                        </td>
+                                    @endforeach
                                 @endforeach
-                            @endforeach
 
-                            {{-- REKAP --}}
-                            <td class="col-nilai text-sm font-weight-bold bg-rekap">
-                                {{ (int)$row->total }}
-                            </td>
+                                {{-- REKAP --}}
+                                <td class="col-nilai text-sm font-weight-bold bg-rekap">
+                                    {{ (int)$row->total }}
+                                </td>
+                                <td class="col-nilai text-sm font-weight-bold text-primary bg-rekap avg-cell">
+                                    {{ number_format($row->rata_rata, 1) }}
+                                </td>
 
-                            <td class="col-nilai text-sm font-weight-bold text-primary bg-rekap avg-cell">
-                                {{ number_format($row->rata_rata, 1) }}
-                            </td>
+                                {{-- ABSEN --}}
+                                <td class="col-nilai text-sm text-secondary bg-absen">{{ $row->absensi->sakit }}</td>
+                                <td class="col-nilai text-sm text-secondary bg-absen">{{ $row->absensi->izin }}</td>
+                                <td class="col-nilai text-sm text-secondary bg-absen">{{ $row->absensi->alpha }}</td>
 
-                            {{-- ABSEN --}}
-                            <td class="col-nilai text-sm text-secondary bg-absen">{{ $row->absensi->sakit }}</td>
-                            <td class="col-nilai text-sm text-secondary bg-absen">{{ $row->absensi->izin }}</td>
-                            <td class="col-nilai text-sm text-secondary bg-absen">{{ $row->absensi->alpha }}</td>
-                        </tr>
+                                {{-- RANKING (PALING BELAKANG) --}}
+                                @if($showRanking == '1')
+                                    <td class="col-nilai text-sm text-center bg-ranking">
+                                        {{ $row->ranking_no }}
+                                    </td>
+                                @endif
+                            </tr>
                             @empty
                             <tr><td colspan="100%" class="text-center py-4">Data tidak ditemukan.</td></tr>
                             @endforelse
@@ -496,7 +404,7 @@
     </div>
 </main>
 
-{{-- SCRIPT SORTING --}}
+{{-- SCRIPT INTERAKSI --}}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const modeSelect = document.querySelector('select[name="mode"]');
@@ -510,8 +418,37 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    toggleTingkat();
-    modeSelect.addEventListener('change', toggleTingkat);
+    if(modeSelect) {
+        toggleTingkat();
+        modeSelect.addEventListener('change', toggleTingkat);
+    }
+
+    // Logic Javascript untuk Filter Ranking
+    const selectShowRanking = document.getElementById('selectShowRanking');
+    const selectSortBy = document.getElementById('selectSortBy');
+    const filterForm = document.getElementById('filterForm');
+
+    // Inisialisasi state awal
+    if(selectShowRanking) {
+        if(selectShowRanking.value == '0') {
+            selectSortBy.setAttribute('disabled', 'disabled');
+        } else {
+            selectSortBy.removeAttribute('disabled');
+        }
+    }
+
+    window.handleFilterChange = function() {
+        if (selectShowRanking.value == '0') {
+            // Jika Sembunyikan Ranking -> Otomatis Sort by Absen & Disable pilihan
+            selectSortBy.value = 'absen';
+            selectSortBy.setAttribute('disabled', 'disabled');
+            filterForm.submit();
+        } else {
+            // Jika Tampilkan Ranking -> Enable pilihan
+            selectSortBy.removeAttribute('disabled');
+            filterForm.submit();
+        }
+    };
 });
 </script>
 @endsection

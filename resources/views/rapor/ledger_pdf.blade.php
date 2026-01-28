@@ -59,29 +59,39 @@
     table {
         width: 100%;
         border-collapse: collapse;
-        /* WAJIB: table-layout fixed agar % lebar kolom dipatuhi */
         table-layout: fixed; 
     }
 
     th, td {
-        border: 1px solid #000;
-        padding: 2px 2px;
+        border: 1px solid #444; /* Border sedikit lebih abu agar tidak terlalu keras */
+        padding: 4px 2px;
         text-align: center;
         vertical-align: middle;
-        /* Agar teks panjang turun ke bawah (wrap), tidak melebarkan kolom */
         word-wrap: break-word; 
         overflow-wrap: break-word;
     }
 
     th {
-        background: #f1f1f1;
         font-weight: bold;
         font-size: 9px;
+        color: #333;
     }
+
+    /* WARNA SOFT HEADER */
+    .bg-basic   { background-color: #eeeeee; } /* Abu-abu muda (No, Nama, NIS) */
+    .bg-mapel   { background-color: #dbe5f1; } /* Biru muda soft (Mapel) */
+    .bg-summary { background-color: #fde9d9; } /* Oranye muda (Total, Rata) */
+    .bg-absen   { background-color: #eaf1dd; } /* Hijau muda (Absen) */
+    .bg-rank    { background-color: #ffe0b2; } /* Kuning/Oranye soft (Rank) */
+    
+    /* WARNA DATA */
+    .bg-rank-data { background-color: #fff2cc; font-weight: bold; }
 
     .text-left {
         text-align: left;
+        padding-left: 4px;
     }
+    
     .space-ttd {
         height: 70px;
     }
@@ -100,7 +110,6 @@
         text-align: left;
         vertical-align: top;
     }
-
     </style>
 </head>
 <body>
@@ -112,15 +121,16 @@
             <td width="60%">
                 <table cellpadding="0" cellspacing="0" style="table-layout: auto;">
                     <tr>
+                        {{-- Logo Sekolah --}}
                         <td width="70" style="vertical-align: middle; border: none;">
                             <img src="{{ public_path('assets/img/theme/logo-sekolah-sml.png') }}" width="75">
                         </td>
                         <td style="padding-left:6px; vertical-align: middle; text-align: left; border: none;">
-                        <div class="school-name">{{ $namaSekolah }}</div>
-                        <div class="school-address">
-                            {{ $alamatSekolah }}
-                        </div>
-                    </td>
+                            <div class="school-name">{{ $namaSekolah }}</div>
+                            <div class="school-address">
+                                {{ $alamatSekolah }}
+                            </div>
+                        </td>
                     </tr>
                 </table>
             </td>
@@ -139,81 +149,74 @@
 
 @php
     $jumlahMapel = count($daftarMapel);
+    $tampilRanking = isset($showRanking) && $showRanking == '1';
 
     // =========================================================
-    // 1. CONFIG WIDTH (FIXED COLUMNS)
+    // CONFIG WIDTH (Sama seperti sebelumnya)
     // =========================================================
-    // Total Fixed harus di bawah 100% agar sisa bisa dibagi ke mapel
     
-    $wRank = 3;   // Kecil
-    $wNo   = 3;   // Kecil
-    $wNama = 11;  // Lebar (Nama Siswa)
+    $wNo   = 3;   
+    $wNama = 15;
+    $wId   = 5;
     
-    $wTotal = 3.5;
-    $wRata  = 3.5;
+    $wTotal = 4;
+    $wRata  = 4;
     
-    $wAbsen = 2;  // S, I, A (Masing-masing 2%)
+    $wAbsen = 2.5;
+    $wRank  = 4;
 
-    // Hitung total yg sudah dipakai
-    // Rank(3) + No(3) + Nama(25) + Total(5) + Rata(5) + S(2) + I(2) + A(2)
-    $totalFixed = $wRank + $wNo + $wNama + $wTotal + $wRata + ($wAbsen * 3);
+    $totalFixed = $wNo + $wNama + ($wId * 2) + $wTotal + $wRata + ($wAbsen * 3);
     
-    // =========================================================
-    // 2. HITUNG SISA UNTUK KOLOM DINAMIS
-    // =========================================================
-    // Kolom Dinamis = Mapel + NIS + NISN
-    // Kita samakan lebar NIS/NISN dengan Nilai Mapel agar rapi
+    if ($tampilRanking) {
+        $totalFixed += $wRank;
+    }
     
     $sisaLebar = 100 - $totalFixed;
-    $jumlahKolomDinamis = $jumlahMapel + 2; // +2 untuk NIS dan NISN
     
-    if ($jumlahKolomDinamis > 0) {
-        $wDinamis = $sisaLebar / $jumlahKolomDinamis;
+    if ($jumlahMapel > 0) {
+        $wMapel = $sisaLebar / $jumlahMapel;
     } else {
-        $wDinamis = 5; // Fallback jika tidak ada mapel
+        $wMapel = 5; 
     }
 @endphp
 
 <table>
     <thead>
         <tr>
-            {{-- PERBAIKAN: Style Width dipasang LANGSUNG di TH --}}
-            
-            <th style="width: {{ $wRank }}%;">Rank</th>
-            <th style="width: {{ $wNo }}%;">No</th>
-            <th style="width: {{ $wNama }}%;">Nama Siswa</th>
-            
-            {{-- NIS & NISN (Pakai Lebar Dinamis) --}}
-            <th style="width: {{ $wDinamis }}%;">NIS</th>
-            <th style="width: {{ $wDinamis }}%;">NISN</th>
+            {{-- DATA SISWA (Warna Abu Lembut) --}}
+            <th class="bg-basic" style="width: {{ $wNo }}%;">No</th>
+            <th class="bg-basic" style="width: {{ $wNama }}%;">Nama Siswa</th>
+            <th class="bg-basic" style="width: {{ $wId }}%;">NIS</th>
+            <th class="bg-basic" style="width: {{ $wId }}%;">NISN</th>
 
+            {{-- MAPEL (Warna Biru Lembut) --}}
             @foreach($daftarMapel as $mp)
-                <th style="width: {{ $wDinamis }}%;">
+                <th class="bg-mapel" style="width: {{ $wMapel }}%;">
                     <div style="font-size: 8px;">
                         {{ $mp->nama_singkat ?? $mp->nama_mapel }}
                     </div>
                 </th>
             @endforeach
 
-            <th style="width: {{ $wTotal }}%;">Total</th>
-            <th style="width: {{ $wRata }}%;">Rata</th> 
+            {{-- NILAI (Warna Oranye Lembut) --}}
+            <th class="bg-summary" style="width: {{ $wTotal }}%;">Total</th>
+            <th class="bg-summary" style="width: {{ $wRata }}%;">Rata</th> 
             
-            <th style="width: {{ $wAbsen }}%;">S</th>
-            <th style="width: {{ $wAbsen }}%;">I</th>
-            <th style="width: {{ $wAbsen }}%;">A</th>
+            {{-- ABSENSI (Warna Hijau Lembut) --}}
+            <th class="bg-absen" style="width: {{ $wAbsen }}%;">S</th>
+            <th class="bg-absen" style="width: {{ $wAbsen }}%;">I</th>
+            <th class="bg-absen" style="width: {{ $wAbsen }}%;">A</th>
+
+            {{-- RANKING (Warna Kuning/Gold Lembut) --}}
+            @if($tampilRanking)
+                <th class="bg-rank" style="width: {{ $wRank }}%;">Rank</th>
+            @endif
         </tr>
     </thead>
 
     <tbody>
         @foreach($dataLedger as $i => $row)
         <tr>
-            <td>
-                @if(request('urut','ranking') === 'ranking')
-                    {{ $loop->iteration }}
-                @else
-                    -
-                @endif
-            </td>
             <td>{{ $i + 1 }}</td>
             <td class="text-left" style="font-size: 9px;">
                 {{ $row->nama_siswa }}
@@ -222,6 +225,7 @@
             <td style="font-size: 9px;">{{ $row->nipd ?? '-' }}</td>
             <td style="font-size: 9px;">{{ $row->nisn ?? '-' }}</td>
 
+            {{-- NILAI MAPEL --}}
             @foreach($daftarMapel as $mp)
                 @php
                     $nilai = $row->scores[$mp->id_mapel] ?? 0;
@@ -231,17 +235,27 @@
                 </td>
             @endforeach
 
+            {{-- REKAP --}}
             <td style="font-weight:bold;">{{ (int) $row->total }}</td>
             <td style="font-weight:bold;">{{ number_format($row->rata_rata, 1) }}</td>
             
+            {{-- ABSENSI --}}
             <td>{{ $row->absensi->sakit }}</td>
             <td>{{ $row->absensi->izin }}</td>
             <td>{{ $row->absensi->alpha }}</td>
+
+            {{-- RANKING (Tanpa #) --}}
+            @if($tampilRanking)
+                <td class="bg-rank-data">
+                    {{ $row->ranking_no ?? '-' }}
+                </td>
+            @endif
         </tr>
         @endforeach
     </tbody>
 </table>
 
+{{-- TANDA TANGAN --}}
 <table class="ttd-table" style="table-layout: auto;">
     <tr>
         <td style="width: 75%; border: none;"></td>
