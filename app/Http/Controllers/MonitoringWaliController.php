@@ -328,7 +328,7 @@ class MonitoringWaliController extends Controller
         if ($filterTahun != $activeSeason->tahun_ajaran || $filterSemInt != $activeSeason->semester) {
             return [
                 'allowed' => false, 
-                'message' => 'Anda sedang melihat arsip lama. Generate Rapor hanya bisa dilakukan pada Tahun & Semester yang aktif.', 
+                'message' => 'Generate Rapor hanya bisa dilakukan pada Tahun & Semester yang aktif.', 
                 'icon' => 'fas fa-calendar-times', 
                 'color' => 'danger'
             ];
