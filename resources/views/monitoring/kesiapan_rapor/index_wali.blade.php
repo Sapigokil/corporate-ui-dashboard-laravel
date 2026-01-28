@@ -3,6 +3,7 @@
 @section('page-title', 'Rekap Kesiapan Rapor')
 
 @section('content')
+
 <main class="main-content position-relative max-height-vh-100 h-100 border-radius-lg">
     <x-app.navbar />
 
@@ -38,18 +39,14 @@
                         </select>
                     </div>
                     <div class="col-md-2 text-end">
-                        <button type="submit" class="btn btn-primary w-100 mb-0">
-                            <i class="fas fa-sync-alt me-1"></i> Filter
-                        </button>
+                        <button type="submit" class="btn btn-primary w-100 mb-0"><i class="fas fa-sync-alt me-1"></i> Filter</button>
                     </div>
                 </form>
             </div>
         </div>
 
         @if(!$dataKelas)
-            <div class="alert alert-warning text-white font-weight-bold" role="alert">
-                <i class="fas fa-exclamation-triangle me-2"></i> Data kelas tidak ditemukan.
-            </div>
+            <div class="alert alert-warning text-white font-weight-bold" role="alert"><i class="fas fa-exclamation-triangle me-2"></i> Data kelas tidak ditemukan.</div>
         @else
 
         {{-- HEADER BANNER --}}
@@ -63,10 +60,11 @@
                         <div class="row align-items-center text-white">
                             <div class="col-md-7">
                                 <h3 class="text-white font-weight-bold mb-1">{{ $dataKelas->kelas->nama_kelas }}</h3>
-                                <p class="text-white opacity-8 mb-2">
-                                    <i class="fas fa-user-tie me-2"></i> Wali Kelas: {{ $dataKelas->wali_kelas }}
-                                </p>
-                                <span class="badge bg-white text-primary fw-bold">Semester {{ $semester }} - {{ $tahun_ajaran }}</span>
+                                <p class="text-white opacity-8 mb-2"><i class="fas fa-user-tie me-2"></i> Wali Kelas: {{ $dataKelas->wali_kelas }}</p>
+                                
+                                <span class="badge border border-white text-white fw-bold bg-transparent">
+                                    Semester {{ $semester }} - {{ $tahun_ajaran }}
+                                </span>
                             </div>
                             <div class="col-md-5 text-end mt-4 mt-md-0">
                                 <div class="d-flex justify-content-md-end justify-content-between gap-4">
@@ -92,49 +90,34 @@
             </div>
         </div>
         
-        {{-- ================================================================== --}}
-        {{-- [BARU] AREA AKSI / TRIGGER (GENERATE RAPOR DENGAN GATEKEEPER) --}}
-        {{-- ================================================================== --}}
+        {{-- AREA AKSI / TRIGGER --}}
         <div class="row mb-4">
             <div class="col-12">
-                <div class="card shadow-sm border">
+                <div class="card shadow-sm border border-start-5 border-{{ $gate['color'] ?? 'primary' }}">
                     <div class="card-body d-flex justify-content-between align-items-center p-3">
-                        <div class="flex-grow-1 pe-4">
-                            <h5 class="mb-1 text-dark font-weight-bold">
-                                <i class="fas fa-file-signature me-2 text-primary"></i> Finalisasi Data Rapor
-                            </h5>
-                            
-                            {{-- PESAN DINAMIS DARI GATEKEEPER --}}
+                        <div class="pe-4">
+                            <h5 class="mb-1 text-dark font-weight-bold"><i class="fas fa-file-signature me-2 text-primary"></i> Finalisasi Data Rapor</h5>
                             @if($gate['allowed'])
-                                <p class="text-sm text-success font-weight-bold mb-0">
-                                    <i class="{{ $gate['icon'] }} me-1"></i> {{ $gate['message'] }}
-                                </p>
+                                <p class="text-sm text-{{ $gate['color'] }} font-weight-bold mb-0"><i class="{{ $gate['icon'] }} me-1"></i> {{ $gate['message'] }}</p>
                             @else
-                                <p class="text-sm text-danger font-weight-bold mb-0">
-                                    <i class="{{ $gate['icon'] }} me-1"></i> {{ $gate['message'] }}
-                                </p>
+                                <p class="text-sm text-danger font-weight-bold mb-0"><i class="{{ $gate['icon'] }} me-1"></i> {{ $gate['message'] }}</p>
                             @endif
                         </div>
-                        
                         <div>
-                            {{-- TOMBOL ACTION --}}
-                            <form action="{{ route('walikelas.generate.rapor.walikelas') }}" method="POST">
+                            {{-- FORM GENERATE --}}
+                            <form id="formGenerateRapor" action="{{ route('walikelas.generate.rapor.walikelas') }}" method="POST">
                                 @csrf
                                 <input type="hidden" name="id_kelas" value="{{ $dataKelas->kelas->id_kelas }}">
                                 <input type="hidden" name="tahun_ajaran" value="{{ $tahun_ajaran }}">
                                 <input type="hidden" name="semester" value="{{ $semester }}">
                                 
                                 @if($gate['allowed'])
-                                    {{-- TOMBOL AKTIF --}}
-                                    <button type="submit" class="btn btn-primary bg-gradient-primary btn-lg mb-0 shadow-primary" 
-                                        onclick="return confirm('Yakin ingin memfinalisasi Rapor untuk satu kelas ini? Data header rapor akan diperbarui.')">
-                                        <i class="fas fa-check-double me-2"></i> GENERATE SEKARANG
+                                    {{-- GANTI TYPE KE BUTTON DAN TAMBAH ONCLICK --}}
+                                    <button type="button" onclick="prosesGenerate()" class="btn btn-{{ $gate['color'] }} bg-gradient-{{ $gate['color'] }} btn-lg mb-0 shadow-sm">
+                                        <i class="fas fa-check-double me-2"></i> GENERATE RAPOR
                                     </button>
                                 @else
-                                    {{-- TOMBOL MATI (DISABLED) --}}
-                                    <button type="button" class="btn btn-secondary btn-lg mb-0 cursor-not-allowed" disabled>
-                                        <i class="fas fa-lock me-2"></i> GENERATE TERKUNCI
-                                    </button>
+                                    <button type="button" class="btn btn-secondary btn-lg mb-0 cursor-not-allowed" disabled><i class="fas fa-lock me-2"></i> GENERATE TERKUNCI</button>
                                 @endif
                             </form>
                         </div>
@@ -143,39 +126,29 @@
             </div>
         </div>
 
-        {{-- KONTEN TABEL --}}
+        {{-- KONTEN UTAMA --}}
         <div class="row">
             <div class="col-12">
                 <div class="card shadow-sm border">
                     <div class="card-header p-3 pb-0">
                         <ul class="nav nav-tabs border-bottom-0" id="waliTab" role="tablist">
-                            <li class="nav-item">
-                                <a class="nav-link active font-weight-bold" id="nilai-tab" data-bs-toggle="tab" href="#nilai" role="tab">
-                                    <i class="fas fa-book me-1 text-primary"></i> Status Nilai Mapel
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link font-weight-bold" id="catatan-tab" data-bs-toggle="tab" href="#catatan" role="tab">
-                                    <i class="fas fa-user-edit me-1 text-warning"></i> Status Catatan & Absen
-                                </a>
-                            </li>
+                            <li class="nav-item"><a class="nav-link active font-weight-bold" id="nilai-tab" data-bs-toggle="tab" href="#nilai" role="tab"><i class="fas fa-book me-1 text-primary"></i> Status Nilai Mapel</a></li>
+                            <li class="nav-item"><a class="nav-link font-weight-bold" id="catatan-tab" data-bs-toggle="tab" href="#catatan" role="tab"><i class="fas fa-user-edit me-1 text-warning"></i> Status Catatan & Absen</a></li>
                         </ul>
                     </div>
 
                     <div class="card-body p-0">
                         <div class="tab-content" id="waliTabContent">
-                            
-                            {{-- TAB 1: NILAI MAPEL --}}
                             <div class="tab-pane fade show active" id="nilai" role="tabpanel">
                                 <div class="table-responsive">
                                     <table class="table table-hover align-items-center mb-0">
                                         <thead class="bg-gray-100">
                                             <tr>
-                                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-3">Mata Pelajaran</th>
-                                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Guru Pengampu</th>
+                                                <th class="ps-3 text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Mata Pelajaran</th>
+                                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Guru Pengampu</th>
                                                 <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Progress Input</th>
                                                 <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Status</th>
-                                                <th class="text-secondary opacity-7"></th>
+                                                <th></th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -192,14 +165,16 @@
                                                     <div class="d-flex align-items-center justify-content-center">
                                                         <span class="me-2 text-xs font-weight-bold">{{ $m['persen'] }}%</span>
                                                         <div class="progress" style="width: 80px; height: 4px;">
-                                                            <div class="progress-bar bg-gradient-{{ $m['status'] == 'lengkap' ? 'success' : 'info' }}" role="progressbar" style="width: {{ $m['persen'] }}%"></div>
+                                                            <div class="progress-bar bg-gradient-{{ $m['persen'] >= 100 ? 'success' : 'info' }}" role="progressbar" style="width: {{ $m['persen'] }}%"></div>
                                                         </div>
                                                     </div>
                                                     <span class="text-xxs text-secondary">({{ $m['progress'] }} / {{ $m['total'] }} Siswa)</span>
                                                 </td>
                                                 <td class="align-middle text-center">
-                                                    @if($m['status'] == 'lengkap') <span class="badge badge-sm bg-gradient-success">SELESAI</span>
-                                                    @elseif($m['status'] == 'proses') <span class="badge badge-sm bg-gradient-warning">PROSES</span>
+                                                    @if($m['status'] == 'final') <span class="badge badge-sm bg-gradient-success">FINAL</span>
+                                                    @elseif($m['status'] == 'update') <span class="badge badge-sm bg-gradient-warning text-dark">UPDATE</span>
+                                                    @elseif($m['status'] == 'ready') <span class="badge badge-sm bg-gradient-info">SIAP</span>
+                                                    @elseif($m['status'] == 'proses') <span class="badge badge-sm bg-gradient-secondary">PROSES</span>
                                                     @else <span class="badge badge-sm bg-gradient-danger">KOSONG</span> @endif
                                                 </td>
                                                 <td class="align-middle text-center">
@@ -212,17 +187,16 @@
                                 </div>
                             </div>
 
-                            {{-- TAB 2: CATATAN WALI KELAS --}}
                             <div class="tab-pane fade" id="catatan" role="tabpanel">
                                 <div class="table-responsive p-0">
                                     <table class="table table-hover align-items-center mb-0">
                                         <thead class="bg-gray-100">
                                             <tr>
-                                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-3" style="width: 20%;">Siswa</th>
-                                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2" style="width: 20%;">Kokurikuler</th>
-                                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2" style="width: 25%;">Ekstrakurikuler</th>
+                                                <th class="ps-3 text-uppercase text-secondary text-xxs font-weight-bolder opacity-7" style="width: 20%;">Siswa</th>
+                                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7" style="width: 20%;">Kokurikuler</th>
+                                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7" style="width: 25%;">Ekstrakurikuler</th>
                                                 <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7" style="width: 15%;">Absensi</th>
-                                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Catatan</th>
+                                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Catatan</th>
                                                 <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7" style="width: 10%;">Status</th>
                                             </tr>
                                         </thead>
@@ -238,14 +212,15 @@
                                                 <td class="align-top py-3"><p class="text-xs font-weight-bold mb-0 text-dark text-wrap" style="max-width: 200px;">{{ $cat['kokurikuler'] }}</p></td>
                                                 <td class="align-top py-3"><span class="text-xs text-secondary d-block text-wrap">{!! $cat['ekskul_html'] !!}</span></td>
                                                 <td class="align-middle text-center align-top py-3">
-                                                    <span class="badge badge-sm bg-light text-dark border">
-                                                        S: <b class="text-danger">{{ $cat['sakit'] }}</b> | I: <b class="text-warning">{{ $cat['ijin'] }}</b> | A: <b class="text-dark">{{ $cat['alpha'] }}</b>
-                                                    </span>
+                                                    <span class="badge badge-sm bg-light text-dark border">S: <b class="text-danger">{{ $cat['sakit'] }}</b> | I: <b class="text-warning">{{ $cat['ijin'] }}</b> | A: <b class="text-dark">{{ $cat['alpha'] }}</b></span>
                                                 </td>
                                                 <td class="align-top py-3"><span class="text-xs text-secondary text-wrap d-block" style="max-width: 200px;" data-bs-toggle="tooltip" title="{{ $cat['catatan_full'] }}">{{ $cat['catatan_short'] }}</span></td>
                                                 <td class="align-middle text-center align-top py-3">
-                                                    @if($cat['status'] == 'ada') <i class="fas fa-check-circle text-success text-lg" data-bs-toggle="tooltip" title="Data Tersimpan"></i>
-                                                    @else <i class="fas fa-times-circle text-danger text-lg" data-bs-toggle="tooltip" title="Belum Input"></i> @endif
+                                                    @if($cat['status'] == 'final') <span class="badge badge-sm bg-gradient-success">FINAL</span>
+                                                    @elseif($cat['status'] == 'update') <span class="badge badge-sm bg-gradient-warning text-dark">UPDATE</span>
+                                                    @elseif($cat['status'] == 'ready') <span class="badge badge-sm bg-gradient-info">SIAP</span>
+                                                    @elseif($cat['status'] == 'proses') <span class="badge badge-sm bg-gradient-secondary">PROSES</span>
+                                                    @else <span class="badge badge-sm bg-gradient-danger">KOSONG</span> @endif
                                                 </td>
                                             </tr>
                                             @endforeach
@@ -253,21 +228,51 @@
                                     </table>
                                 </div>
                             </div>
-
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        
         @endif
-
     </div>
     <x-app.footer />
 </main>
 
+{{-- OVERLAY LOADING (DI LUAR MAIN) --}}
+<div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); justify-content: center; align-items: center; color: white; font-size: 1.5rem; z-index: 999999;">
+    <div class="d-flex flex-column align-items-center">
+        <div class="spinner-border text-light mb-3" style="width: 3rem; height: 3rem;" role="status"></div> 
+        <span>Sedang memproses...</span>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
+    // Tooltip Init
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) { return new bootstrap.Tooltip(tooltipTriggerEl) })
+
+    // FUNGSI MANUAL UNTUK GENERATE
+    function prosesGenerate() {
+        if (confirm('Apakah Anda yakin data sudah lengkap? Data Rapor akan digenerate dan dikunci.')) {
+            // 1. Tampilkan Overlay (Pakai display flex agar center)
+            $('#loadingOverlay').attr('style', 'display: flex !important; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); justify-content: center; align-items: center; color: white; font-size: 1.5rem; z-index: 999999;');
+            
+            // 2. Submit Form Secara Programmatik
+            setTimeout(function() {
+                document.getElementById('formGenerateRapor').submit();
+            }, 100); // Delay kecil agar browser sempat render overlay
+        }
+    }
+
+    $(document).ready(function() {
+        // Overlay untuk form lain (selain generate) jika ada
+        $('form').on('submit', function() {
+            if($(this).attr('method') === 'POST' && $(this).attr('id') !== 'formGenerateRapor'){
+                $('#loadingOverlay').attr('style', 'display: flex !important; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); justify-content: center; align-items: center; color: white; font-size: 1.5rem; z-index: 999999;');
+            }
+        });
+    });
 </script>
+
 @endsection
